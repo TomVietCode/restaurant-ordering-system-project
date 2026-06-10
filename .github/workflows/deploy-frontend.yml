@@ -11,21 +11,30 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: code/frontend/web-admin
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check web-admin exists
+        id: check
+        run: |
+          if [ -d "code/frontend/web-admin" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Use Node.js
+        if: steps.check.outputs.exists == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: Install dependencies
+        if: steps.check.outputs.exists == 'true'
         run: |
+          cd code/frontend/web-admin
           if [ -f package-lock.json ]; then
             npm ci
           else
@@ -33,9 +42,23 @@ jobs:
           fi
 
       - name: Build
-        run: npm run build --if-present
+        if: steps.check.outputs.exists == 'true'
+        run: |
+          cd code/frontend/web-admin
+          npm run build --if-present
 
-      - name: Deploy to GitHub Pages (gh-pages branch)
+      - name: Check build folder
+        id: check_build
+        if: steps.check.outputs.exists == 'true'
+        run: |
+          if [ -d "code/frontend/web-admin/build" ]; then
+            echo "build=true" >> $GITHUB_OUTPUT
+          else
+            echo "build=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to GitHub Pages
+        if: steps.check_build.outputs.build == 'true'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
