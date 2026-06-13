@@ -11,7 +11,7 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle('Restaurant Ordering System API')
     .setDescription(
-      'Backend API specifications and test panel for the F&B ordering system.'
+      'Backend API specifications and test panel for the F&B ordering system.',
     )
     .setVersion('1.0')
     .addBearerAuth(
