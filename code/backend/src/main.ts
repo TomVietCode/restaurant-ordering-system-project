@@ -1,8 +1,39 @@
 import { NestFactory } from '@nestjs/core';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.setGlobalPrefix('api');
+
+  // Configure Swagger API metadata and parameters
+  const config = new DocumentBuilder()
+    .setTitle('Restaurant Ordering System API')
+    .setDescription(
+      'Backend API specifications and test panel for the F&B ordering system.',
+    )
+    .setVersion('1.0')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter your JWT access token to access secured routes',
+        in: 'header',
+      },
+      'JWT-auth', // Key identifier for @ApiBearerAuth('JWT-auth') decorator link
+    )
+    .build();
+
+  // Instantiate the Swagger document factory
+  const documentFactory = () => SwaggerModule.createDocument(app, config);
+
+  // Serve Swagger UI documentation at /api/docs
+  SwaggerModule.setup('/api/docs', app, documentFactory);
+
   await app.listen(process.env.PORT ?? 3000);
 }
+
 bootstrap();
