@@ -1,11 +1,34 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { AppModule } from './app.module';
+import cookieParser from 'cookie-parser';
+import { AppModule } from './app.module.js';
+import { HttpExceptionFilter } from '@common/filters/http-exeption.filter.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.use(cookieParser());
+
   app.setGlobalPrefix('api');
+
+  // Enable CORS
+  app.enableCors({
+    origin: process.env.CORS_ORIGIN ?? 'http://localhost:3001',
+    credentials: true,
+  });
+
+  // Global validation pipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  // Global exception filter
+  app.useGlobalFilters(new HttpExceptionFilter());
 
   // Configure Swagger API metadata and parameters
   const config = new DocumentBuilder()
