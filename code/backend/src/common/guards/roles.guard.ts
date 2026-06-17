@@ -5,8 +5,8 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '../decorators/roles.decorator.js';
-import { Role } from '../enums.js';
+import { ROLES_KEY } from '@common/decorators/roles.decorator.js';
+import { Role } from '@common/enums.js';
 
 /**
  * Global role-based access control guard.
@@ -46,7 +46,7 @@ export class RolesGuard implements CanActivate {
     const hasRole = requiredRoles.includes(user.role);
 
     if (!hasRole) {
-      throw new ForbiddenException('Access denied: insufficient permissions');
+      throw new ForbiddenException('Access denied');
     }
 
     return true;

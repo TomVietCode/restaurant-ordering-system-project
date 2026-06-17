@@ -4,7 +4,7 @@ import type { Response } from 'express';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { TokenResponseDto } from './dto/token-response.dto.js';
-import { Public, CurrentUser, Cookies } from '../common/decorators/index.js';
+import { Public, CurrentUser, Cookies } from '@common/decorators/index.js';
 
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,

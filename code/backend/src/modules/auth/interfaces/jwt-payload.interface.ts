@@ -1,4 +1,4 @@
-import { Role } from '../../common/enums.js';
+import { Role } from '@common/enums.js';
 
 export interface IJwtPayload {
   sub: number;

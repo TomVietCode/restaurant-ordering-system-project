@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UsersModule } from '../users/users.module.js';
+import { UsersModule } from '@modules/users/users.module.js';
 import { RefreshToken } from './entities/refresh-token.entity.js';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository.js';
 import { AuthService, REFRESH_TOKEN_REPOSITORY_TOKEN } from './auth.service.js';

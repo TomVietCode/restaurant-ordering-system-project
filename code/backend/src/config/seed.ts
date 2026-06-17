@@ -1,7 +1,7 @@
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
-import { User } from '../users/entities/user.entity.js';
-import { Role } from '../common/enums.js';
+import { User } from '@modules/users/entities/user.entity.js';
+import { Role } from '@common/enums.js';
 
 /**
  * Seed script — creates a default Owner account if no users exist.

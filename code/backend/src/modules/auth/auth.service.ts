@@ -3,15 +3,15 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
-import { UsersService } from '../users/users.service.js';
+import { UsersService } from '@modules/users/users.service.js';
 import type { IRefreshTokenRepository } from './repositories/refresh-token.repository.interface.js';
 import { RefreshToken } from './entities/refresh-token.entity.js';
 import { IJwtPayload } from './interfaces/jwt-payload.interface.js';
 import { ITokens } from './interfaces/tokens.interface.js';
 import { LoginDto } from './dto/login.dto.js';
-import { User } from '../users/entities/user.entity.js';
+import { User } from '@modules/users/entities/user.entity.js';
 import { InjectionToken } from '@nestjs/common';
-import { parseDurationToSeconds } from '../common/helpers/date.js';
+import { parseDurationToSeconds } from '@common/helpers/date.js';
 
 export const REFRESH_TOKEN_REPOSITORY_TOKEN: InjectionToken<IRefreshTokenRepository> = Symbol('IRefreshTokenRepository');
 

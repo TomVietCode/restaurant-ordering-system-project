@@ -1,5 +1,5 @@
 import { SetMetadata } from '@nestjs/common';
-import { Role } from '../enums.js';
+import { Role } from '@common/enums.js';
 
 /**
  * Metadata key used by RolesGuard to check required roles.

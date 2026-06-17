@@ -4,11 +4,11 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import configuration from './config/configuration.js';
-import { AuthModule } from './auth/auth.module.js';
-import { UsersModule } from './users/users.module.js';
-import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
-import { RolesGuard } from './common/guards/roles.guard.js';
+import configuration from '@config/configuration.js';
+import { AuthModule } from '@modules/auth/auth.module.js';
+import { UsersModule } from '@modules/users/users.module.js';
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '@common/guards/roles.guard.js';
 
 @Module({
   imports: [

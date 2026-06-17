@@ -1,4 +1,4 @@
-import { RefreshToken } from '../entities/refresh-token.entity.js';
+import { RefreshToken } from '@modules/auth/entities/refresh-token.entity.js';
 
 export interface IRefreshTokenRepository {
   findByUserId(userId: number): Promise<RefreshToken | null>;

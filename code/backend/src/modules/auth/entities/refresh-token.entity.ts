@@ -5,7 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { User } from '../../users/entities/user.entity.js';
+import { User } from '@modules/users/entities/user.entity.js';
 
 /**
  * Token lifecycle:
