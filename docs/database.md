@@ -45,18 +45,20 @@ Represents a physical dining table in the restaurant.
 | Column | Type | Constraint | Description |
 |---|---|---|---|
 | `id` | `CHAR(36)` | `PK` | UUID v4 — used by frontend to generate QR code dynamically. **QR is never stored in the database.** |
-| `table_number` | `INT` | `NOT NULL, UNIQUE` | Human-readable table number shown to staff (e.g. 1, 2, 3). Must be unique across the store. |
+| `name` | `VARCHAR(100)` | `NOT NULL, UNIQUE` | Human-readable table name shown to staff (e.g. "Bàn 01", "Bàn VIP 01"). Must be unique across the store. |
+| `capacity` | `INT` | `NULLABLE` | Seating capacity of the table (e.g. 2, 4, 8). |
 | `is_available` | `BOOLEAN` | `NOT NULL, DEFAULT TRUE` | `TRUE` = table is free; `FALSE` = table is occupied or reserved. |
 
 **Design notes:**
 - `table_id` is a UUID (`CHAR(36)`, format `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`). The frontend reads this ID and draws the QR code client-side — no QR image or URL is persisted.
-- `table_number` is the staff-facing label. It is separate from `table_id` so the UUID can be rotated (security reset) without renumbering tables.
+- `name` is the staff-facing label. It is separate from `table_id` so the UUID can be rotated (security reset) without renaming tables.
 - There is no `qr_code` column. QR generation is entirely a frontend concern.
 
 ```sql
 CREATE TABLE `table` (
     id     CHAR(36)    PRIMARY KEY DEFAULT (UUID()),
-    table_number INT         NOT NULL UNIQUE,
+    name   VARCHAR(100) NOT NULL UNIQUE,
+    capacity     INT,
     is_available BOOLEAN     NOT NULL DEFAULT TRUE
 );
 ```
@@ -258,8 +260,8 @@ CREATE TABLE refreshtoken (
 ### 1. UUID for `table_id`, not AUTO_INCREMENT integer
 `table_id` is a `CHAR(36)` UUID. The frontend uses this UUID directly as input to generate a QR code (e.g. encode `https://order.example.com/table/{table_id}` into a QR image). This means:
 - No QR image or URL is stored server-side.
-- If a table's QR needs to be invalidated (e.g. a printed QR is stolen), the backend generates a new UUID for that table without renumbering.
-- `table_number` stays stable as the human-facing label.
+- If a table's QR needs to be invalidated (e.g. a printed QR is stolen), the backend generates a new UUID for that table without renaming.
+- `name` stays stable as the human-facing label.
 
 ### 2. `price_at_order` snapshot in ORDERITEM
 `ITEM.price` can change over time. `ORDERITEM.price_at_order` captures the price at the moment the item was added to the order. This ensures historical orders always reflect what the customer was actually charged.
@@ -299,7 +301,7 @@ CREATE INDEX idx_item_category  ON item(category_id);
 
 | Rule | Enforced by |
 |---|---|
-| Each table number is unique | `UNIQUE` on `TABLE.table_number` |
+| Each table name is unique | `UNIQUE` on `TABLE.name` |
 | One token per user | `UNIQUE` on `USERTOKEN.user_id` |
 | Order item quantity must be positive | `CHECK (quantity > 0)` on `ORDERITEM.quantity` |
 | Price never negative | Application layer + optional `CHECK (price >= 0)` |
