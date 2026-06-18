@@ -27,5 +27,5 @@ export const AUTH_ENDPOINTS = {
 /** Landing route per role after a successful login (FR-01.1). */
 export const ROLE_HOME: Record<Role, string> = {
   [Role.OWNER]: ROUTES.dashboard,
-  [Role.STAFF]: ROUTES.orders,
+  [Role.STAFF]: ROUTES.kitchen,
 };
