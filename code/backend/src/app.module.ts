@@ -7,6 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import configuration from '@config/configuration.js';
 import { AuthModule } from '@modules/auth/auth.module.js';
 import { UsersModule } from '@modules/users/users.module.js';
+import { CategoriesModule } from '@modules/categories/categories.module.js';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '@common/guards/roles.guard.js';
 
@@ -32,6 +33,7 @@ import { RolesGuard } from '@common/guards/roles.guard.js';
     }),
     AuthModule,
     UsersModule,
+    CategoriesModule,
   ],
   controllers: [AppController],
   providers: [
