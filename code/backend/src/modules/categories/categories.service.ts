@@ -15,10 +15,10 @@ export class CategoriesService {
   ) {}
 
   async create(dto: CreateCategoryDto): Promise<Category> {
-    if(await this.categoryRepository.existsByName(dto.name)) {
-      throw new ConflictException('Category name already exists');
-    }
-    return this.categoryRepository.savePartial(dto);
+    await this.existsByName(dto.name);
+    const category = new Category();
+    Object.assign(category, dto);
+    return this.categoryRepository.save(category);
   }
 
   async findAll(): Promise<Category[]> {
@@ -34,6 +34,9 @@ export class CategoriesService {
   }
 
   async update(id: number, dto: UpdateCategoryDto): Promise<Category | null> {
+    if(dto.name) {
+      await this.existsByName(dto.name);
+    }
     const category = await this.categoryRepository.findById(id);
     if (!category) {
       throw new NotFoundException('Category not found');
@@ -52,5 +55,11 @@ export class CategoriesService {
       console.warn('ItemService hasnt been implemented yet, skipping check for associated items');
     }
     await this.categoryRepository.delete(id);
+  }
+
+  async existsByName(name: string): Promise<void> {
+    if(!await this.categoryRepository.findByName(name)) {
+      throw new ConflictException('Category name already exists');
+    }
   }
 }

@@ -1,14 +1,16 @@
-import { Controller, Get, Post, Put, Delete, Param, Body } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards, Patch } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiResponseCommonMetadata } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service.js';
 import { Category } from './entities/category.entity.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { UpdateCategoryDto } from './dto/update-category.dto.js';
-import { Public } from '@common/decorators/index.js';
+import { ApiResponseDto } from '@common/dtos/api-response.dto.js';
+import { Roles } from '@common/decorators/roles.decorator.js';
+import { Role } from '@common/enums.js';
 
 @ApiTags('Categories')
 @Controller('categories')
-@Public()
+@Roles(Role.OWNER)
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
@@ -25,8 +27,8 @@ export class CategoriesController {
     status: 409,
     description: 'Category name already exists',
   })
-  async create(@Body() dto: CreateCategoryDto): Promise<Category> {
-    return this.categoriesService.create(dto);
+  async create(@Body() dto: CreateCategoryDto): Promise<ApiResponseDto<Category>> {
+    return ApiResponseDto.success(await this.categoriesService.create(dto));
   }
 
 
@@ -36,8 +38,8 @@ export class CategoriesController {
     status: 200, 
     description: 'List of categories', type: [Category] 
   })
-  async findAll(): Promise<Category[]> {
-    return this.categoriesService.findAll();
+  async findAll(): Promise<ApiResponseDto<Category[]>> {
+    return ApiResponseDto.success(await this.categoriesService.findAll());
   }
 
   @Get(':id')
@@ -50,11 +52,11 @@ export class CategoriesController {
     status: 404,
     description: 'Category not found',
   })
-  async findById(@Param('id') id: number): Promise<Category | null> {
-    return this.categoriesService.findById(id);
+  async findById(@Param('id') id: number): Promise<ApiResponseDto<Category | null>> {
+    return ApiResponseDto.success(await this.categoriesService.findById(id));
   }
 
-  @Put(':id')
+  @Patch(':id')
   @ApiOperation({ summary: 'Update category by ID' })
   @ApiResponse({ 
     status: 200, 
@@ -64,8 +66,8 @@ export class CategoriesController {
     status: 404,
     description: 'Category not found',
   })
-  async update(@Param('id') id: number, @Body() dto: UpdateCategoryDto): Promise<Category | null> {
-    return this.categoriesService.update(id, dto);
+  async update(@Param('id') id: number, @Body() dto: UpdateCategoryDto): Promise<ApiResponseDto<Category | null>> {
+    return ApiResponseDto.success(await this.categoriesService.update(id, dto));
   }
 
   @Delete(':id')
@@ -78,7 +80,8 @@ export class CategoriesController {
     status: 404,
     description: 'Category not found',
   })
-  async delete(@Param('id') id: number): Promise<void> {
-    return this.categoriesService.delete(id);
+  async delete(@Param('id') id: number): Promise<ApiResponseDto<void>> {
+    await this.categoriesService.delete(id);
+    return ApiResponseDto.success(undefined);
   }
 }

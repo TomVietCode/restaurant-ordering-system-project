@@ -18,13 +18,7 @@ export class CategoryRepository
 
   }
 
-  // Thêm hàm riêng cho Category
-  async savePartial(dto: Partial<Category>): Promise<Category> {
-    return await this.categoryRepo.save(dto);
-  }
-
-  async existsByName(name: string): Promise<boolean> {
-    const count = await this.categoryRepo.count({ where: { name } });
-    return count > 0;
+  async findByName(name: string): Promise<Category | null> {
+    return await this.categoryRepo.findOne({ where: { name } });
   }
 }
