@@ -30,9 +30,9 @@ jobs:
           context: ./code/backend
           push: true
           tags: |
-            ghcr.io/tom-viet-code/ioc-backend:latest 
-            ghcr.io/tom-viet-code/ioc-backend:${{ github.ref_name }} 
+            ghcr.io/tomvietcode/ioc-backend:latest
+            ghcr.io/tomvietcode/ioc-backend:${{ github.ref_name }}
 
       - name: Output image name
         run: |
-          echo "Image pushed: ghcr.io/tom-viet-code/ioc-backend:latest" 
+          echo "Image pushed: ghcr.io/tomvietcode/ioc-backend:latest" 
