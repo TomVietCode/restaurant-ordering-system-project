@@ -58,7 +58,7 @@ export class CategoriesService {
   }
 
   async existsByName(name: string): Promise<void> {
-    if(!await this.categoryRepository.findByName(name)) {
+    if(await this.categoryRepository.findByName(name)) {
       throw new ConflictException('Category name already exists');
     }
   }
