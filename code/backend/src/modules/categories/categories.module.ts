@@ -5,7 +5,6 @@ import { CategoryRepository } from './repositories/category.repository.js';
 import { CategoriesService, CATEGORY_REPOSITORY_TOKEN } from './categories.service.js';
 import { CategoriesController } from './categories.controller.js';
 
-
 @Module({
   imports: [TypeOrmModule.forFeature([Category])],
   controllers: [CategoriesController],
@@ -19,5 +18,4 @@ import { CategoriesController } from './categories.controller.js';
   ],
   exports: [CategoriesService],
 })
-
 export class CategoriesModule {}

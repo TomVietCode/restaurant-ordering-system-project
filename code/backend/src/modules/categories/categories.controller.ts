@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards, Patch } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiResponseCommonMetadata } from '@nestjs/swagger';
+import { Controller, Get, Post, Delete, Param, Body, Patch } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service.js';
 import { Category } from './entities/category.entity.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
@@ -10,15 +10,18 @@ import { Role } from '@common/enums.js';
 
 @ApiTags('Categories')
 @Controller('categories')
+@ApiBearerAuth('JWT-auth')
 @Roles(Role.OWNER)
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new category' })
-  @ApiResponse({ 
-    status: 201, 
-    description: 'Category created successfully', type: Category })
+  @ApiResponse({
+    status: 201,
+    description: 'Category created successfully',
+    type: Category,
+  })
   @ApiResponse({
     status: 400,
     description: 'Validation error',
@@ -31,12 +34,12 @@ export class CategoriesController {
     return ApiResponseDto.success(await this.categoriesService.create(dto));
   }
 
-
   @Get()
   @ApiOperation({ summary: 'Get all categories' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'List of categories', type: [Category] 
+  @ApiResponse({
+    status: 200,
+    description: 'List of categories',
+    type: [Category],
   })
   async findAll(): Promise<ApiResponseDto<Category[]>> {
     return ApiResponseDto.success(await this.categoriesService.findAll());
@@ -44,9 +47,10 @@ export class CategoriesController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get category by ID' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Category found', type: Category 
+  @ApiResponse({
+    status: 200,
+    description: 'Category found',
+    type: Category,
   })
   @ApiResponse({
     status: 404,
@@ -58,9 +62,10 @@ export class CategoriesController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update category by ID' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Category updated', type: Category 
+  @ApiResponse({
+    status: 200,
+    description: 'Category updated',
+    type: Category,
   })
   @ApiResponse({
     status: 404,
@@ -72,9 +77,9 @@ export class CategoriesController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete category by ID' })
-  @ApiResponse({ 
-    status: 204, 
-    description: 'Category deleted' 
+  @ApiResponse({
+    status: 204,
+    description: 'Category deleted',
   })
   @ApiResponse({
     status: 404,

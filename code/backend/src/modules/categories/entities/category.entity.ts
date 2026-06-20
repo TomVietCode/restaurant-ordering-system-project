@@ -5,7 +5,7 @@ export class Category {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({  type: 'varchar', length: 100, nullable: false, unique: true })
+  @Column({ type: 'varchar', length: 100, nullable: false, unique: true })
   name: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
@@ -13,7 +13,7 @@ export class Category {
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
-  
+
   @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }
