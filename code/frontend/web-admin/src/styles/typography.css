@@ -1,0 +1,76 @@
+/**
+ * Typography — thang chữ & style nền cho Web Admin.
+ *
+ * Font Geist được next/font nạp trong layout.tsx (biến --font-geist-sans/mono).
+ * Khối @theme expose thang chữ semantic → utilities `text-h1`..`text-caption`.
+ */
+
+@theme {
+  /* Font family — nối Tailwind font-sans/mono vào biến Geist. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-heading: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+
+  /* Thang chữ semantic (size · line-height · weight). */
+  --text-h1: 1.875rem; /* 30px */
+  --text-h1--line-height: 2.25rem;
+  --text-h1--font-weight: 700;
+
+  --text-h2: 1.5rem; /* 24px */
+  --text-h2--line-height: 2rem;
+  --text-h2--font-weight: 700;
+
+  --text-h3: 1.25rem; /* 20px */
+  --text-h3--line-height: 1.75rem;
+  --text-h3--font-weight: 600;
+
+  --text-h4: 1.125rem; /* 18px */
+  --text-h4--line-height: 1.5rem;
+  --text-h4--font-weight: 600;
+
+  --text-body: 0.875rem; /* 14px — cỡ chữ nền cho admin */
+  --text-body--line-height: 1.5rem;
+
+  --text-caption: 0.75rem; /* 12px — chú thích / text phụ */
+  --text-caption--line-height: 1rem;
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: 1.5rem;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+    color: var(--foreground);
+    text-wrap: balance;
+  }
+
+  h1 {
+    font-size: var(--text-h1);
+    line-height: 2.25rem;
+    font-weight: 700;
+  }
+  h2 {
+    font-size: var(--text-h2);
+    line-height: 2rem;
+    font-weight: 700;
+  }
+  h3 {
+    font-size: var(--text-h3);
+    line-height: 1.75rem;
+    font-weight: 600;
+  }
+  h4 {
+    font-size: var(--text-h4);
+    line-height: 1.5rem;
+    font-weight: 600;
+  }
+}
