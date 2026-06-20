@@ -10,6 +10,7 @@ import { UsersModule } from '@modules/users/users.module.js';
 import { CategoriesModule } from '@modules/categories/categories.module.js';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '@common/guards/roles.guard.js';
+import { TableModule } from './modules/tables/table.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { RolesGuard } from '@common/guards/roles.guard.js';
     AuthModule,
     UsersModule,
     CategoriesModule,
+    TableModule,
   ],
   controllers: [AppController],
   providers: [
