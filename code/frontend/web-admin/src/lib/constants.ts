@@ -6,14 +6,16 @@ export const API_BASE_URL =
 
 /** Web Admin route paths. */
 export const ROUTES = {
-  login: '/login',
+  login: '/', // trang đăng nhập = trang chủ (nhóm (auth))
   dashboard: '/dashboard',
   menu: '/menu',
   tables: '/tables',
   orders: '/orders',
   revenue: '/revenue',
-  staff: '/staff',
+  staff: '/staffs',
   kitchen: '/kitchen',
+  cashier: '/cashier',
+  select: '/select-role',
 } as const;
 
 /** Backend auth endpoints (relative to `API_BASE_URL`). */
@@ -27,5 +29,5 @@ export const AUTH_ENDPOINTS = {
 /** Landing route per role after a successful login (FR-01.1). */
 export const ROLE_HOME: Record<Role, string> = {
   [Role.OWNER]: ROUTES.dashboard,
-  [Role.STAFF]: ROUTES.kitchen,
+  [Role.STAFF]: ROUTES.select, // staff phải chọn vai trò (bếp hoặc thu ngân) sau khi đăng nhập
 };

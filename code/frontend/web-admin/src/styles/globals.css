@@ -1,0 +1,27 @@
+/**
+ * Global stylesheet — điểm vào CSS của app.
+ *
+ * Thứ tự bắt buộc: mọi @import phải đứng đầu file.
+ *   1. Tailwind core + plugin
+ *   2. Theme (bảng màu) & Typography của dự án
+ * Sau đó tới custom variant và lớp base reset.
+ */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "./theme.css";
+@import "./typography.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
