@@ -53,20 +53,29 @@ export class TableService {
     if (dto.capacity !== undefined) {
       table.capacity = dto.capacity;
     }
+
+    if (dto.isAvailable !== undefined) {
+      if(!dto.isAvailable) {
+        const hasActive = await this.orderCheckService.hasActiveOrders(id);
+        if (hasActive) {
+          throw new BadRequestException('Cannot set table status to unavailable while it has active orders');
+        }
+      }
+      table.isAvailable = dto.isAvailable
+    }
     return this.tableRepository.save(table);
   }
 
   async remove(id: string): Promise<void> {
     // Verify the table exists first
     await this.findById(id);
-    
+
     // Check if the table has active orders
     const hasActive = await this.orderCheckService.hasActiveOrders(id);
     if (hasActive) {
-      throw new BadRequestException(
-        'Cannot delete table that has active orders',
-      );
+      throw new BadRequestException('Cannot delete table that has active orders');
     }
     await this.tableRepository.delete(id);
   }
+
 }

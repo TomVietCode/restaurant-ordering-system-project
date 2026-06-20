@@ -1,12 +1,11 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { TableRepository } from './repositories/table.repository.js';
-import { Table } from 'typeorm';
-import { TableController } from './table.controller.js';
-import { ORDER_CHECK_SERVICE_TOKEN, TABLE_REPO_TOKEN } from '@common/constants.js';
-import { OrderCheckStub } from './order-check.stub.js';
-import { TableService } from './table.service.js';
-
+import { TableRepository } from './repositories/table.repository';
+import { Table } from './table.entity';
+import { TableController } from './table.controller';
+import { ORDER_CHECK_SERVICE_TOKEN, TABLE_REPO_TOKEN } from '@common/constants';
+import { OrderCheckStub } from './order-check.stub';
+import { TableService } from './table.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Table])],

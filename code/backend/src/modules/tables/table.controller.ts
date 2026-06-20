@@ -1,10 +1,14 @@
 import { Roles } from '@common/decorators';
 import { Role } from '@common/enums';
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, ParseUUIDPipe, NotFoundException } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { TableService } from './table.service';
 import { CreateTableDto, TableResponseDto, UpdateTableDto } from './repositories/dtos';
 import { ApiResponseDto } from '@common/dtos/api-response.dto';
+
+const ParseTableUUID = new ParseUUIDPipe({
+  exceptionFactory: () => new NotFoundException('Table not found'),
+});
 
 @ApiTags('Tables')
 @ApiBearerAuth('JWT-auth')
@@ -36,7 +40,7 @@ export class TableController {
   @ApiParam({ name: 'id', description: 'Table UUID' })
   @ApiResponse({ status: 200, description: 'Table found', type: TableResponseDto })
   @ApiResponse({ status: 404, description: 'Table not found' })
-  async findOne(@Param('id') id: string): Promise<ApiResponseDto<TableResponseDto>> {
+  async findOne(@Param('id', ParseTableUUID) id: string): Promise<ApiResponseDto<TableResponseDto>> {
     const table = await this.tablesService.findById(id);
     return ApiResponseDto.success(table);
   }
@@ -47,7 +51,10 @@ export class TableController {
   @ApiResponse({ status: 200, description: 'Table updated successfully', type: TableResponseDto })
   @ApiResponse({ status: 404, description: 'Table not found' })
   @ApiResponse({ status: 409, description: 'Table name already exists' })
-  async update(@Param('id') id: string, @Body() dto: UpdateTableDto): Promise<ApiResponseDto<TableResponseDto>> {
+  async update(
+    @Param('id', ParseTableUUID) id: string,
+    @Body() dto: UpdateTableDto,
+  ): Promise<ApiResponseDto<TableResponseDto>> {
     const table = await this.tablesService.update(id, dto);
     return ApiResponseDto.success(table, 'Table updated successfully');
   }
@@ -59,7 +66,7 @@ export class TableController {
   @ApiResponse({ status: 200, description: 'Table deleted successfully' })
   @ApiResponse({ status: 400, description: 'Table has unpaid orders — cannot delete' })
   @ApiResponse({ status: 404, description: 'Table not found' })
-  async remove(@Param('id') id: string): Promise<ApiResponseDto<null>> {
+  async remove(@Param('id', ParseTableUUID) id: string): Promise<ApiResponseDto<null>> {
     await this.tablesService.remove(id);
     return ApiResponseDto.success(null, 'Delete table successfully');
   }

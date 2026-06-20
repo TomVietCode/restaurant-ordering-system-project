@@ -10,6 +10,6 @@ import type { IOrderCheckService } from '@common/interfaces/order-check.interfac
 @Injectable()
 export class OrderCheckStub implements IOrderCheckService {
   async hasActiveOrders(_tableId: string): Promise<boolean> {
-    return false;
+    return true;
   }
 }

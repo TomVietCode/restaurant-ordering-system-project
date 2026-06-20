@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from "@nestjs/swagger";
-import { IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from "class-validator";
+import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from "class-validator";
 
 export class CreateTableDto {
   @ApiPropertyOptional({
@@ -21,10 +21,18 @@ export class CreateTableDto {
   @IsInt({ message: 'Capacity must be an integer' })
   @Min(1, { message: 'Capacity must be greater than 0' })
   capacity?: number;
+
+  @ApiProperty({
+    description: 'Whether the table is currently free (default: true)',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isAvailable?: boolean = true;
 }
 
 export class UpdateTableDto extends PartialType(CreateTableDto) {}
-
 
 export class TableResponseDto {
   @ApiProperty({ description: 'UUID of the table (used by frontend to generate QR)', example: 'a1b2c3d4-...' })
