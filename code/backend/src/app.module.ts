@@ -11,6 +11,7 @@ import { CategoriesModule } from '@modules/categories/categories.module.js';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '@common/guards/roles.guard.js';
 import { TableModule } from './modules/tables/table.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { TableModule } from './modules/tables/table.module';
     UsersModule,
     CategoriesModule,
     TableModule,
+    UploadsModule,
   ],
   controllers: [AppController],
   providers: [

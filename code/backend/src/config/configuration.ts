@@ -16,4 +16,11 @@ export default () => ({
     accessExpiration: process.env.JWT_ACCESS_EXPIRATION,
     refreshExpiration: process.env.JWT_REFRESH_EXPIRATION,
   },
+  s3: {
+    endpoint: process.env.S3_ENDPOINT,
+    bucket: process.env.S3_BUCKET,
+    accessKey: process.env.S3_ACCESS_KEY,
+    secretKey: process.env.S3_SECRET_KEY,
+    region: process.env.S3_REGION,
+  },
 });
