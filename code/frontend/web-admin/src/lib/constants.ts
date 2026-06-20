@@ -6,7 +6,7 @@ export const API_BASE_URL =
 
 /** Web Admin route paths. */
 export const ROUTES = {
-  login: '/', // trang đăng nhập = trang chủ (nhóm (auth))
+  login: '/login', 
   dashboard: '/dashboard',
   menu: '/menu',
   tables: '/tables',
