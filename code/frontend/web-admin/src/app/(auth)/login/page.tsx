@@ -1,7 +1,7 @@
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { redirect } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -67,6 +67,9 @@ export default async function LoginPage(props: {
             <Button type="submit" size="lg" className="w-full">
               Đăng nhập
             </Button>
+
+            <p className="text-center text-xs text-muted-foreground">quên thì bảo chủ quán</p>
+
           </form>
         </CardContent>
       </Card>
