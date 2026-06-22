@@ -7,5 +7,6 @@ export interface IBaseRepository<T> {
   save(entity: T): Promise<T>
   saveMany(entities: T[]): Promise<T[]>
   delete(id: number | string): Promise<void>
+  softDelete(id: number | string): Promise<void>
   exists(id: number | string): Promise<boolean>
 }
