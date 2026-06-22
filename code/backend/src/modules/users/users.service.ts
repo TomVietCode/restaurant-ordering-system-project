@@ -54,8 +54,8 @@ export class UsersService {
     }
 
     const createdUser = await this.userRepository.save(user);
-    const userResponse: UserResponseDto = Object.assign(new UserResponseDto(), createdUser);
-    return userResponse;
+    const { passwordHash, ...userResponse } = createdUser;
+    return userResponse as UserResponseDto;
   }
 
   async findAll(): Promise<UserResponseDto[]> {
@@ -73,7 +73,6 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
-    Object.assign(user, dto);
 
     if (dto.email && dto.email !== user.email) {
       //nếu dto có nhập email mới, khác email cũ thì check trùng email
@@ -84,13 +83,10 @@ export class UsersService {
       user.email = dto.email;
     }
 
-    if (user.role === Role.OWNER && dto.role && dto.role !== Role.OWNER) {
-      throw new BadRequestException('Cannot change role of an OWNER user');
-    }
-
+    Object.assign(user, dto);
     const updatedUser = await this.userRepository.save(user);
-    const userResponse: UserResponseDto = Object.assign(new UserResponseDto(), updatedUser);
-    return userResponse;
+    const { passwordHash, ...userResponse } = updatedUser;
+    return userResponse as UserResponseDto;
   }
 
   async remove(id: number): Promise<void> {
