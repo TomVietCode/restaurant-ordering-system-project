@@ -67,3 +67,32 @@ export class UserResponseDto {
   @ApiProperty({ description: 'Indicates if the user is active', example: true })
   isActive: boolean;
 }
+
+export class ChangePasswordDto {
+  @ApiProperty({
+    description: 'Old password of the user',
+    example: 'strongPassword123',
+    minLength: 6,
+  })
+  @IsString()
+  @MinLength(6)
+  oldPassword: string;
+
+  @ApiProperty({
+    description: 'New password of the user',
+    example: 'newPassword123',
+    minLength: 6,
+  })
+  @IsString()
+  @MinLength(6)
+  newPassword: string;
+
+  @ApiProperty({
+    description: 'Confirm new password of the user',
+    example: 'newPassword123',
+    minLength: 6,
+  })
+  @IsString()
+  @MinLength(6)
+  confirmNewPassword: string;
+}

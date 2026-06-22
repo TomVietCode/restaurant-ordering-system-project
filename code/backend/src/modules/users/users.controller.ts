@@ -3,7 +3,7 @@ import { Role } from '@common/enums';
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, NotFoundException } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service.js';
-import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/dtos.js';
+import { ChangePasswordDto, CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/dtos.js';
 import { ApiResponseDto } from '@common/dtos/api-response.dto';
 
 
@@ -59,6 +59,21 @@ export class UserController {
   ): Promise<ApiResponseDto<UserResponseDto>> {
     const userResponse = await this.userService.update(id, dto);
     return ApiResponseDto.success(userResponse, 'User updated successfully');
+  }
+
+  @Patch(':id/change-password')
+  @ApiOperation({ summary: 'Change user password' })
+  @ApiParam({ name: 'id', description: 'User id' })
+  @ApiResponse({ status: 200, description: 'User updated successfully'})
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 409, description: 'Password is incorrect' })
+  @ApiResponse({ status: 400, description: 'User not active or new password does not match confirm new password' })
+  async changePassword(
+    @Param('id') id: number,
+    @Body() dto: ChangePasswordDto,
+  ): Promise<ApiResponseDto<null>> {
+    await this.userService.changePassword(id, dto);
+    return ApiResponseDto.success(null, 'Password changed successfully');
   }
 
   @Delete(':id')

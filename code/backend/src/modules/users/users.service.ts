@@ -10,11 +10,10 @@ import {
 } from '@nestjs/common';
 import { User } from './entities/user.entity.js';
 import type { IUserRepository } from './repositories/user.repository.interface.js';
-import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/dtos.js';
+import { CreateUserDto, UpdateUserDto, UserResponseDto, ChangePasswordDto } from './dto/dtos.js';
 import { Role } from '@common/enums.js';
 import { AuthService } from '@modules/auth/auth.service.js';
 import * as bcrypt from 'bcryptjs';
-import { plainToInstance } from 'class-transformer';
 
 /**
  * Dependency injection token for UserRepository.
@@ -46,11 +45,11 @@ export class UsersService {
     user.passwordHash = await bcrypt.hash(dto.password, 10);
 
     if (await this.findByEmail(dto.email)) {
-      throw new ConflictException(`User with email ${dto.email} already exists`);
+      throw new ConflictException(`Email already exists`);
     }
 
     if (dto.phone && (await this.userRepository.findByPhone(dto.phone))) {
-      throw new ConflictException(`User with phone ${dto.phone} already exists`);
+      throw new ConflictException(`Phone already exists`);
     }
 
     const createdUser = await this.userRepository.save(user);
@@ -71,7 +70,7 @@ export class UsersService {
   async update(id: number, dto: UpdateUserDto): Promise<UserResponseDto> {
     const user = await this.findById(id);
     if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new NotFoundException(`User not found`);
     }
 
     if (dto.email && dto.email !== user.email) {
@@ -81,6 +80,10 @@ export class UsersService {
         throw new ConflictException('Email already exists');
       }
       user.email = dto.email;
+    }
+
+    if(dto.password){
+      throw new BadRequestException('Cannot update password through this endpoint');
     }
 
     Object.assign(user, dto);
@@ -98,11 +101,29 @@ export class UsersService {
       throw new BadRequestException(`Cannot delete user with OWNER role`);
     }
     if (user.isActive === false) {
-      throw new BadRequestException(`User not found`);
+      throw new BadRequestException(`User not active`);
     }
     user.isActive = false;
     await this.userRepository.save(user);
 
     this.authService.logout(user.id);
+  }
+
+  async changePassword(id: number, dto: ChangePasswordDto): Promise<void> {
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException(`User not found`);
+    }
+    if(user.isActive === false){
+      throw new BadRequestException(`User not active`);
+    }
+    if(!(await bcrypt.compare(dto.oldPassword, user.passwordHash))){
+      throw new ForbiddenException('Old password is incorrect');
+    }
+    if(dto.newPassword !== dto.confirmNewPassword){
+      throw new BadRequestException('New password and confirm new password do not match');
+    }
+    user.passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    await this.userRepository.save(user);
   }
 }
