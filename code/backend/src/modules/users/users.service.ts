@@ -1,9 +1,20 @@
-import { Injectable, Inject, InjectionToken, NotFoundException, ConflictException, ForbiddenException, BadRequestException, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  InjectionToken,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+  BadRequestException,
+  forwardRef,
+} from '@nestjs/common';
 import { User } from './entities/user.entity.js';
 import type { IUserRepository } from './repositories/user.repository.interface.js';
 import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/dtos.js';
 import { Role } from '@common/enums.js';
-// import { AuthService } from './../auth/auth.service.js';
+import { AuthService } from '@modules/auth/auth.service.js';
+import * as bcrypt from 'bcryptjs';
+import { plainToInstance } from 'class-transformer';
 
 /**
  * Dependency injection token for UserRepository.
@@ -17,8 +28,8 @@ export class UsersService {
   constructor(
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userRepository: IUserRepository,
-    // @Inject(forwardRef(() => AuthService))
-    // private readonly authService: AuthService, 
+    @Inject(forwardRef(() => AuthService))
+    private readonly authService: AuthService,
   ) {}
 
   async findByEmail(email: string): Promise<User | null> {
@@ -31,6 +42,8 @@ export class UsersService {
 
   async create(dto: CreateUserDto): Promise<UserResponseDto> {
     const user = Object.assign(new User(), dto);
+
+    user.passwordHash = await bcrypt.hash(dto.password, 10);
 
     if (await this.findByEmail(dto.email)) {
       throw new ConflictException(`User with email ${dto.email} already exists`);
@@ -47,7 +60,11 @@ export class UsersService {
 
   async findAll(): Promise<UserResponseDto[]> {
     const users = await this.userRepository.findAll();
-    const userResponses: UserResponseDto[] = users.map((user) => Object.assign(new UserResponseDto(), user));
+    const userResponses: UserResponseDto[] = users.map((user) => {
+      const { passwordHash, ...rest } = user;
+      return rest as UserResponseDto;
+    });
+    console.log(userResponses)
     return userResponses;
   }
 
@@ -79,17 +96,17 @@ export class UsersService {
   async remove(id: number): Promise<void> {
     const user = await this.findById(id);
     if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+      throw new NotFoundException(`User not found`);
     }
     if (user.role === Role.OWNER) {
       throw new BadRequestException(`Cannot delete user with OWNER role`);
     }
     if (user.isActive === false) {
-      throw new BadRequestException(`User with ID ${id} is already inactive`);
+      throw new BadRequestException(`User not found`);
     }
     user.isActive = false;
     await this.userRepository.save(user);
 
-    // this.authService.logout(user.id);
+    this.authService.logout(user.id);
   }
 }

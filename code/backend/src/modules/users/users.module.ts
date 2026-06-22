@@ -1,12 +1,18 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './entities/user.entity.js';
 import { UserRepository } from './repositories/user.repository.js';
 import { UsersService, USER_REPOSITORY_TOKEN } from './users.service.js';
+import { UserController } from './users.controller.js';
+import { AuthModule } from '@modules/auth/auth.module.js';
+import { AuthService } from '@modules/auth/auth.service.js';
+
 
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User])],
+  imports: [TypeOrmModule.forFeature([User]), 
+  forwardRef(() => AuthModule)
+],
   providers: [
     // Bind the token to the concrete UserRepository
     {
@@ -15,6 +21,7 @@ import { UsersService, USER_REPOSITORY_TOKEN } from './users.service.js';
     },
     UsersService,
   ],
+  controllers: [UserController],
   exports: [UsersService],
 })
 
