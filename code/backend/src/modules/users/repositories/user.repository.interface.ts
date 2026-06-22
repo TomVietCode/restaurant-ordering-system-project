@@ -3,4 +3,5 @@ import { User } from '@modules/users/entities/user.entity.js';
 
 export interface IUserRepository extends IBaseRepository<User> {
   findByEmail(email: string): Promise<User | null>;
+  findByPhone(phone: string): Promise<User | null>;
 }

@@ -22,4 +22,9 @@ export class UserRepository extends BaseRepository<User> implements IUserReposit
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { email } });
   }
+  
+  async findByPhone(phone: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { phone } });
+  }
+  
 }

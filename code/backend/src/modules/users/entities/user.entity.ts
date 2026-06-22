@@ -18,7 +18,7 @@ export class User {
   @Column({ name: 'full_name', type: 'varchar', length: 100 })
   fullName: string;
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true, unique: true})
   phone: string | null;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
