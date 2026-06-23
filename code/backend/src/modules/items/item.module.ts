@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Item } from './entities/item.entity.js';
 import { CategoriesModule } from '@modules/categories/categories.module.js';
@@ -10,8 +10,8 @@ import { ItemsService } from '@modules/items/item.service.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Item]), 
-    forwardRef(() => CategoriesModule),
+    TypeOrmModule.forFeature([Item]),
+    CategoriesModule,
   ],
   controllers: [ItemsAdminController, ItemsCustomerController],
   providers: [
@@ -21,6 +21,6 @@ import { ItemsService } from '@modules/items/item.service.js';
     },
     ItemsService,
   ],
-  exports: [ItemsService, ITEM_REPOSITORY_TOKEN], // export repository token for other modules
+  exports: [ItemsService], // export for future use by orders module
 })
 export class ItemsModule {}

@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
-import { TableStatus } from '@common/enums.js';
 
 @Entity('tables')
 export class Table {
@@ -9,14 +8,9 @@ export class Table {
   @Column({ type: 'varchar', length: 100, unique: true })
   name: string;
 
-  @Column({ type: 'int', nullable: false })
-  capacity: number;
+  @Column({ type: 'int', nullable: true })
+  capacity: number | null;
   
-  @Column({
-    type: 'enum',
-    enum: TableStatus,
-    default: TableStatus.AVAILABLE,
-  })
-  status: TableStatus;
+  @Column({ name: 'is_available', type: 'boolean', default: true })
+  isAvailable: boolean;
 }
-

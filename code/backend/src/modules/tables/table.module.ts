@@ -1,19 +1,14 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TableRepository } from './repositories/table.repository';
 import { Table } from './table.entity';
 import { TableController } from './table.controller';
 import { ORDER_CHECK_SERVICE_TOKEN, TABLE_REPO_TOKEN } from '@common/constants';
+import { OrderCheckStub } from './order-check.stub';
 import { TableService } from './table.service';
-import { OrdersModule } from '@modules/orders/orders.module.js';
-import { OrderCheckService } from '@modules/orders/order-check.service.js';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Table]),
-    // forwardRef breaks the circular dependency with OrdersModule
-    forwardRef(() => OrdersModule),
-  ],
+  imports: [TypeOrmModule.forFeature([Table])],
   controllers: [TableController],
   providers: [
     {
@@ -21,13 +16,13 @@ import { OrderCheckService } from '@modules/orders/order-check.service.js';
       useClass: TableRepository,
     },
     {
-      // Real implementation replaces the previous OrderCheckStub
+      // TODO: Replace OrderCheckStub with real OrderCheckService
+      // when the Orders module is implemented
       provide: ORDER_CHECK_SERVICE_TOKEN,
-      useExisting: OrderCheckService,
+      useClass: OrderCheckStub,
     },
     TableService,
   ],
   exports: [TableService],
 })
 export class TableModule {}
-

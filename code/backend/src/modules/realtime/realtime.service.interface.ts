@@ -16,13 +16,4 @@ export interface IRealtimeService {
    * @param payload - JSON-serializable data to send
    */
   emit<T>(event: string, payload: T): void;
-
-  /**
-   * Emit an event to clients in a specific Socket.IO room only.
-   *
-   * @param room - Room name (e.g. 'order:track:${trackingCode}')
-   * @param event - Event name following '{domain}:{action}' convention
-   * @param payload - JSON-serializable data to send
-   */
-  emitToRoom<T>(room: string, event: string, payload: T): void;
 }

@@ -1,11 +1,9 @@
-import { ORDER_CHECK_SERVICE_TOKEN, TABLE_REPO_TOKEN, REALTIME_SERVICE_TOKEN } from '@common/constants';
+import { ORDER_CHECK_SERVICE_TOKEN, TABLE_REPO_TOKEN } from '@common/constants';
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { ITableRepository } from './repositories/table.repository.interface';
 import type { IOrderCheckService } from '@common/interfaces/order-check.interface';
-import type { IRealtimeService } from '@modules/realtime/realtime.service.interface.js';
 import { CreateTableDto, UpdateTableDto } from './repositories/dtos';
 import { Table } from './table.entity';
-import { TableStatus } from '@common/enums.js';
 
 @Injectable()
 export class TableService {
@@ -15,9 +13,6 @@ export class TableService {
 
     @Inject(ORDER_CHECK_SERVICE_TOKEN)
     private readonly orderCheckService: IOrderCheckService,
-
-    @Inject(REALTIME_SERVICE_TOKEN)
-    private readonly realtimeService: IRealtimeService,
   ) {}
 
   async create(dto: CreateTableDto): Promise<Table> {
@@ -28,15 +23,11 @@ export class TableService {
     }
     const table = new Table();
     table.name = dto.name;
-    table.capacity = dto.capacity;
-    table.status = dto.status ?? TableStatus.AVAILABLE;
+    table.capacity = dto.capacity ?? null;
     return this.tableRepository.save(table);
   }
 
-  async findAll(status?: TableStatus): Promise<Table[]> {
-    if (status) {
-      return this.tableRepository.findWithOptions({ where: { status } });
-    }
+  async findAll(): Promise<Table[]> {
     return this.tableRepository.findAll();
   }
 
@@ -63,14 +54,14 @@ export class TableService {
       table.capacity = dto.capacity;
     }
 
-    if (dto.status !== undefined) {
-      if (dto.status !== table.status) {
+    if (dto.isAvailable !== undefined) {
+      if(!dto.isAvailable) {
         const hasActive = await this.orderCheckService.hasActiveOrders(id);
         if (hasActive) {
-          throw new BadRequestException('Cannot change table status while it has active orders');
+          throw new BadRequestException('Cannot set table status to unavailable while it has active orders');
         }
       }
-      table.status = dto.status;
+      table.isAvailable = dto.isAvailable
     }
     return this.tableRepository.save(table);
   }
@@ -87,23 +78,4 @@ export class TableService {
     await this.tableRepository.delete(id);
   }
 
-  async toggleStatus(id: string): Promise<Table> {
-    const table = await this.findById(id);
-
-    if (table.status === TableStatus.OCCUPIED) {
-      throw new BadRequestException('Cannot toggle status when table is occupied');
-    }
-
-    table.status = table.status === TableStatus.AVAILABLE ? TableStatus.CLOSED : TableStatus.AVAILABLE;
-    const savedTable = await this.tableRepository.save(table);
-
-    // Emit realtime event to all connected admin/staff clients
-    this.realtimeService.emit('table:status-changed', {
-      tableId: savedTable.id,
-      status: savedTable.status,
-    });
-
-    return savedTable;
-  }
 }
-

@@ -17,9 +17,4 @@ export class RealtimeService implements IRealtimeService {
     this.logger.debug(`Emitting event: ${event}`, JSON.stringify(payload));
     this.gateway.server.emit(event, payload);
   }
-
-  emitToRoom<T>(room: string, event: string, payload: T): void {
-    this.logger.debug(`Emitting event to room ${room}: ${event}`, JSON.stringify(payload));
-    this.gateway.server.to(room).emit(event, payload);
-  }
 }

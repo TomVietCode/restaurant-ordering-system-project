@@ -14,7 +14,6 @@ import { TableModule } from './modules/tables/table.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { ItemsModule } from '@modules/items/item.module.js';
 import { RealtimeModule } from '@modules/realtime/realtime.module.js';
-import { OrdersModule } from '@modules/orders/orders.module.js';
 
 @Module({
   imports: [
@@ -43,7 +42,6 @@ import { OrdersModule } from '@modules/orders/orders.module.js';
     UploadsModule,
     ItemsModule,
     RealtimeModule,
-    OrdersModule,
   ],
   controllers: [AppController],
   providers: [

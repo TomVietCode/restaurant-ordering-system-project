@@ -4,7 +4,6 @@ import { TableService } from './table.service';
 import { Table } from './table.entity';
 import { CreateTableDto, UpdateTableDto } from './repositories/dtos';
 import { ApiResponseDto } from '@common/dtos/api-response.dto';
-import { TableStatus } from '@common/enums.js';
 
 describe('TableController', () => {
   let controller: TableController;
@@ -17,7 +16,6 @@ describe('TableController', () => {
       findById: jest.fn(),
       update: jest.fn(),
       remove: jest.fn(),
-      toggleStatus: jest.fn(),
     } as unknown as jest.Mocked<TableService>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -45,7 +43,7 @@ describe('TableController', () => {
         id: 'uuid-1234',
         name: 'Bàn 01',
         capacity: 4,
-        status: TableStatus.AVAILABLE,
+        isAvailable: true,
       };
       serviceMock.create.mockResolvedValue(createdTable);
 
@@ -62,31 +60,16 @@ describe('TableController', () => {
     it('should return all tables in a success response', async () => {
       // Arrange
       const tables: Table[] = [
-        { id: 'uuid-1', name: 'Bàn 01', capacity: 2, status: TableStatus.AVAILABLE },
-        { id: 'uuid-2', name: 'Bàn 02', capacity: 4, status: TableStatus.AVAILABLE },
+        { id: 'uuid-1', name: 'Bàn 01', capacity: 2, isAvailable: true },
+        { id: 'uuid-2', name: 'Bàn 02', capacity: 4, isAvailable: true },
       ];
       serviceMock.findAll.mockResolvedValue(tables);
 
       // Act
-      const result = await controller.findAll({});
+      const result = await controller.findAll();
 
       // Assert
-      expect(serviceMock.findAll).toHaveBeenCalledWith(undefined);
-      expect(result).toEqual(ApiResponseDto.success(tables));
-    });
-
-    it('should return tables filtered by status in a success response', async () => {
-      // Arrange
-      const tables: Table[] = [
-        { id: 'uuid-1', name: 'Bàn 01', capacity: 2, status: TableStatus.AVAILABLE },
-      ];
-      serviceMock.findAll.mockResolvedValue(tables);
-
-      // Act
-      const result = await controller.findAll({ status: TableStatus.AVAILABLE });
-
-      // Assert
-      expect(serviceMock.findAll).toHaveBeenCalledWith(TableStatus.AVAILABLE);
+      expect(serviceMock.findAll).toHaveBeenCalled();
       expect(result).toEqual(ApiResponseDto.success(tables));
     });
   });
@@ -99,7 +82,7 @@ describe('TableController', () => {
         id: tableId,
         name: 'Bàn 01',
         capacity: 4,
-        status: TableStatus.AVAILABLE,
+        isAvailable: true,
       };
       serviceMock.findById.mockResolvedValue(table);
 
@@ -121,7 +104,7 @@ describe('TableController', () => {
         id: tableId,
         name: 'Bàn VIP 01',
         capacity: 6,
-        status: TableStatus.AVAILABLE,
+        isAvailable: true,
       };
       serviceMock.update.mockResolvedValue(updatedTable);
 
@@ -146,27 +129,6 @@ describe('TableController', () => {
       // Assert
       expect(serviceMock.remove).toHaveBeenCalledWith(tableId);
       expect(result).toEqual(ApiResponseDto.success(null, 'Delete table successfully'));
-    });
-  });
-
-  describe('toggleStatus', () => {
-    it('should toggle status of a table and return a success response', async () => {
-      // Arrange
-      const tableId = 'uuid-123';
-      const toggledTable: Table = {
-        id: tableId,
-        name: 'Bàn 01',
-        capacity: 4,
-        status: TableStatus.CLOSED,
-      };
-      serviceMock.toggleStatus.mockResolvedValue(toggledTable);
-
-      // Act
-      const result = await controller.toggleStatus(tableId);
-
-      // Assert
-      expect(serviceMock.toggleStatus).toHaveBeenCalledWith(tableId);
-      expect(result).toEqual(ApiResponseDto.success(toggledTable, 'Table status toggled successfully'));
     });
   });
 });

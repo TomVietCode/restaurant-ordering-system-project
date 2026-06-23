@@ -1,9 +1,8 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from "@nestjs/swagger";
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from "class-validator";
-import { TableStatus } from "@common/enums.js";
+import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from "class-validator";
 
 export class CreateTableDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Table name (must be unique)',
     example: 'Bàn 01',
     maxLength: 100,
@@ -14,23 +13,23 @@ export class CreateTableDto {
   name: string;
 
   @ApiProperty({
-    description: 'Seating capacity',
+    description: 'Seating capacity (optional)',
     example: 4,
-    required: true,
-  })
-  @IsNotEmpty({ message: 'Capacity is required' })
-  @IsInt({ message: 'Capacity must be an integer' })
-  @Min(1, { message: 'Capacity must be greater than 0' })
-  capacity: number;
-
-  @ApiPropertyOptional({
-    description: 'Initial table status (default: AVAILABLE)',
-    enum: TableStatus,
-    example: TableStatus.AVAILABLE,
+    required: false,
   })
   @IsOptional()
-  @IsEnum(TableStatus)
-  status?: TableStatus = TableStatus.AVAILABLE;
+  @IsInt({ message: 'Capacity must be an integer' })
+  @Min(1, { message: 'Capacity must be greater than 0' })
+  capacity?: number;
+
+  @ApiProperty({
+    description: 'Whether the table is currently free (default: true)',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isAvailable?: boolean = true;
 }
 
 export class UpdateTableDto extends PartialType(CreateTableDto) {}
@@ -42,19 +41,9 @@ export class TableResponseDto {
   @ApiProperty({ description: 'Table name', example: 'Bàn 01' })
   name: string;
 
-  @ApiProperty({ description: 'Seating capacity', example: 4 })
-  capacity: number;
+  @ApiProperty({ description: 'Seating capacity', example: 4, nullable: true })
+  capacity: number | null;
 
-  @ApiProperty({ description: 'Table status', enum: TableStatus, example: TableStatus.AVAILABLE })
-  status: TableStatus;
-}
-
-export class TableQueryDto {
-  @ApiPropertyOptional({
-    description: 'Filter by table status',
-    enum: TableStatus,
-  })
-  @IsOptional()
-  @IsEnum(TableStatus)
-  status?: TableStatus;
+  @ApiProperty({ description: 'Whether the table is currently free', example: true })
+  isAvailable: boolean;
 }
