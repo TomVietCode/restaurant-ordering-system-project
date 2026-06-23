@@ -14,7 +14,7 @@ export default async function AdminLayout({
   return (
     <SidebarProvider
     style={{
-    '--sidebar-width': '200px',
+    '--sidebar-width': '240px',
     '--sidebar-width-icon': '56px',
   } as React.CSSProperties}>
       <AppSidebar />

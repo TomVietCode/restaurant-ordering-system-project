@@ -30,4 +30,3 @@ import { OrderCheckService } from '@modules/orders/order-check.service.js';
   exports: [TableService],
 })
 export class TableModule {}
-

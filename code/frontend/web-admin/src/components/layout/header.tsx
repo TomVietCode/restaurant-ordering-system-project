@@ -50,7 +50,7 @@ export function AppHeader({
   const initial = user?.name?.charAt(0)?.toUpperCase() ?? 'A';
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b bg-background px-4">
+    <header className="flex h-14 shrink-0 items-center justify-between border-b bg-primary-foreground px-4">
       <div className="flex items-center gap-2">
         {showTrigger && <SidebarTrigger />}
         {backHref && (
