@@ -12,31 +12,14 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql
   backend:
-    build: .
-    container_name: backend_container
-    restart: always
-    env_file:
-      - ./.env
-    ports:
-      - ${PORT}:${PORT}
-    depends_on:
-      - postgres
-  backend:
     image: ghcr.io/tomvietcode/ioc-backend:latest
     container_name: ioc-backend-app
     ports:
-      - '3000:3000'
-    # Tự động nạp file .env nằm cùng thư mục vào Container khi chạy
+      - ${PORT}:${PORT}
     env_file:
       - .env
-    # Đảm bảo Database phải chạy trước thì Backend mới chạy
     depends_on:
-      - postgres_db
-    networks:
-      - ioc_network
+      - postgres
 volumes:
   pgdata:
-
-networks:
-  default:
-    name: restaurant-ordering-network
+    
