@@ -12,7 +12,7 @@ import { User } from './entities/user.entity.js';
 import type { IUserRepository } from './repositories/user.repository.interface.js';
 import { CreateUserDto, UpdateUserDto, UserResponseDto, ChangePasswordDto } from './dto/dtos.js';
 import { Role } from '@common/enums.js';
-import { AuthService } from '@modules/auth/auth.service.js';
+// import { AuthService } from '@modules/auth/auth.service.js';
 import * as bcrypt from 'bcryptjs';
 
 /**
@@ -27,8 +27,8 @@ export class UsersService {
   constructor(
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userRepository: IUserRepository,
-    @Inject(forwardRef(() => AuthService))
-    private readonly authService: AuthService,
+    // @Inject(forwardRef(() => AuthService))
+    // private readonly authService: AuthService,
   ) {}
 
   async findByEmail(email: string): Promise<User | null> {
@@ -106,7 +106,7 @@ export class UsersService {
     user.isActive = false;
     await this.userRepository.save(user);
 
-    this.authService.logout(user.id);
+    // this.authService.logout(user.id);
   }
 
   async changePassword(id: number, dto: ChangePasswordDto): Promise<void> {

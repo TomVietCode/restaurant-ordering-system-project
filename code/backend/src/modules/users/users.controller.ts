@@ -43,7 +43,6 @@ export class UserController {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    // const userResponse: UserResponseDto = Object.assign(new UserResponseDto(), user);
     const {passwordHash, ... userResponse} = user 
     return ApiResponseDto.success(userResponse as UserResponseDto);
   }
