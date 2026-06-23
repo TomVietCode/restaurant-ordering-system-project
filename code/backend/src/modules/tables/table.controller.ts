@@ -26,6 +26,8 @@ export class TableController {
     const table = await this.tablesService.create(dto);
     return ApiResponseDto.success(table, 'Table created successfully');
   }
+  // ApiRes<Table> 
+  // ApiResponseDto<TableResponseDto>
 
   @Get()
   @ApiOperation({ summary: 'List all tables' })

@@ -1,13 +1,14 @@
-FROM node:24-alpine
+FROM node:20-alpine
 
-WORKDIR /app
+WORKDIR /usr/src/app
 
 COPY package*.json ./
-
 RUN npm install
 
 COPY . .
 
+# Mở port cho NestJS
 EXPOSE 3000
 
+# Chạy ở chế độ dev với hot reload
 CMD ["npm", "run", "start:dev"]
