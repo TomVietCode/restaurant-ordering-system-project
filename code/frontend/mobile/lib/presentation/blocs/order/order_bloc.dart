@@ -1,17 +1,46 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
 import '../../../data/models/order_item.dart';
+import '../../../data/repositories/order_repository.dart';
 import 'order_event.dart';
 import 'order_state.dart';
 
 class OrderBloc extends Bloc<OrderEvent, OrderState> {
-  OrderBloc() : super(const OrderState()) {
+  final OrderRepository repository;
+  StreamSubscription? _socketSubscription;
+  String? _currentTableId;
+
+  OrderBloc({required this.repository}) : super(const OrderState()) {
     on<PlaceOrder>(_onPlaceOrder);
     on<UpdateOrderStatus>(_onUpdateOrderStatus);
-    on<ClearOrder>((event, emit) => emit(const OrderState()));
+    on<ClearOrder>((event, emit) {
+      _currentTableId = null;
+      emit(const OrderState());
+    });
+
+    // Lắng nghe Stream Socket ngay khi Bloc khởi tạo
+    _socketSubscription = repository.orderUpdatesStream.listen((data) {
+      if (!isClosed && data['event'] == 'ORDER_UPDATED') {
+        final payload = data['payload'] as Map<String, dynamic>?;
+        if (payload != null && payload['status'] != null) {
+          // Lấy status từ payload. Vì đang mock, ta mô phỏng trạng thái advance
+          for (var item in state.items) {
+             if (item.status == OrderStatus.pending) {
+               add(UpdateOrderStatus(item.id, OrderStatus.preparing.index));
+               break; // Chỉ advance 1 item mỗi lần cho demo
+             } else if (item.status == OrderStatus.preparing) {
+               add(UpdateOrderStatus(item.id, OrderStatus.served.index));
+               break;
+             }
+          }
+        }
+      }
+    });
   }
 
-  void _onPlaceOrder(PlaceOrder event, Emitter<OrderState> emit) {
+  Future<void> _onPlaceOrder(PlaceOrder event, Emitter<OrderState> emit) async {
+    _currentTableId = event.tableId;
+    
     final now = DateTime.now().microsecondsSinceEpoch;
     final newItems = event.cartItems.asMap().entries.map((entry) {
       return OrderItem(
@@ -24,14 +53,14 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     }).toList();
 
     final updatedList = List<OrderItem>.from(state.items)..addAll(newItems);
-    
     final currentOrderId = state.orderId.isEmpty ? 'GP${now.toString().substring(5, 10)}' : state.orderId;
-
     emit(state.copyWith(items: updatedList, orderId: currentOrderId));
 
-    // Mô phỏng tự động đổi trạng thái đơn hàng sau vài giây
-    for (var item in newItems) {
-      _simulateStatusProgress(item.id);
+    try {
+      final totalAmount = event.cartItems.fold(0.0, (sum, item) => sum + (item.product.price * item.quantity));
+      await repository.placeOrder(0, event.cartItems, totalAmount);
+    } catch (e) {
+      // Giữ mock items
     }
   }
 
@@ -45,13 +74,9 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     emit(state.copyWith(items: updatedList));
   }
 
-  void _simulateStatusProgress(String itemId) async {
-    await Future.delayed(const Duration(seconds: 10)); // 10s sau chuyển sang Đang chuẩn bị
-    if (isClosed) return;
-    add(UpdateOrderStatus(itemId, OrderStatus.preparing.index));
-
-    await Future.delayed(const Duration(seconds: 15)); // Thêm 15s sau chuyển sang Đã phục vụ
-    if (isClosed) return;
-    add(UpdateOrderStatus(itemId, OrderStatus.served.index));
+  @override
+  Future<void> close() {
+    _socketSubscription?.cancel();
+    return super.close();
   }
 }

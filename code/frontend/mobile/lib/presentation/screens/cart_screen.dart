@@ -129,7 +129,7 @@ class CartScreen extends StatelessWidget {
                           final cartItems = context.read<CartBloc>().state.items;
                           if (cartItems.isEmpty) return;
                           
-                          context.read<OrderBloc>().add(PlaceOrder(cartItems));
+                          context.read<OrderBloc>().add(PlaceOrder(tableId ?? '0', cartItems));
                           context.read<CartBloc>().add(ClearCart());
                           
                           ScaffoldMessenger.of(context).showSnackBar(

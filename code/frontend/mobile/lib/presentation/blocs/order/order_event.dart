@@ -8,10 +8,11 @@ abstract class OrderEvent extends Equatable {
 }
 
 class PlaceOrder extends OrderEvent {
+  final String tableId;
   final List<CartItem> cartItems;
-  const PlaceOrder(this.cartItems);
+  const PlaceOrder(this.tableId, this.cartItems);
   @override
-  List<Object?> get props => [cartItems];
+  List<Object?> get props => [tableId, cartItems];
 }
 
 class UpdateOrderStatus extends OrderEvent {
