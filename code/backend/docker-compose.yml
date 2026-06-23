@@ -4,11 +4,11 @@ services:
     container_name: postgres_container
     restart: always
     environment:
-      POSTGRES_USER: ${DB_USER}  
+      POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql
   backend:
@@ -16,12 +16,24 @@ services:
     container_name: backend_container
     restart: always
     env_file:
-      - ./.env 
+      - ./.env
     ports:
       - ${PORT}:${PORT}
     depends_on:
       - postgres
-
+  backend:
+    image: ghcr.io/tomvietcode/ioc-backend:latest
+    container_name: ioc-backend-app
+    ports:
+      - '3000:3000'
+    # Tự động nạp file .env nằm cùng thư mục vào Container khi chạy
+    env_file:
+      - .env
+    # Đảm bảo Database phải chạy trước thì Backend mới chạy
+    depends_on:
+      - postgres_db
+    networks:
+      - ioc_network
 volumes:
   pgdata:
 
