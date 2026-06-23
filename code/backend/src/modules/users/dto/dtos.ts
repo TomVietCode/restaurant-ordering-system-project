@@ -52,16 +52,24 @@ export class UpdateUserDto {
     description: 'Email of the user (must be unique)',
     example: 'user@example.com',
   })
-  
   @IsOptional()
   @IsEmail()
   email?: string;
+
+  @ApiProperty({
+    description: 'Password of the user (will be hashed in the service)',
+    example: 'strongPassword123',
+    minLength: 6,
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(6)
+  password: string;
 
   @ApiPropertyOptional({
     description: 'Role of the user in the system',
     enum: Role,
     example: Role.STAFF,
-  
   })
   @IsOptional()
   @IsEnum(Role)
@@ -71,7 +79,6 @@ export class UpdateUserDto {
     description: 'Full name of the user',
     example: 'John Doe',
   })
-  
   @IsOptional()
   @IsString()
   @IsNotEmpty()
@@ -85,6 +92,14 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @ApiPropertyOptional({
+    description: 'Status active of User',
+    example: 'active',
+  })
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
 }
 
 export class UserResponseDto {
@@ -107,35 +122,6 @@ export class UserResponseDto {
   isActive: boolean;
 }
 
-export class ChangePasswordDto {
-  @ApiProperty({
-    description: 'Old password of the user',
-    example: 'strongPassword123',
-    minLength: 6,
-  })
-  @IsString()
-  @MinLength(6)
-  oldPassword: string;
-
-  @ApiProperty({
-    description: 'New password of the user',
-    example: 'newPassword123',
-    minLength: 6,
-  })
-  @IsString()
-  @MinLength(6)
-  newPassword: string;
-
-  @ApiProperty({
-    description: 'Confirm new password of the user',
-    example: 'newPassword123',
-    minLength: 6,
-  })
-  @IsString()
-  @MinLength(6)
-  confirmNewPassword: string;
-}
-
 export class UserQueryDto {
   @ApiPropertyOptional({ description: 'Search by username or email' })
   @IsOptional()
@@ -152,10 +138,10 @@ export class UserQueryDto {
   @IsBoolean()
   isActive?: boolean;
 
-  @ApiPropertyOptional({ description: 'Sort by field', enum: Object.keys(new User()) })
+  @ApiPropertyOptional({ description: 'Sort by field', enum: ['createdAt', 'email', 'fullName'] })
   @IsOptional()
   @IsString()
-  sortBy?: keyof User;
+  sortBy?: 'createdAt' | 'email' | 'fullName';
 
   @ApiPropertyOptional({ description: 'Sort order', enum: ['ASC', 'DESC'], default: 'DESC' })
   @IsOptional()

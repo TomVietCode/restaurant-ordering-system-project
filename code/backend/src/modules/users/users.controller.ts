@@ -3,9 +3,8 @@ import { Role } from '@common/enums';
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, NotFoundException, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service.js';
-import { ChangePasswordDto, CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto } from './dto/dtos.js';
+import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto } from './dto/dtos.js';
 import { ApiResponseDto } from '@common/dtos/api-response.dto';
-import { User } from './entities/user.entity.js';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
 
 @ApiTags('Users')
@@ -58,12 +57,8 @@ export class UserController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async findOne(@Param('id') id: number): Promise<ApiResponseDto<UserResponseDto>> {
     const user = await this.userService.findById(id);
-    // HACK: findById là hàm có sẵn (có liên quan module khác) không thể thay đổi để bọc dto hoặc check null ở service được nên phải check null ở controller
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    const { passwordHash, ...userResponse } = user;
-    return ApiResponseDto.success(userResponse as UserResponseDto);
+    const {passwordHash, ... rest} = user;
+    return ApiResponseDto.success(rest as UserResponseDto);
   }
 
   @Patch(':id')
@@ -72,36 +67,9 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'User updated successfully', type: UserResponseDto })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 409, description: 'User email already exists' })
-  async update(@Param('id') id: number, @Body() dto: UpdateUserDto): Promise<ApiResponseDto<UserResponseDto>> {
-    const userResponse = await this.userService.update(id, dto);
+  async update(@Param('id') id: number, @Body() dto: UpdateUserDto, @CurrentUser('id') userId: number): Promise<ApiResponseDto<UserResponseDto>> {
+    const userResponse = await this.userService.update(id, dto, userId);
     return ApiResponseDto.success(userResponse, 'User updated successfully');
-  }
-
-  // @Patch(':id/change-password')
-  // @ApiOperation({ summary: 'Change user password' })
-  // @ApiParam({ name: 'id', description: 'User id' })
-  // @ApiResponse({ status: 200, description: 'User updated successfully'})
-  // @ApiResponse({ status: 404, description: 'User not found' })
-  // @ApiResponse({ status: 409, description: 'Password is incorrect' })
-  // @ApiResponse({ status: 400, description: 'User not active or new password does not match confirm new password' })
-  // async changePassword(
-  //   @Param('id') id: number,
-  //   @Body() dto: ChangePasswordDto,
-  // ): Promise<ApiResponseDto<null>> {
-  //   await this.userService.changePassword(id, dto);
-  //   return ApiResponseDto.success(null, 'Password changed successfully');
-  // }
-
-  @Patch(':id')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Inactivate a user (block if role is OWNER)' })
-  @ApiParam({ name: 'id', description: 'user id' })
-  @ApiResponse({ status: 200, description: 'User inactivated successfully' })
-  @ApiResponse({ status: 400, description: 'Owner cannot be inactivated' })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  async inactive(@Param('id') id: number, @CurrentUser('id') userId: number): Promise<ApiResponseDto<null>> {
-    await this.userService.inactive(id, userId);
-    return ApiResponseDto.success(null, 'Inactivate user successfully');
   }
 
   @Delete(':id')
@@ -113,6 +81,6 @@ export class UserController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async remove(@Param('id') id: number): Promise<ApiResponseDto<null>> {
     await this.userService.remove(id);
-    return ApiResponseDto.success(null, 'Inactivate user successfully');
+    return ApiResponseDto.success(null, 'Deleted user successfully');
   }
 }

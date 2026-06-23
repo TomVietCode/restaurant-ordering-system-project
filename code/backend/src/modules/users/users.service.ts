@@ -11,10 +11,10 @@ import {
 import { User } from './entities/user.entity.js';
 import { Role } from '@common/enums.js';
 import type { IUserRepository } from './repositories/user.repository.interface.js';
-import { CreateUserDto, UpdateUserDto, UserResponseDto, ChangePasswordDto } from './dto/dtos.js';
+import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/dtos.js';
 import { AuthService } from '@modules/auth/auth.service.js';
 import * as bcrypt from 'bcryptjs';
-import { Like, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
 /**
@@ -39,8 +39,12 @@ export class UsersService {
     return this.userRepository.findByEmail(email);
   }
 
-  async findById(id: number): Promise<User | null> {
-    return this.userRepository.findById(id);
+  async findById(id: number): Promise<User> {
+    const user = await this.userRepository.findById(id);
+    if (!user || user == null) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
   }
 
   async create(dto: CreateUserDto): Promise<UserResponseDto> {
@@ -65,7 +69,7 @@ export class UsersService {
     search?: string;
     role?: Role;
     isActive?: boolean;
-    sortBy?: keyof User;
+    sortBy?: 'createdAt' | 'email' | 'fullName';
     order?: 'ASC' | 'DESC';
     page?: number;
     limit?: number;
@@ -105,42 +109,33 @@ export class UsersService {
     return { data, total };
   }
 
-  async update(id: number, dto: UpdateUserDto): Promise<UserResponseDto> {
+  async update(id: number, dto: UpdateUserDto, userId: number): Promise<UserResponseDto> {
     const user = await this.findById(id);
-    if (!user) {
-      throw new NotFoundException(`User not found`);
-    }
 
     if (dto.email && dto.email !== user.email) {
-      //nếu dto có nhập email mới, khác email cũ thì check trùng email
       const existing = await this.userRepository.findByEmail(dto.email);
       if (existing) {
         throw new ConflictException('Email already exists');
       }
-      user.email = dto.email;
     }
 
-    Object.assign(user, dto);
-    const updatedUser = await this.userRepository.save(user);
-    const { passwordHash, ...userResponse } = updatedUser;
-    return userResponse as UserResponseDto;
-  }
+    if (dto.isActive === false) {
+      if (user.id === userId) {
+        throw new BadRequestException('Owner cant inactive yourself');
+      }
+      await this.authService.logout(user.id);
+    }
 
-  async inactive(id: number, userId): Promise<void> {
-    const user = await this.findById(id);
-    if (!user) {
-      throw new NotFoundException(`User not found`);
+    const { password, ...rest } = dto;
+    Object.assign(user, rest);
+
+    if (password) {
+      user.passwordHash = await bcrypt.hash(password, 10);
     }
-    if (user.id === userId) {
-      throw new BadRequestException(`Owner cant inactive yourself`);
-    }
-    if (user.isActive === false) {
-      throw new BadRequestException(`User not active`);
-    }
-    user.isActive = false;
     await this.userRepository.save(user);
 
-    this.authService.logout(user.id);
+    const { passwordHash, ...userResponse } = await this.findById(id);
+    return userResponse as UserResponseDto;
   }
 
   async remove(id: number): Promise<void> {
@@ -152,23 +147,5 @@ export class UsersService {
       throw new BadRequestException(`Can not delete use still active`);
     }
     await this.userRepository.delete(id);
-  }
-
-  async changePassword(id: number, dto: ChangePasswordDto): Promise<void> {
-    const user = await this.findById(id);
-    if (!user) {
-      throw new NotFoundException(`User not found`);
-    }
-    if (user.isActive === false) {
-      throw new BadRequestException(`User not active`);
-    }
-    if (!(await bcrypt.compare(dto.oldPassword, user.passwordHash))) {
-      throw new ForbiddenException('Old password is incorrect');
-    }
-    if (dto.newPassword !== dto.confirmNewPassword) {
-      throw new BadRequestException('New password and confirm new password do not match');
-    }
-    user.passwordHash = await bcrypt.hash(dto.newPassword, 10);
-    await this.userRepository.save(user);
   }
 }
