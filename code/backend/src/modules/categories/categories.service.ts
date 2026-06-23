@@ -1,9 +1,10 @@
 import { Injectable, Inject, InjectionToken, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Category } from './entities/category.entity.js';
 import type { ICategoryRepository } from './repositories/category.repository.interface.js';
+// import  type { IItemRepository } from '@modules/items/repositories/item.repo.interface.js';
+// import { ITEM_REPOSITORY_TOKEN } from '@common/constants.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { UpdateCategoryDto } from './dto/update-category.dto.js';
-import { IItemRepository } from '@modules/items/repositories/item.repo.interface.js';
 
 export const CATEGORY_REPOSITORY_TOKEN: InjectionToken<ICategoryRepository> 
   = Symbol('ICategoryRepository');
@@ -13,7 +14,8 @@ export class CategoriesService {
   constructor(
     @Inject(CATEGORY_REPOSITORY_TOKEN)
     private readonly categoryRepository: ICategoryRepository,
-    private readonly itemRepository: IItemRepository,
+    // @Inject(ITEM_REPOSITORY_TOKEN)
+    // private readonly itemRepository: IItemRepository,
   ) {}
 
   async create(dto: CreateCategoryDto): Promise<Category> {
@@ -52,10 +54,10 @@ export class CategoriesService {
     if (!category) {
       throw new NotFoundException('Category not found');
     }
-    const items = await this.itemRepository.findWithOptions({ where: { category: { id } } });
-    if (items.length > 0) {
-      throw new BadRequestException('Cannot delete category because items are linked to it');
-    }
+    // const items = await this.itemRepository.findWithOptions({ where: { category: { id } } });
+    // if (items.length > 0) {
+    //   throw new BadRequestException('Cannot delete category because items are linked to it');
+    // }
     await this.categoryRepository.delete(id);
   }
 
