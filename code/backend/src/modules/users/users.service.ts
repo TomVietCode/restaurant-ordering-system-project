@@ -92,13 +92,13 @@ export class UsersService {
     return userResponse as UserResponseDto;
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: number, userId): Promise<void> {
     const user = await this.findById(id);
     if (!user) {
       throw new NotFoundException(`User not found`);
     }
-    if (user.role === Role.OWNER) {
-      throw new BadRequestException(`Cannot delete user with OWNER role`);
+    if (user.id === userId ) {
+      throw new BadRequestException(`Owner cant delete yourself`);
     }
     if (user.isActive === false) {
       throw new BadRequestException(`User not active`);
