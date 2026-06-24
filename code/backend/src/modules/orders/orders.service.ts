@@ -229,8 +229,6 @@ export class OrdersService {
         await manager.save(table);
       }
 
-      await manager.save(table);
-
       return saved;
     });
 
