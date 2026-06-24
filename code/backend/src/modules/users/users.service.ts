@@ -105,7 +105,7 @@ export class UsersService {
       await this.authService.logout(user.id);
     }
     user.isActive = isActive
-    this.userRepository.save(user);
+    await this.userRepository.save(user);
   } 
 
   async remove(id: number): Promise<void> {

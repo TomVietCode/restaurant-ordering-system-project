@@ -1,8 +1,7 @@
 import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength, IsBoolean, IsNumber, IsIn } from 'class-validator';
 import { Role } from '@common/enums.js';
-import { ApiProperty, ApiPropertyOptional } from 'node_modules/@nestjs/swagger/dist/decorators/api-property.decorator';
 import { Transform, Type } from 'class-transformer';
-import { User } from '../entities/user.entity';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateUserDto {
   @ApiProperty({
