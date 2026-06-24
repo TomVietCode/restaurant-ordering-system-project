@@ -13,6 +13,7 @@ import { CheckoutTableDto } from './dtos/checkout-table.dto.js';
 import { Order } from './entities/order.entity.js';
 import { OrderItem } from './entities/order-item.entity.js';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
+import { Table } from '@modules/tables/table.entity.js';
 
 const STATE_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.NEW]: [OrderStatus.PREPARING, OrderStatus.CANCEL],
@@ -222,8 +223,12 @@ export class OrdersService {
       const saved = await manager.save(Order, activeOrders);
 
       // Free the table since all orders are now paid
-      const table = await this.tableService.findById(tableId);
-      table.isAvailable = true;
+      const table = await manager.findOne(Table, { where: { id: tableId } });
+      if (table) {
+        table.isAvailable = true;
+        await manager.save(table);
+      }
+
       await manager.save(table);
 
       return saved;

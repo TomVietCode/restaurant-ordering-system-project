@@ -172,7 +172,7 @@ export interface UserQueryOptions {
 }
 
 
-export class toggleActivateDto{
+export class ToggleActivateDto{
   @IsBoolean()
   isActive: boolean;
 }

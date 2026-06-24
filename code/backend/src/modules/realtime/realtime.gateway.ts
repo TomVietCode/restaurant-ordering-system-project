@@ -14,7 +14,7 @@ import { Server, Socket } from 'socket.io';
 @WebSocketGateway({
   namespace: '/orders',
   cors: {
-    origin: '*',
+    origin: process.env.CORS_ORIGIN,
   },
 })
 export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {

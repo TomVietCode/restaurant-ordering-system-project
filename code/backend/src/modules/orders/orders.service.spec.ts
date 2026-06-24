@@ -85,7 +85,7 @@ describe('OrdersService', () => {
       findPaginated: jest.fn(),
       findActiveOrdersByTableId: jest.fn(),
       countActiveOrdersByTableId: jest.fn(),
-    } as jest.Mocked<IOrderRepository>;
+    };
 
     tableService = {
       findById: jest.fn(),
