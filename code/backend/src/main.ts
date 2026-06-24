@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
 import { HttpExceptionFilter } from '@common/filters/http-exeption.filter.js';
 
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
