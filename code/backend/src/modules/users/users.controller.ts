@@ -1,12 +1,15 @@
 import { Roles, CurrentUser } from '@common/decorators';
 import { Role } from '@common/enums';
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, NotFoundException, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, ParseIntPipe, NotFoundException } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service.js';
-import { CreateUserDto, UpdateUserDto, UserResponseDto, toggleActivateDto } from './dto/dtos.js';
-import type { UserQueryOptions } from './dto/dtos.js';
+import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto, toggleActivateDto } from './dto/dtos.js';
 import { ApiResponseDto } from '@common/dtos/api-response.dto';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
+
+const ParseUserId = new ParseIntPipe({
+  exceptionFactory: () => new NotFoundException('User not found'),
+});
 
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')
@@ -28,7 +31,7 @@ export class UserController {
   @Get()
   @ApiOperation({ summary: 'List all users with filters' })
   @ApiResponse({ status: 200, description: 'Returns filtered users', type: [UserResponseDto] })
-  async findAll(@Query() query: UserQueryOptions): Promise<ApiResponseDto<PaginationDto<UserResponseDto>>> {
+  async findAll(@Query() query: UserQueryDto): Promise<ApiResponseDto<PaginationDto<UserResponseDto>>> {
     const pagination = await this.userService.findAll(query);
     return ApiResponseDto.success(pagination);
   }
@@ -38,7 +41,7 @@ export class UserController {
   @ApiParam({ name: 'id', description: 'User id' })
   @ApiResponse({ status: 200, description: 'User found', type: UserResponseDto })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async findOne(@Param('id') id: number): Promise<ApiResponseDto<UserResponseDto>> {
+  async findOne(@Param('id', ParseUserId) id: number): Promise<ApiResponseDto<UserResponseDto>> {
     const user = await this.userService.findById(id);
     const { passwordHash, ...rest } = user;
     return ApiResponseDto.success(rest as UserResponseDto);
@@ -50,7 +53,7 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'User updated successfully', type: UserResponseDto })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 409, description: 'User email already exists' })
-  async update(@Param('id') id: number, @Body() dto: UpdateUserDto): Promise<ApiResponseDto<UserResponseDto>> {
+  async update(@Param('id', ParseUserId) id: number, @Body() dto: UpdateUserDto): Promise<ApiResponseDto<UserResponseDto>> {
     const userResponse = await this.userService.update(id, dto);
     return ApiResponseDto.success(userResponse, 'User updated successfully');
   }
@@ -61,7 +64,7 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'User updated active status successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 409, description: 'User email already exists' })
-  async toggleActivate(@Param('id') id: number, @Body() dto: toggleActivateDto, @CurrentUser('id') currentId: number): Promise<ApiResponseDto<null>> {
+  async toggleActivate(@Param('id', ParseUserId) id: number, @Body() dto: toggleActivateDto, @CurrentUser('id') currentId: number): Promise<ApiResponseDto<null>> {
     await this.userService.toggleActivate(id, dto.isActive, currentId);
     return ApiResponseDto.success(null, 'User updated successfully');
   }
@@ -73,7 +76,7 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'User deleted successfully' })
   @ApiResponse({ status: 400, description: 'Can not delete user still active' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async remove(@Param('id') id: number): Promise<ApiResponseDto<null>> {
+  async remove(@Param('id', ParseUserId) id: number): Promise<ApiResponseDto<null>> {
     await this.userService.remove(id);
     return ApiResponseDto.success(null, 'Deleted user successfully');
   }
