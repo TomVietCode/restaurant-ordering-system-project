@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { BaseRepository } from '@common/repositories/base.repository.js';
 import { User } from '@modules/users/entities/user.entity.js';
 import { IUserRepository } from './user.repository.interface.js';
-import { UserQueryOptions } from '../dto/dtos.js'
+import { UserQueryDto } from '../dto/dtos.js'
 
 /**
  * TypeORM implementation of IUserRepository.
@@ -27,13 +27,13 @@ export class UserRepository extends BaseRepository<User> implements IUserReposit
   async findByPhone(phone: string): Promise<User | null> {
     return this.userRepository.findOne({ where: { phone } });
   }
-  async findPaginated(options: UserQueryOptions): Promise<[User[], number]> {
+  async findPaginated(options: UserQueryDto): Promise<[User[], number]> {
     const { page, limit, search, role, isActive, sortBy, sortOrder } = options;
 
     const qb = this.userRepository.createQueryBuilder('user');
 
     if (search) {
-      qb.andWhere('(user.username LIKE :search OR user.email LIKE :search)', {
+      qb.andWhere('(user.full_name ILIKE  :search OR user.email ILIKE  :search)', {
         search: `%${search}%`,
       });
     }

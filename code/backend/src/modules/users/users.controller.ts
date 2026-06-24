@@ -3,8 +3,7 @@ import { Role } from '@common/enums';
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, NotFoundException, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service.js';
-import { CreateUserDto, UpdateUserDto, UserResponseDto, toggleActivateDto } from './dto/dtos.js';
-import type { UserQueryOptions } from './dto/dtos.js';
+import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto, toggleActivateDto } from './dto/dtos.js';
 import { ApiResponseDto } from '@common/dtos/api-response.dto';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
 
@@ -28,7 +27,7 @@ export class UserController {
   @Get()
   @ApiOperation({ summary: 'List all users with filters' })
   @ApiResponse({ status: 200, description: 'Returns filtered users', type: [UserResponseDto] })
-  async findAll(@Query() query: UserQueryOptions): Promise<ApiResponseDto<PaginationDto<UserResponseDto>>> {
+  async findAll(@Query() query: UserQueryDto): Promise<ApiResponseDto<PaginationDto<UserResponseDto>>> {
     const pagination = await this.userService.findAll(query);
     return ApiResponseDto.success(pagination);
   }

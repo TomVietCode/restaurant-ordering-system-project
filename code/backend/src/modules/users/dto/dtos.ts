@@ -1,7 +1,7 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength, IsBoolean, IsNumber } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength, MinLength, IsBoolean, IsNumber, IsIn } from 'class-validator';
 import { Role } from '@common/enums.js';
 import { ApiProperty, ApiPropertyOptional } from 'node_modules/@nestjs/swagger/dist/decorators/api-property.decorator';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { User } from '../entities/user.entity';
 
 export class CreateUserDto {
@@ -136,39 +136,33 @@ export class UserQueryDto {
   @ApiPropertyOptional({ description: 'Filter by active status' })
   @IsOptional()
   @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === undefined) return undefined;
+    return value === 'true';
+  })
   isActive?: boolean;
 
   @ApiPropertyOptional({ description: 'Sort by field', enum: ['createdAt', 'email', 'fullName'] })
   @IsOptional()
-  @IsString()
-  sortBy?: 'createdAt' | 'email' | 'fullName';
+  @IsIn(['createdAt', 'email', 'fullName'])
+  sortBy: 'createdAt' | 'email' | 'fullName' = 'createdAt';
 
   @ApiPropertyOptional({ description: 'Sort order', enum: ['ASC', 'DESC'], default: 'DESC' })
   @IsOptional()
-  @IsEnum(['ASC', 'DESC'])
-  order?: 'ASC' | 'DESC';
+  @IsIn(['ASC', 'DESC'])
+  sortOrder: 'ASC' | 'DESC' = 'ASC';
 
   @ApiPropertyOptional({ description: 'Page number', default: 1 })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  page?: number;
+  page: number = 1;
 
   @ApiPropertyOptional({ description: 'Items per page', default: 10 })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
-  limit?: number;
-}
-
-export interface UserQueryOptions {
-  search?: string;
-  role?: Role;
-  isActive?: boolean;
-  sortBy?: 'createdAt' | 'email' | 'fullName';
-  sortOrder?: 'ASC' | 'DESC';
-  page: number;
-  limit: number;
+  limit: number = 10;
 }
 
 

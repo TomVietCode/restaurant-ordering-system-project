@@ -10,8 +10,8 @@ import {
 } from '@nestjs/common';
 import { User } from './entities/user.entity.js';
 import type { IUserRepository } from './repositories/user.repository.interface.js';
-import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryOptions } from './dto/dtos.js';
-import { AuthService } from '@modules/auth/auth.service.js';
+import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto } from './dto/dtos.js';
+// import { AuthService } from '@modules/auth/auth.service.js';
 import * as bcrypt from 'bcryptjs';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
 
@@ -27,8 +27,8 @@ export class UsersService {
   constructor(
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userRepository: IUserRepository,
-    @Inject(forwardRef(() => AuthService))
-    private readonly authService: AuthService,
+    // @Inject(forwardRef(() => AuthService))
+    // private readonly authService: AuthService,
   ) {}
 
   async findByEmail(email: string): Promise<User | null> {
@@ -61,7 +61,7 @@ export class UsersService {
     return userResponse as UserResponseDto;
   }
 
-  async findAll(query: UserQueryOptions): Promise<PaginationDto<UserResponseDto>> {
+  async findAll(query: UserQueryDto): Promise<PaginationDto<UserResponseDto>> {
     const [users, total] = await this.userRepository.findPaginated(query);
 
     const pagination = new PaginationDto<UserResponseDto>();
@@ -102,7 +102,7 @@ export class UsersService {
       if (user.id === currentId) {
         throw new BadRequestException('Owner cant inactive yourself');
       }
-      await this.authService.logout(user.id);
+      // await this.authService.logout(user.id);
     }
     user.isActive = isActive
     this.userRepository.save(user);
