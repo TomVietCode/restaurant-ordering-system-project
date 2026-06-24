@@ -49,11 +49,17 @@ export class OrdersService {
     const orderItems: OrderItem[] = [];
     let totalAmount = 0;
 
-    for (const orderItemDto of dto.items) {
-      const item = await this.itemsService.findById(orderItemDto.itemId);
+    const itemIds = [...new Set(dto.items.map((i) => i.itemId))];
+    const items = await this.itemsService.findByIds(itemIds);
+    const itemsMap = new Map(items.map((item) => [item.id, item]));
 
-      // Check soft-delete (findById in ItemsService already throws if not found,
-      // but withDeleted could change that, so double-check)
+    for (const orderItemDto of dto.items) {
+      const item = itemsMap.get(orderItemDto.itemId);
+      if (!item) {
+        throw new NotFoundException(`Item with ID ${orderItemDto.itemId} not found`);
+      }
+
+      // Check soft-delete
       if (item.deletedAt !== null) {
         throw new BadRequestException(`Item "${item.name}" has been removed from the menu.`);
       }
