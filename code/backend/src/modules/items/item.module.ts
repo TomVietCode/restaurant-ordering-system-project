@@ -10,8 +10,8 @@ import { ItemsService } from '@modules/items/item.service.js';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Item]), CategoriesModule
-    // forwardRef(() => ),
+    TypeOrmModule.forFeature([Item]), 
+    forwardRef(() => CategoriesModule),
   ],
   controllers: [ItemsAdminController, ItemsCustomerController],
   providers: [

@@ -7,7 +7,9 @@ import { CategoriesController } from './categories.controller.js';
 import { ItemsModule } from '@modules/items/item.module.js';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Category]), forwardRef(() => ItemsModule)],
+  imports: [TypeOrmModule.forFeature([Category]), 
+  forwardRef(() => ItemsModule)
+],
   controllers: [CategoriesController],
   providers: [
     // Bind the token to the concrete CategoryRepository
