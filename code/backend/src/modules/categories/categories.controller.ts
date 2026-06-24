@@ -7,15 +7,16 @@ import { UpdateCategoryDto } from './dto/update-category.dto.js';
 import { ApiResponseDto } from '@common/dtos/api-response.dto.js';
 import { Roles } from '@common/decorators/roles.decorator.js';
 import { Role } from '@common/enums.js';
+import { Public } from '@common/decorators/public.decorator.js';
 
 @ApiTags('Categories')
 @Controller('categories')
 @ApiBearerAuth('JWT-auth')
-@Roles(Role.OWNER)
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
+  @Roles(Role.OWNER)
   @ApiOperation({ summary: 'Create a new category' })
   @ApiResponse({ status: 201, description: 'Category created successfully', type: Category })
   @ApiResponse({ status: 400, description: 'Validation error' })
@@ -25,6 +26,7 @@ export class CategoriesController {
   }
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'Get all categories' })
   @ApiResponse({ status: 200, description: 'List of categories', type: [Category] })
   async findAll(): Promise<ApiResponseDto<Category[]>> {
@@ -32,6 +34,7 @@ export class CategoriesController {
   }
 
   @Get(':id')
+  @Roles(Role.OWNER)
   @ApiOperation({ summary: 'Get category by ID' })
   @ApiResponse({ status: 200, description: 'Category found', type: Category })
   @ApiResponse({ status: 404, description: 'Category not found' })
@@ -40,6 +43,7 @@ export class CategoriesController {
   }
 
   @Patch(':id')
+  @Roles(Role.OWNER)
   @ApiOperation({ summary: 'Update category by ID' })
   @ApiResponse({
     status: 200,
@@ -55,6 +59,7 @@ export class CategoriesController {
   }
 
   @Delete(':id')
+  @Roles(Role.OWNER)
   @ApiOperation({ summary: 'Delete category by ID' })
   @ApiResponse({ status: 204, description: 'Category deleted' })
   @ApiResponse({ status: 404, description: 'Category not found' })
