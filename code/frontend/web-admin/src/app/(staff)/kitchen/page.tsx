@@ -1,4 +1,18 @@
-// Kitchen display — orders to prepare (FR-06, kitchen-focused view).
-export default function KitchenPage() {
-  return <h1>Bếp</h1>;
+import { auth } from '@/auth';
+import { AppHeader } from '@/components/layout/header';
+
+export default async function KitchenPage() {
+  const session = await auth();
+  const user = session?.user ?? null;
+
+  return (
+    <div className="flex h-screen flex-col">
+      {/* showTrigger=false vì kitchen không có sidebar → không cần SidebarProvider */}
+      <AppHeader user={user} showTrigger={false} backHref="/select-role" />
+      <main className="flex-1 overflow-y-auto p-6">
+        <h1 className="text-h2">Bếp</h1>
+        {/* TODO: hiển thị vé đơn cần chế biến (US-04) */}
+      </main>
+    </div>
+  );
 }

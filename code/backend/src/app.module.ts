@@ -7,9 +7,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import configuration from '@config/configuration.js';
 import { AuthModule } from '@modules/auth/auth.module.js';
 import { UsersModule } from '@modules/users/users.module.js';
+import { CategoriesModule } from '@modules/categories/categories.module.js';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '@common/guards/roles.guard.js';
 import { TableModule } from './modules/tables/table.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
+import { ItemsModule } from '@modules/items/item.module.js';
+import { RealtimeModule } from '@modules/realtime/realtime.module.js';
+import { OrdersModule } from '@modules/orders/orders.module.js';
 
 @Module({
   imports: [
@@ -33,7 +38,12 @@ import { TableModule } from './modules/tables/table.module';
     }),
     AuthModule,
     UsersModule,
+    CategoriesModule,
     TableModule,
+    UploadsModule,
+    ItemsModule,
+    RealtimeModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [
