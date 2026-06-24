@@ -60,7 +60,8 @@ export class ItemsService {
     const { name, price, categoryId, description, imagesUrl, isRemain } = dto
     // If category is being changed, validate the new one exists
     if (categoryId !== undefined && categoryId !== item.categoryId) {
-       await this.categoriesService.findById(categoryId);
+       const category = await this.categoriesService.findById(categoryId);
+       item.categoryId = category.id; 
     }
 
     if (name !== undefined) item.name = name;

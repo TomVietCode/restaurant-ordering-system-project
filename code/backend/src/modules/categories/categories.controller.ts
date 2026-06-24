@@ -17,45 +17,24 @@ export class CategoriesController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new category' })
-  @ApiResponse({
-    status: 201,
-    description: 'Category created successfully',
-    type: Category,
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Validation error',
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Category name already exists',
-  })
+  @ApiResponse({ status: 201, description: 'Category created successfully', type: Category })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 409, description: 'Category name already exists' })
   async create(@Body() dto: CreateCategoryDto): Promise<ApiResponseDto<Category>> {
     return ApiResponseDto.success(await this.categoriesService.create(dto));
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all categories' })
-  @ApiResponse({
-    status: 200,
-    description: 'List of categories',
-    type: [Category],
-  })
+  @ApiResponse({ status: 200, description: 'List of categories', type: [Category] })
   async findAll(): Promise<ApiResponseDto<Category[]>> {
     return ApiResponseDto.success(await this.categoriesService.findAll());
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get category by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Category found',
-    type: Category,
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Category not found',
-  })
+  @ApiResponse({ status: 200, description: 'Category found', type: Category })
+  @ApiResponse({ status: 404, description: 'Category not found' })
   async findById(@Param('id') id: number): Promise<ApiResponseDto<Category | null>> {
     return ApiResponseDto.success(await this.categoriesService.findById(id));
   }
@@ -77,14 +56,8 @@ export class CategoriesController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete category by ID' })
-  @ApiResponse({
-    status: 204,
-    description: 'Category deleted',
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Category not found',
-  })
+  @ApiResponse({ status: 204, description: 'Category deleted' })
+  @ApiResponse({ status: 404, description: 'Category not found' })
   async delete(@Param('id') id: number): Promise<ApiResponseDto<void>> {
     await this.categoriesService.delete(id);
     return ApiResponseDto.success(undefined);
