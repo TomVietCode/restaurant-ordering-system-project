@@ -9,13 +9,11 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { User } from './entities/user.entity.js';
-import { Role } from '@common/enums.js';
 import type { IUserRepository } from './repositories/user.repository.interface.js';
-import { CreateUserDto, UpdateUserDto, UserResponseDto } from './dto/dtos.js';
+import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryOptions } from './dto/dtos.js';
 import { AuthService } from '@modules/auth/auth.service.js';
 import * as bcrypt from 'bcryptjs';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
+import { PaginationDto } from '@common/dtos/pagination.dto.js';
 
 /**
  * Dependency injection token for UserRepository.
@@ -31,8 +29,6 @@ export class UsersService {
     private readonly userRepository: IUserRepository,
     @Inject(forwardRef(() => AuthService))
     private readonly authService: AuthService,
-    @InjectRepository(User)
-    private readonly typeOrmRepo: Repository<User>,
   ) {}
 
   async findByEmail(email: string): Promise<User | null> {
@@ -65,51 +61,20 @@ export class UsersService {
     return userResponse as UserResponseDto;
   }
 
-  async findAll(filters: {
-    search?: string;
-    role?: Role;
-    isActive?: boolean;
-    sortBy?: 'createdAt' | 'email' | 'fullName';
-    order?: 'ASC' | 'DESC';
-    page?: number;
-    limit?: number;
-  }): Promise<{ data: UserResponseDto[]; total: number }> {
-    const { search, role, isActive, sortBy = 'createdAt', order = 'DESC', page = 1, limit = 10 } = filters;
-    const query = this.typeOrmRepo.createQueryBuilder('user');
+  async findAll(query: UserQueryOptions): Promise<PaginationDto<UserResponseDto>> {
+    const [users, total] = await this.userRepository.findPaginated(query);
 
-    // search theo username hoặc email
-    if (search) {
-      query.andWhere('(user.username LIKE :search OR user.email LIKE :search)', {
-        search: `%${search}%`,
-      });
-    }
+    const pagination = new PaginationDto<UserResponseDto>();
+    pagination.items = users.map(({ passwordHash, ...rest }) => rest as UserResponseDto);
+    pagination.page = query.page;
+    pagination.limit = query.limit;
+    pagination.total = total;
+    pagination.totalPages = Math.ceil(total / query.limit);
 
-    // lọc theo role
-    if (role) {
-      query.andWhere('user.role = :role', { role });
-    }
-
-    // lọc theo isActive
-    if (isActive !== undefined) {
-      query.andWhere('user.isActive = :isActive', { isActive });
-    }
-
-    // sắp xếp và phân trang
-    query
-      .orderBy(`user.${sortBy}`, order)
-      .skip((page - 1) * limit)
-      .take(limit);
-
-    // lấy dữ liệu và tổng số bản ghi
-    const [users, total] = await query.getManyAndCount();
-
-    // loại bỏ passwordHash trước khi trả về
-    const data = users.map(({ passwordHash, ...rest }) => rest as UserResponseDto);
-
-    return { data, total };
+    return pagination;
   }
 
-  async update(id: number, dto: UpdateUserDto, userId: number): Promise<UserResponseDto> {
+  async update(id: number, dto: UpdateUserDto): Promise<UserResponseDto> {
     const user = await this.findById(id);
 
     if (dto.email && dto.email !== user.email) {
@@ -117,13 +82,6 @@ export class UsersService {
       if (existing) {
         throw new ConflictException('Email already exists');
       }
-    }
-
-    if (dto.isActive === false) {
-      if (user.id === userId) {
-        throw new BadRequestException('Owner cant inactive yourself');
-      }
-      await this.authService.logout(user.id);
     }
 
     const { password, ...rest } = dto;
@@ -138,11 +96,20 @@ export class UsersService {
     return userResponse as UserResponseDto;
   }
 
+  async toggleActivate (id:number, isActive: boolean, currentId: number ): Promise<void>{
+    const user = await this.findById(id);
+    if (isActive === false) {
+      if (user.id === currentId) {
+        throw new BadRequestException('Owner cant inactive yourself');
+      }
+      await this.authService.logout(user.id);
+    }
+    user.isActive = isActive
+    this.userRepository.save(user);
+  } 
+
   async remove(id: number): Promise<void> {
     const user = await this.findById(id);
-    if (!user) {
-      throw new NotFoundException(`User not found`);
-    }
     if (user.isActive === true) {
       throw new BadRequestException(`Can not delete use still active`);
     }

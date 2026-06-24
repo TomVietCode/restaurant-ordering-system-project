@@ -160,3 +160,19 @@ export class UserQueryDto {
   @IsNumber()
   limit?: number;
 }
+
+export interface UserQueryOptions {
+  search?: string;
+  role?: Role;
+  isActive?: boolean;
+  sortBy?: 'createdAt' | 'email' | 'fullName';
+  sortOrder?: 'ASC' | 'DESC';
+  page: number;
+  limit: number;
+}
+
+
+export class toggleActivateDto{
+  @IsBoolean()
+  isActive: boolean;
+}
