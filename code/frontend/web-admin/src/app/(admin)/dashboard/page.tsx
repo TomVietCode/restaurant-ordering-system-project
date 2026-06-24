@@ -1,4 +1,8 @@
-// Owner home — overview after login (FR-01.1).
+import {signOut} from '@/auth';
 export default function DashboardPage() {
-  return <h1>Dashboard</h1>;
+  return (
+    <header>
+      
+    </header>
+  );
 }

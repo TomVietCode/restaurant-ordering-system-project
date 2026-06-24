@@ -24,6 +24,9 @@ export abstract class BaseRepository<T extends { id: number | string }> implemen
   async delete(id: number | string): Promise<void> {
     await this.repository.delete(id);
   }
+  async softDelete(id: number | string): Promise<void> {
+    await this.repository.softDelete(id);
+  }
   async exists(id: number | string): Promise<boolean> {
     const count = await this.repository.count({
       where: { id } as FindOptionsWhere<T>,
