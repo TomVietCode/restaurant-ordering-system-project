@@ -2,7 +2,7 @@ import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { User } from '@modules/users/entities/user.entity.js';
 import { Table } from '@modules/tables/table.entity.js';
-import { Role } from '@common/enums.js';
+import { Role, TableStatus } from '@common/enums.js';
 
 /**
  * Seed script — creates a default Owner account and default Tables if they do not exist.
@@ -84,7 +84,7 @@ async function seed() {
       tableRepository.create({
         name: t.name,
         capacity: t.capacity,
-        isAvailable: true,
+        status: TableStatus.AVAILABLE,
       })
     );
 

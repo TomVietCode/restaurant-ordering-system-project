@@ -1,15 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TableService } from './table.service';
-import { TABLE_REPO_TOKEN, ORDER_CHECK_SERVICE_TOKEN } from '@common/constants';
+import { TABLE_REPO_TOKEN, ORDER_CHECK_SERVICE_TOKEN, REALTIME_SERVICE_TOKEN } from '@common/constants';
 import { ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Table } from './table.entity';
 import type { ITableRepository } from './repositories/table.repository.interface';
 import type { IOrderCheckService } from '@common/interfaces/order-check.interface';
+import type { IRealtimeService } from '@modules/realtime/realtime.service.interface.js';
+import { TableStatus } from '@common/enums.js';
 
 describe('TableService', () => {
   let service: TableService;
   let repositoryMock: jest.Mocked<ITableRepository>;
   let orderCheckServiceMock: jest.Mocked<IOrderCheckService>;
+  let realtimeServiceMock: jest.Mocked<IRealtimeService>;
 
   beforeEach(async () => {
     repositoryMock = {
@@ -27,6 +30,11 @@ describe('TableService', () => {
       hasActiveOrders: jest.fn(),
     };
 
+    realtimeServiceMock = {
+      emit: jest.fn(),
+      emitToRoom: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TableService,
@@ -37,6 +45,10 @@ describe('TableService', () => {
         {
           provide: ORDER_CHECK_SERVICE_TOKEN,
           useValue: orderCheckServiceMock,
+        },
+        {
+          provide: REALTIME_SERVICE_TOKEN,
+          useValue: realtimeServiceMock,
         },
       ],
     }).compile();
@@ -52,7 +64,7 @@ describe('TableService', () => {
         id: 'uuid-1234',
         name: 'Bàn 01',
         capacity: 4,
-        isAvailable: true,
+        status: TableStatus.AVAILABLE,
       };
       repositoryMock.findByName.mockResolvedValue(null);
       repositoryMock.save.mockResolvedValue(expectedTable);
@@ -76,7 +88,7 @@ describe('TableService', () => {
         id: 'uuid-1234',
         name: 'Bàn 01',
         capacity: 4,
-        isAvailable: true,
+        status: TableStatus.AVAILABLE,
       };
       repositoryMock.findByName.mockResolvedValue(existingTable);
 
@@ -93,8 +105,8 @@ describe('TableService', () => {
     it('should return all tables', async () => {
       // Arrange
       const expectedTables: Table[] = [
-        { id: 'uuid-1', name: 'Bàn 01', capacity: 2, isAvailable: true },
-        { id: 'uuid-2', name: 'Bàn 02', capacity: 4, isAvailable: true },
+        { id: 'uuid-1', name: 'Bàn 01', capacity: 2, status: TableStatus.AVAILABLE },
+        { id: 'uuid-2', name: 'Bàn 02', capacity: 4, status: TableStatus.AVAILABLE },
       ];
       repositoryMock.findAll.mockResolvedValue(expectedTables);
 
@@ -115,7 +127,7 @@ describe('TableService', () => {
         id: tableId,
         name: 'Bàn 01',
         capacity: 4,
-        isAvailable: true,
+        status: TableStatus.AVAILABLE,
       };
       repositoryMock.findById.mockResolvedValue(expectedTable);
 
@@ -148,14 +160,14 @@ describe('TableService', () => {
         id: tableId,
         name: 'Bàn 01',
         capacity: 2,
-        isAvailable: true,
+        status: TableStatus.AVAILABLE,
       };
       const updateDto = { name: 'Bàn VIP 01', capacity: 4 };
       const updatedTable: Table = {
         id: tableId,
         name: 'Bàn VIP 01',
         capacity: 4,
-        isAvailable: true,
+        status: TableStatus.AVAILABLE,
       };
 
       repositoryMock.findById.mockResolvedValue(existingTable);
@@ -183,14 +195,14 @@ describe('TableService', () => {
         id: tableId,
         name: 'Bàn 01',
         capacity: 2,
-        isAvailable: true,
+        status: TableStatus.AVAILABLE,
       };
       const updateDto = { name: 'Bàn 02' };
       const conflictingTable: Table = {
         id: 'uuid-456',
         name: 'Bàn 02',
         capacity: 4,
-        isAvailable: true,
+        status: TableStatus.AVAILABLE,
       };
 
       repositoryMock.findById.mockResolvedValue(existingTable);
@@ -204,6 +216,26 @@ describe('TableService', () => {
       expect(repositoryMock.findByName).toHaveBeenCalledWith(updateDto.name);
       expect(repositoryMock.save).not.toHaveBeenCalled();
     });
+
+    it('should throw BadRequestException when changing status of table with active orders', async () => {
+      // Arrange
+      const tableId = 'uuid-123';
+      const existingTable: Table = {
+        id: tableId,
+        name: 'Bàn 01',
+        capacity: 2,
+        status: TableStatus.AVAILABLE,
+      };
+      const updateDto = { status: TableStatus.CLOSED };
+
+      repositoryMock.findById.mockResolvedValue(existingTable);
+      orderCheckServiceMock.hasActiveOrders.mockResolvedValue(true);
+
+      // Act & Assert
+      await expect(service.update(tableId, updateDto)).rejects.toThrow(
+        new BadRequestException('Cannot change table status while it has active orders'),
+      );
+    });
   });
 
   describe('remove', () => {
@@ -214,7 +246,7 @@ describe('TableService', () => {
         id: tableId,
         name: 'Bàn 01',
         capacity: 4,
-        isAvailable: true,
+        status: TableStatus.AVAILABLE,
       };
       repositoryMock.findById.mockResolvedValue(existingTable);
       orderCheckServiceMock.hasActiveOrders.mockResolvedValue(false);
@@ -236,7 +268,7 @@ describe('TableService', () => {
         id: tableId,
         name: 'Bàn 01',
         capacity: 4,
-        isAvailable: true,
+        status: TableStatus.AVAILABLE,
       };
       repositoryMock.findById.mockResolvedValue(existingTable);
       orderCheckServiceMock.hasActiveOrders.mockResolvedValue(true);
@@ -248,6 +280,88 @@ describe('TableService', () => {
       expect(repositoryMock.findById).toHaveBeenCalledWith(tableId);
       expect(orderCheckServiceMock.hasActiveOrders).toHaveBeenCalledWith(tableId);
       expect(repositoryMock.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('toggleStatus', () => {
+    it('should toggle status from AVAILABLE to CLOSED and emit event', async () => {
+      // Arrange
+      const tableId = 'uuid-123';
+      const table: Table = {
+        id: tableId,
+        name: 'Bàn 01',
+        capacity: 4,
+        status: TableStatus.AVAILABLE,
+      };
+      const savedTable: Table = {
+        ...table,
+        status: TableStatus.CLOSED,
+      };
+
+      repositoryMock.findById.mockResolvedValue(table);
+      repositoryMock.save.mockResolvedValue(savedTable);
+
+      // Act
+      const result = await service.toggleStatus(tableId);
+
+      // Assert
+      expect(table.status).toBe(TableStatus.CLOSED);
+      expect(repositoryMock.save).toHaveBeenCalledWith(table);
+      expect(realtimeServiceMock.emit).toHaveBeenCalledWith('table:status-changed', {
+        tableId,
+        status: TableStatus.CLOSED,
+      });
+      expect(result).toEqual(savedTable);
+    });
+
+    it('should toggle status from CLOSED to AVAILABLE and emit event', async () => {
+      // Arrange
+      const tableId = 'uuid-123';
+      const table: Table = {
+        id: tableId,
+        name: 'Bàn 01',
+        capacity: 4,
+        status: TableStatus.CLOSED,
+      };
+      const savedTable: Table = {
+        ...table,
+        status: TableStatus.AVAILABLE,
+      };
+
+      repositoryMock.findById.mockResolvedValue(table);
+      repositoryMock.save.mockResolvedValue(savedTable);
+
+      // Act
+      const result = await service.toggleStatus(tableId);
+
+      // Assert
+      expect(table.status).toBe(TableStatus.AVAILABLE);
+      expect(repositoryMock.save).toHaveBeenCalledWith(table);
+      expect(realtimeServiceMock.emit).toHaveBeenCalledWith('table:status-changed', {
+        tableId,
+        status: TableStatus.AVAILABLE,
+      });
+      expect(result).toEqual(savedTable);
+    });
+
+    it('should throw BadRequestException when trying to toggle OCCUPIED table', async () => {
+      // Arrange
+      const tableId = 'uuid-123';
+      const table: Table = {
+        id: tableId,
+        name: 'Bàn 01',
+        capacity: 4,
+        status: TableStatus.OCCUPIED,
+      };
+
+      repositoryMock.findById.mockResolvedValue(table);
+
+      // Act & Assert
+      await expect(service.toggleStatus(tableId)).rejects.toThrow(
+        new BadRequestException('Cannot toggle status when table is occupied'),
+      );
+      expect(repositoryMock.save).not.toHaveBeenCalled();
+      expect(realtimeServiceMock.emit).not.toHaveBeenCalled();
     });
   });
 });

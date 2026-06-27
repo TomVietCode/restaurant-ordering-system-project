@@ -2,7 +2,7 @@ import { Injectable, Inject, BadRequestException, NotFoundException, Logger } fr
 import { DataSource, EntityManager, In } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { ORDER_REPO_TOKEN, REALTIME_SERVICE_TOKEN } from '@common/constants.js';
-import { OrderStatus } from '@common/enums.js';
+import { OrderStatus, TableStatus } from '@common/enums.js';
 import type { IOrderRepository, OrderQueryOptions } from './repositories/order.repository.interface.js';
 import type { IRealtimeService } from '@modules/realtime/realtime.service.interface.js';
 import { TableService } from '@modules/tables/table.service.js';
@@ -46,6 +46,9 @@ export class OrdersService {
   async createOrder(dto: CreateOrderDto): Promise<Order> {
     // 1. Validate table
     const table = await this.tableService.findById(dto.tableId);
+    if (table.status === TableStatus.CLOSED) {
+      throw new BadRequestException('Table is currently closed');
+    }
 
     // 2. Validate items and snapshot prices
     const orderItems: OrderItem[] = [];
@@ -94,8 +97,8 @@ export class OrdersService {
       const saved = await manager.save(Order, order);
 
       // 5. Mark table as occupied if it was previously free
-      if (table.isAvailable) {
-        table.isAvailable = false;
+      if (table.status === TableStatus.AVAILABLE) {
+        table.status = TableStatus.OCCUPIED;
         await manager.save(table);
       }
 
@@ -226,7 +229,7 @@ export class OrdersService {
       // Free the table since all orders are now paid
       const table = await manager.findOne(Table, { where: { id: tableId } });
       if (table) {
-        table.isAvailable = true;
+        table.status = TableStatus.AVAILABLE;
         await manager.save(table);
       }
 
@@ -303,7 +306,7 @@ export class OrdersService {
       if (activeCount === 0) {
         const table = await manager.findOne(Table, { where: { id: tableId } });
         if (table) {
-          table.isAvailable = true;
+          table.status = TableStatus.AVAILABLE;
           await manager.save(table);
         }
       }
@@ -340,7 +343,7 @@ export class OrdersService {
 
     if (activeCount === 0) {
       const table = await this.tableService.findById(tableId);
-      table.isAvailable = true;
+      table.status = TableStatus.AVAILABLE;
       await manager.save(table);
       this.logger.log(`Table ${table.name} is now free (all orders terminal)`);
     }
