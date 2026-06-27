@@ -15,6 +15,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { ItemsModule } from '@modules/items/item.module.js';
 import { RealtimeModule } from '@modules/realtime/realtime.module.js';
 import { OrdersModule } from '@modules/orders/orders.module.js';
+import { ReportsModule } from '@modules/reports/reports.module.js';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { OrdersModule } from '@modules/orders/orders.module.js';
     ItemsModule,
     RealtimeModule,
     OrdersModule,
+    ReportsModule
   ],
   controllers: [AppController],
   providers: [
