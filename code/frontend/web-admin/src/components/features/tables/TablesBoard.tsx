@@ -1,45 +1,130 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog, DialogContent, DialogDescription,
+  DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { tableService } from '@/services/table.service';
 import { TableCard } from './TableCard';
-import type { Table } from '@/types/table';
-import { TableAdd } from './TableAdd';
+import { TableFormDialog } from './TableFormDialog';
+import type { Table, TableStatus } from '@/types/table';
 
-type Filter = 'ALL' | 'AVAILABLE' | 'OCCUPIED';
+type Filter = 'ALL' | TableStatus;
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: 'ALL',       label: 'Tất cả'   },
   { value: 'AVAILABLE', label: 'Trống'    },
+  { value: 'CLOSED',    label:'Đóng'},
   { value: 'OCCUPIED',  label: 'Có khách' },
 ];
 
-
 export function TablesBoard() {
-  const [tables, setTables] = useState<Table[]>([]);
-  const [filter, setFilter] = useState<Filter>('ALL');
-  const [openAdd, setOpenAdd] = useState(false);
+  const { data: session } = useSession();
+  const token = session?.accessToken ?? null;
+
+  const [tables, setTables]             = useState<Table[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState<string | null>(null);
+  const [filter, setFilter]             = useState<Filter>('ALL');
+  const [formTarget, setFormTarget]     = useState<Table | 'new' | null>(null); // 'new' = thêm, Table = sửa
+  const [deleteTarget, setDeleteTarget] = useState<Table | null>(null);
+  const [deleting, setDeleting]         = useState(false);
+  const [toggleTarget, setToggleTarget] = useState<Table | null>(null);
+  const [toggling, setToggling]         = useState(false);
+
+  const loadTables = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      setTables(await tableService.getAll(token));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Không tải được danh sách bàn');
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
 
   useEffect(() => {
-    tableService.getAll().then(setTables);
-  }, []);
+    if (token) loadTables();
+  }, [token, loadTables]);
 
-  const visible = tables.filter(t =>
-    filter === 'ALL'       ? true :
-    filter === 'AVAILABLE' ? t.isAvailable : !t.isAvailable,
-  );
+  async function handleToggle() {
+    if (!toggleTarget) return;
+    setToggling(true);
+    try {
+      const updated = await tableService.toggleStatus(token, toggleTarget.id);
+      setTables(prev => prev.map(t => t.id === updated.id ? updated : t));
+      toast.success(updated.status === 'AVAILABLE' ? 'Đã mở bàn' : 'Đã đóng bàn');
+      setToggleTarget(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Thao tác thất bại');
+    } finally {
+      setToggling(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await tableService.remove(token, deleteTarget.id);
+      setTables(prev => prev.filter(t => t.id !== deleteTarget.id));
+      toast.success('Xóa bàn thành công');
+      setDeleteTarget(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Xóa thất bại');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  // Cập nhật danh sách sau khi thêm/sửa
+  function handleFormDone(saved: Table) {
+    setTables(prev =>
+      prev.some(t => t.id === saved.id)
+        ? prev.map(t => t.id === saved.id ? saved : t) // sửa
+        : [...prev, saved],                             // thêm mới
+    );
+  }
+
+  const visibleTables = filter === 'ALL'
+    ? tables
+    : tables.filter(t => t.status === filter);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20 text-sm text-muted-foreground">
+        Đang tải…
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center gap-3 py-20">
+        <p className="text-sm text-destructive">{error}</p>
+        <Button variant="outline" size="sm" onClick={loadTables}>Thử lại</Button>
+      </div>
+    );
+  }
 
   return (
     <>
       {/* Header */}
-      <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
-
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Quản lý bàn</h2>
+          <p className="text-sm text-muted-foreground">{tables.length} bàn</p>
+        </div>
         <div className="flex items-center gap-2">
           {/* Bộ lọc */}
-          <div className="flex items-center gap-1 rounded-lg border border-border bg-secondary p-1">
+          <div className="flex gap-1 rounded-lg border bg-secondary p-1">
             {FILTERS.map(f => (
               <Button
                 key={f.value}
@@ -49,7 +134,7 @@ export function TablesBoard() {
                   'rounded-md text-xs',
                   filter === f.value
                     ? 'bg-primary text-primary-foreground shadow-sm hover:bg-primary-dark'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
                 onClick={() => setFilter(f.value)}
               >
@@ -57,37 +142,100 @@ export function TablesBoard() {
               </Button>
             ))}
           </div>
-{/* 
-          <Separator orientation="vertical" className="h-7" /> */}
-
-          <Button className="bg-primary text-primary-foreground hover:bg-primary-dark" onClick={() => setOpenAdd(true)}>
+          <Button
+            className="bg-primary text-primary-foreground hover:bg-primary-dark"
+            onClick={() => setFormTarget('new')}
+          >
             <Plus className="size-4" /> Thêm bàn
           </Button>
         </div>
       </div>
-      {/* Grid */}
-      {visible.length === 0 ? (
+
+      {/* Grid bàn */}
+      {visibleTables.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-          <p>Không có bàn nào</p>
+          <p className="text-sm">Không có bàn nào</p>
+          {filter === 'ALL' && (
+            <button
+              className="mt-1 text-sm text-primary hover:underline"
+              onClick={() => setFormTarget('new')}
+            >
+              Thêm ngay
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {visible.map(table => (
+          {visibleTables.map(t => (
             <TableCard
-              key={table.id}
-              table={table}
-              onEdit={() => {}}
-              onDelete={() => {}}
-              onDetail={() => {}}
+              key={t.id}
+              table={t}
+              onEdit={() => setFormTarget(t)}
+              onDelete={() => setDeleteTarget(t)}
+              onToggle={() => setToggleTarget(t)}
             />
           ))}
         </div>
       )}
-      <TableAdd
-        open={openAdd}
-        onOpenChange={setOpenAdd}
-        // onCreated={(table) => setTables((prev) => [...prev, table])}
+
+      {/* Dialog thêm / sửa bàn */}
+      <TableFormDialog
+        open={formTarget !== null}
+        onOpenChange={v => { if (!v) setFormTarget(null); }}
+        table={formTarget !== 'new' ? formTarget : null}
+        existingNames={tables.map(t => t.name)}
+        onDone={handleFormDone}
       />
+
+      {/* Dialog xác nhận toggle trạng thái */}
+      <Dialog open={!!toggleTarget} onOpenChange={v => { if (!v) setToggleTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {toggleTarget?.status === 'AVAILABLE' ? 'Đóng bàn' : 'Mở bàn'}
+            </DialogTitle>
+            <DialogDescription>
+              Xác nhận{' '}
+              <span className="font-semibold text-foreground">
+                {toggleTarget?.status === 'AVAILABLE' ? 'đóng' : 'mở'}
+              </span>{' '}
+              bàn &quot;{toggleTarget?.name}&quot;?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" disabled={toggling} onClick={() => setToggleTarget(null)}>
+              Hủy
+            </Button>
+            <Button disabled={toggling} onClick={handleToggle}>
+              {toggling ? 'Đang xử lý…' : 'Xác nhận'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog xác nhận xóa */}
+      <Dialog open={!!deleteTarget} onOpenChange={v => { if (!v) setDeleteTarget(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Xóa bàn</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc muốn xóa{' '}
+              <span className="font-semibold text-foreground">
+                &quot;{deleteTarget?.name}&quot;
+              </span>?
+              {' '}Hành động này không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" disabled={deleting} onClick={() => setDeleteTarget(null)}>
+              Hủy
+            </Button>
+            <Button variant="destructive" disabled={deleting} onClick={handleDelete}>
+              {deleting ? 'Đang xóa…' : 'Xóa bàn'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

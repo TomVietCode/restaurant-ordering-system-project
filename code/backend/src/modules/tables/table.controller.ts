@@ -1,9 +1,9 @@
 import { Roles } from '@common/decorators';
 import { Role } from '@common/enums';
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, ParseUUIDPipe, NotFoundException } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, ParseUUIDPipe, NotFoundException, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { TableService } from './table.service';
-import { CreateTableDto, TableResponseDto, UpdateTableDto } from './repositories/dtos';
+import { CreateTableDto, TableQueryDto, TableResponseDto, UpdateTableDto } from './repositories/dtos';
 import { ApiResponseDto } from '@common/dtos/api-response.dto';
 
 const ParseTableUUID = new ParseUUIDPipe({
@@ -30,10 +30,10 @@ export class TableController {
   // ApiResponseDto<TableResponseDto>
 
   @Get()
-  @ApiOperation({ summary: 'List all tables' })
+  @ApiOperation({ summary: 'List all tables with optional status filter' })
   @ApiResponse({ status: 200, description: 'Returns all tables', type: [TableResponseDto] })
-  async findAll(): Promise<ApiResponseDto<TableResponseDto[]>> {
-    const tables = await this.tablesService.findAll();
+  async findAll(@Query() query: TableQueryDto): Promise<ApiResponseDto<TableResponseDto[]>> {
+    const tables = await this.tablesService.findAll(query.status);
     return ApiResponseDto.success(tables);
   }
 
@@ -72,4 +72,17 @@ export class TableController {
     await this.tablesService.remove(id);
     return ApiResponseDto.success(null, 'Delete table successfully');
   }
+
+  @Patch(':id/toggle-status')
+  @Roles(Role.STAFF, Role.OWNER)
+  @ApiOperation({ summary: 'Toggle table status between AVAILABLE and CLOSED (realtime)' })
+  @ApiParam({ name: 'id', description: 'Table UUID' })
+  @ApiResponse({ status: 200, description: 'Table status toggled successfully', type: TableResponseDto })
+  @ApiResponse({ status: 400, description: 'Cannot toggle status of occupied table' })
+  @ApiResponse({ status: 404, description: 'Table not found' })
+  async toggleStatus(@Param('id', ParseTableUUID) id: string): Promise<ApiResponseDto<TableResponseDto>> {
+    const table = await this.tablesService.toggleStatus(id);
+    return ApiResponseDto.success(table, 'Table status toggled successfully');
+  }
 }
+

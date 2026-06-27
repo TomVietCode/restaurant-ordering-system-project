@@ -1,17 +1,49 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import type { JWT } from 'next-auth/jwt';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api';
 
-/**
- * Cấu hình Auth.js (NextAuth v5).
- *
- * Credentials provider gọi backend NestJS (`/auth/login` + `/auth/profile`),
- * rồi nhét `role` + `accessToken` vào JWT/session của Auth.js để server đọc được.
- */
+// Giải mã exp từ JWT payload (không cần thư viện)
+function getExpiry(token: string): number {
+  try {
+    const payload = JSON.parse(
+      Buffer.from(token.split('.')[1], 'base64url').toString(),
+    ) as { exp?: number };
+    return (payload.exp ?? 0) * 1000; // chuyển sang ms
+  } catch {
+    return 0;
+  }
+}
+
+// Gọi /auth/refresh để lấy accessToken mới
+async function refreshAccessToken(jwt: JWT): Promise<JWT> {
+  try {
+    const res = await fetch(`${API}/auth/refresh`, {
+      method: 'POST',
+      headers: { Cookie: `refreshToken=${jwt.refreshToken ?? ''}` },
+    });
+    if (!res.ok) throw new Error('Refresh failed');
+
+    const newAccessToken = (
+      (await res.json()) as { data: { accessToken: string } }
+    ).data.accessToken;
+
+    return {
+      ...jwt,
+      accessToken: newAccessToken,
+      accessTokenExpires: getExpiry(newAccessToken),
+    };
+  } catch {
+    // Refresh thất bại → xóa token, buộc đăng nhập lại
+    return { ...jwt, accessToken: undefined, accessTokenExpires: 0 };
+  }
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   session: { strategy: 'jwt' },
   pages: { signIn: '/login' },
+
   providers: [
     Credentials({
       credentials: {
@@ -19,50 +51,68 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: 'Password', type: 'password' },
       },
       authorize: async (creds) => {
-        // 1) Đăng nhập lấy accessToken từ NestJS
         const res = await fetch(`${API}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: creds?.email,
-            password: creds?.password,
-          }),
+          body: JSON.stringify({ email: creds?.email, password: creds?.password }),
         });
-        if (!res.ok) return null; // sai email/mật khẩu → Auth.js báo lỗi
+        if (!res.ok) return null;
 
-        const accessToken = (await res.json()).data.accessToken as string;
+        const accessToken = (
+          (await res.json()) as { data: { accessToken: string } }
+        ).data.accessToken;
 
-        // 2) Lấy profile (id, role, tên) bằng access token
+        // Lấy refreshToken từ Set-Cookie header của NestJS
+        const setCookie = res.headers.get('set-cookie') ?? '';
+        const refreshToken = setCookie.match(/refreshToken=([^;]+)/)?.[1] ?? '';
+
         const profileRes = await fetch(`${API}/auth/profile`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         if (!profileRes.ok) return null;
 
-        const u = (await profileRes.json()).data;
+        const u = (
+          (await profileRes.json()) as { data: { id: number; email: string; fullName: string; role: string } }
+        ).data;
+
         return {
           id: String(u.id),
           email: u.email,
           name: u.fullName,
           role: u.role,
           accessToken,
+          refreshToken,
         };
       },
     }),
   ],
+
   callbacks: {
-    // Nhét role + token vào JWT của Auth.js (chạy mỗi lần tạo/đọc token).
-    jwt({ token, user }) {
+    async jwt({ token, user }) {
+      // Lần đầu đăng nhập — lưu đầy đủ thông tin
       if (user) {
-        const u = user as { role: string; accessToken: string };
-        token.role = u.role;
-        token.accessToken = u.accessToken;
+        const u = user as { role: string; accessToken: string; refreshToken: string };
+        return {
+          ...token,
+          role: u.role,
+          accessToken: u.accessToken,
+          accessTokenExpires: getExpiry(u.accessToken),
+          refreshToken: u.refreshToken,
+        };
       }
-      return token;
+
+      // Token còn hạn (trừ 30 giây buffer) → dùng tiếp
+      if (Date.now() < (token.accessTokenExpires ?? 0) - 30_000) {
+        return token;
+      }
+
+      // Token hết hạn → refresh
+      return refreshAccessToken(token);
     },
-    // Expose ra session để server/client đọc được role + token.
+
     session({ session, token }) {
-      if (token.role) session.user.role = token.role as string;
-      if (token.accessToken) session.accessToken = token.accessToken as string;
+      session.accessToken = token.accessToken;
+      if (token.role) session.user.role = token.role;
       return session;
     },
   },
