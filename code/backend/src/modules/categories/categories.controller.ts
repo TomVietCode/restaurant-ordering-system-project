@@ -8,13 +8,10 @@ import { ApiResponseDto } from '@common/dtos/api-response.dto.js';
 import { Roles } from '@common/decorators/roles.decorator.js';
 import { Role } from '@common/enums.js';
 import { Public } from '@common/decorators/public.decorator.js';
-<<<<<<< HEAD
 
 const ParseCategoryId = new ParseIntPipe({
   exceptionFactory: () => new NotFoundException('Category not found'),
 });
-=======
->>>>>>> 1d6397881f28dfb3d343f71a2b6924b0219a10a1
 
 @ApiTags('Categories')
 @Controller('categories')
