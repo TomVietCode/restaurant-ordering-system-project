@@ -1,4 +1,5 @@
-// Table management + QR generation (FR-04). Owner only.
+import { TablesBoard } from '@/components/features/tables/TablesBoard';
+
 export default function TablesPage() {
-  return <h1>Quản lý Bàn</h1>;
+  return <TablesBoard />;
 }
