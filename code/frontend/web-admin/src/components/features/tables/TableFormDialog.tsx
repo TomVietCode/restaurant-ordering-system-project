@@ -61,7 +61,8 @@ export function TableFormDialog({ open, onOpenChange, table, existingNames, onDo
         ? await tableService.update(token, table!.id, {
             name: trimmedName,
             capacity: Number(capacity),
-            status: isAvailable ? 'AVAILABLE' : 'CLOSED',
+            // Không gửi status khi bàn đang có khách — backend sẽ reject và UI cũng không cho thay đổi
+            ...(table!.status !== 'OCCUPIED' && { status: isAvailable ? 'AVAILABLE' : 'CLOSED' }),
           })
         : await tableService.create(token, {
             name: trimmedName,
@@ -119,29 +120,44 @@ export function TableFormDialog({ open, onOpenChange, table, existingNames, onDo
           </div>
 
           {/* Toggle trạng thái */}
-          <div className="flex items-center justify-between rounded-lg border px-4 py-3">
-            <div className="space-y-0.5">
-              <p className="text-sm font-medium">Trạng thái bàn</p>
-              <p className="text-xs text-muted-foreground">
-                {isAvailable ? 'Mở — khách có thể đặt bàn' : 'Đóng — không nhận khách'}
-              </p>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={isAvailable}
-              onClick={() => setIsAvailable(v => !v)}
-              className={cn(
-                'relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200',
-                isAvailable ? 'bg-primary' : 'bg-input',
-              )}
-            >
-              <span className={cn(
-                'inline-block h-5 w-5 rounded-full bg-white shadow-lg transition-transform duration-200',
-                isAvailable ? 'translate-x-5' : 'translate-x-0',
-              )} />
-            </button>
-          </div>
+          {(() => {
+            const isOccupied = isEdit && table?.status === 'OCCUPIED';
+            return (
+              <div className={cn(
+                'flex items-center justify-between rounded-lg border px-4 py-3',
+                isOccupied && 'opacity-60',
+              )}>
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium">Trạng thái bàn</p>
+                  <p className="text-xs text-muted-foreground">
+                    {isOccupied
+                      ? 'Bàn đang có khách — không thể thay đổi'
+                      : isAvailable ? 'Mở — khách có thể đặt bàn' : 'Đóng — không nhận khách'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isAvailable}
+                  disabled={isOccupied}
+                  onClick={() => !isOccupied && setIsAvailable(v => !v)}
+                  className={cn(
+                    'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border-2 border-transparent transition-colors duration-200',
+                    isOccupied
+                      ? 'cursor-not-allowed bg-status-cancel/60'
+                      : isAvailable
+                        ? 'cursor-pointer bg-primary'
+                        : 'cursor-pointer bg-input',
+                  )}
+                >
+                  <span className={cn(
+                    'inline-block h-5 w-5 rounded-full bg-white shadow-lg transition-transform duration-200',
+                    isAvailable ? 'translate-x-5' : 'translate-x-0',
+                  )} />
+                </button>
+              </div>
+            );
+          })()}
         </form>
 
         <DialogFooter>

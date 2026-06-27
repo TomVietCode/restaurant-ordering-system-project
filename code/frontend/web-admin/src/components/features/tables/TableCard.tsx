@@ -108,7 +108,11 @@ export function TableCard({ table, onEdit, onDelete, onToggle }: Props) {
             variant="destructive"
             className="flex-1"
             disabled={table.status !== 'AVAILABLE'}
-            title={table.status !== 'AVAILABLE' ? 'Chỉ xóa được bàn đang trống' : undefined}
+            title={
+              table.status === 'OCCUPIED' ? 'Bàn đang có khách, không thể xóa' :
+              table.status === 'CLOSED'   ? 'Bàn đang đóng, không thể xóa' :
+              'Nhấn để xóa bàn'
+            }
             onClick={onDelete}
           >
             <Trash2 className="size-3.5" /> Xóa

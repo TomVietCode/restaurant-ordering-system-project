@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { io } from 'socket.io-client';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -13,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { tableService } from '@/services/table.service';
 import { TableCard } from './TableCard';
 import { TableFormDialog } from './TableFormDialog';
+import { API_BASE_URL } from '@/lib/constants';
 import type { Table, TableStatus } from '@/types/table';
 
 type Filter = 'ALL' | TableStatus;
@@ -27,11 +30,24 @@ const FILTERS: { value: Filter; label: string }[] = [
 export function TablesBoard() {
   const { data: session } = useSession();
   const token = session?.accessToken ?? null;
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [tables, setTables]             = useState<Table[]>([]);
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState<string | null>(null);
-  const [filter, setFilter]             = useState<Filter>('ALL');
+
+  // Đọc filter từ URL, fallback về 'ALL'
+  const VALID_FILTERS: Filter[] = ['ALL', 'AVAILABLE', 'CLOSED', 'OCCUPIED'];
+  const rawFilter = searchParams.get('filter') ?? 'ALL';
+  const filter = (VALID_FILTERS.includes(rawFilter as Filter) ? rawFilter : 'ALL') as Filter;
+
+  function setFilter(value: Filter) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === 'ALL') params.delete('filter');
+    else params.set('filter', value);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  }
   const [formTarget, setFormTarget]     = useState<Table | 'new' | null>(null); // 'new' = thêm, Table = sửa
   const [deleteTarget, setDeleteTarget] = useState<Table | null>(null);
   const [deleting, setDeleting]         = useState(false);
@@ -53,6 +69,18 @@ export function TablesBoard() {
   useEffect(() => {
     if (token) loadTables();
   }, [token, loadTables]);
+
+  // Lắng nghe realtime khi cashier thanh toán → bàn tự đổi trạng thái
+  useEffect(() => {
+    const WS_URL = API_BASE_URL.replace('/api', '');
+    const socket = io(`${WS_URL}/orders`, { transports: ['websocket'] });
+
+    socket.on('table:status-changed', ({ tableId, status }: { tableId: string; status: TableStatus }) => {
+      setTables(prev => prev.map(t => t.id === tableId ? { ...t, status } : t));
+    });
+
+    return () => { socket.disconnect(); };
+  }, []);
 
   async function handleToggle() {
     if (!toggleTarget) return;
@@ -93,9 +121,9 @@ export function TablesBoard() {
     );
   }
 
-  const visibleTables = filter === 'ALL'
-    ? tables
-    : tables.filter(t => t.status === filter);
+  const visibleTables = (filter === 'ALL' ? tables : tables.filter(t => t.status === filter))
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name, 'vi', { numeric: true }));
 
   if (loading) {
     return (
