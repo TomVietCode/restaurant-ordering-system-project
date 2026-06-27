@@ -69,6 +69,8 @@ describe('OrdersService', () => {
     // Create mock EntityManager used inside transaction callbacks
     mockManager = {
       save: jest.fn().mockImplementation((_entity, data) => Promise.resolve(data)),
+      findOne: jest.fn(),
+      count: jest.fn(),
     } as unknown as jest.Mocked<EntityManager>;
 
     // Create mocks for all dependencies
@@ -474,6 +476,7 @@ describe('OrdersService', () => {
 
       tableService.findById.mockResolvedValue(table);
       orderRepo.findActiveOrdersByTableId.mockResolvedValue(orders);
+      mockManager.findOne.mockResolvedValue(table);
       mockManager.save.mockImplementation((_entity, data) =>
         Promise.resolve(data ?? _entity),
       );
@@ -504,6 +507,121 @@ describe('OrdersService', () => {
 
       await expect(
         service.checkoutTable('table-uuid-1', {
+          paymentMethod: PaymentMethod.CASH,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────
+  //  checkoutOrders
+  // ──────────────────────────────────────────────────────────
+
+  describe('checkoutOrders', () => {
+    it('should check out specific orders and free the table if no active orders remain', async () => {
+      const table = makeTable({ isAvailable: false });
+      const orders = [
+        makeOrder({ id: 1, status: OrderStatus.NEW, trackingCode: 'tc-1' }),
+        makeOrder({ id: 2, status: OrderStatus.SERVED, trackingCode: 'tc-2' }),
+      ];
+
+      tableService.findById.mockResolvedValue(table);
+      orderRepo.findWithOptions.mockResolvedValue(orders);
+      mockManager.findOne.mockResolvedValue(table);
+      mockManager.count.mockResolvedValue(0); // no active orders left
+      mockManager.save.mockImplementation((_entity, data) =>
+        Promise.resolve(data ?? _entity),
+      );
+
+      const result = await service.checkoutOrders({
+        tableId: 'table-uuid-1',
+        orderIds: [1, 2],
+        paymentMethod: PaymentMethod.CASH,
+      });
+
+      expect(result).toHaveLength(2);
+      for (const order of result) {
+        expect(order.status).toBe(OrderStatus.PAID);
+        expect(order.paymentMethod).toBe(PaymentMethod.CASH);
+        expect(order.paidAt).toBeInstanceOf(Date);
+      }
+
+      expect(table.isAvailable).toBe(true);
+
+      expect(realtimeService.emit).toHaveBeenCalledTimes(2);
+      expect(realtimeService.emitToRoom).toHaveBeenCalledTimes(2);
+    });
+
+    it('should check out specific orders and NOT free the table if other active orders remain', async () => {
+      const table = makeTable({ isAvailable: false });
+      const ordersToPay = [
+        makeOrder({ id: 1, status: OrderStatus.NEW, trackingCode: 'tc-1' }),
+      ];
+
+      tableService.findById.mockResolvedValue(table);
+      orderRepo.findWithOptions.mockResolvedValue(ordersToPay);
+      mockManager.findOne.mockResolvedValue(table);
+      mockManager.count.mockResolvedValue(1); // 1 active order remains
+      mockManager.save.mockImplementation((_entity, data) =>
+        Promise.resolve(data ?? _entity),
+      );
+
+      const result = await service.checkoutOrders({
+        tableId: 'table-uuid-1',
+        orderIds: [1],
+        paymentMethod: PaymentMethod.TRANSFER,
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].status).toBe(OrderStatus.PAID);
+      expect(result[0].paymentMethod).toBe(PaymentMethod.TRANSFER);
+      expect(table.isAvailable).toBe(false); // stays occupied
+    });
+
+    it('should throw NotFoundException if one or more orders are not found', async () => {
+      const table = makeTable({ isAvailable: false });
+      tableService.findById.mockResolvedValue(table);
+      orderRepo.findWithOptions.mockResolvedValue([
+        makeOrder({ id: 1 }),
+      ]); // only returned 1 order instead of 2
+
+      await expect(
+        service.checkoutOrders({
+          tableId: 'table-uuid-1',
+          orderIds: [1, 2],
+          paymentMethod: PaymentMethod.CASH,
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw BadRequestException if one or more orders belong to a different table', async () => {
+      const table = makeTable({ isAvailable: false });
+      tableService.findById.mockResolvedValue(table);
+      orderRepo.findWithOptions.mockResolvedValue([
+        makeOrder({ id: 1, tableId: 'table-uuid-1' }),
+        makeOrder({ id: 2, tableId: 'other-table-uuid' }),
+      ]);
+
+      await expect(
+        service.checkoutOrders({
+          tableId: 'table-uuid-1',
+          orderIds: [1, 2],
+          paymentMethod: PaymentMethod.CASH,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException if one or more orders are already paid or cancelled', async () => {
+      const table = makeTable({ isAvailable: false });
+      tableService.findById.mockResolvedValue(table);
+      orderRepo.findWithOptions.mockResolvedValue([
+        makeOrder({ id: 1, status: OrderStatus.PAID }),
+      ]);
+
+      await expect(
+        service.checkoutOrders({
+          tableId: 'table-uuid-1',
+          orderIds: [1],
           paymentMethod: PaymentMethod.CASH,
         }),
       ).rejects.toThrow(BadRequestException);
