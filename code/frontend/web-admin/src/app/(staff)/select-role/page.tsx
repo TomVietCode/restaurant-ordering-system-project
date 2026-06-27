@@ -1,4 +1,3 @@
-import { signOut } from '@/auth';
 import Link from 'next/link';
 import { ChefHat, Receipt, ArrowRight } from 'lucide-react';
 

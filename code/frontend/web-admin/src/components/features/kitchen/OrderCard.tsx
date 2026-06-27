@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Clock, CheckCheck } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Order } from '@/types/order';
 
@@ -30,7 +30,7 @@ export function OrderCard({ order, onDone }: Props) {
   }, []);
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border-2 border-orange-500 p-4 bg-kitchen-card shadow-sm">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl border-2 border-red-300 p-4 bg-kitchen-card shadow-sm">
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
           <p className="text-2xl font-black tracking-wide">{order.tableName}</p>
@@ -44,20 +44,20 @@ export function OrderCard({ order, onDone }: Props) {
         </span>
       </div>
 
-      <ul className="mb-4 min-h-0 flex-1 space-y-1.5 overflow-y-auto">
+      <ul className="mb-4 min-h-0 flex-1 space-y-1.5 overflow-y-auto custom-scrollbar">
         {mergedItems.map((item, i) => (
-          <li key={i} className="rounded-lg bg-white/30 px-3 py-2 text-sm">
-            <span className="font-semibold">{item.quantity} × {item.name}</span>
-            {item.note && <p className="mt-0.5 text-xs text-kitchen-text">✏ {item.note}</p>}
+          <li key={i} className="rounded-lg bg-white/30 px-3 py-2 text-lg">
+            <span className="font-semibold text-kitchen-text-primary">{item.quantity} × {item.name}</span>
+            {item.note && <p className="mt-0.5 text-xs text-kitchen-text-secondary">Ghi chú: {item.note}</p>}
           </li>
         ))}
       </ul>
 
       <Button
-        className="w-full bg-green-500 font-bold text-white hover:bg-green-600"
+        className="w-full h-12 bg-emerald-500 font-bold text-white hover:bg-emerald-600 uppercase text-base"
         onClick={onDone}
       >
-        <CheckCheck className="size-4" /> XONG TẤT CẢ
+        Hoàn thành
       </Button>
     </div>
   );

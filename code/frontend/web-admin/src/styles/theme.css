@@ -65,8 +65,9 @@
   --kitchen: #1f2937;
   --kitchen-foreground: #f9fafb;
   --kitchen-muted: #9ca3af;
-  --kitchen-card: #f385853d;
-  --kitchen-text: #1f82e6;
+  --kitchen-card: #FEE2E2;
+  --kitchen-text-primary: #2B2520;
+  --kitchen-text-secondary: #8A8079;
 
   /* ── Sidebar (slot của shadcn) ────────────────────────── */
   --sidebar: #f1ece6;

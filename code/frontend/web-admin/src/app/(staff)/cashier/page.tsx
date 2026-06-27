@@ -5,7 +5,7 @@ import { tableService } from '@/services/table.service';
 
 export default async function CashierPage() {
   const session = await auth();
-  const token   = session?.accessToken ?? null;
+  const token = session?.accessToken ?? null;
 
   const [initialOrders, tables] = await Promise.all([
     orderService.getCashierOrders(token),
