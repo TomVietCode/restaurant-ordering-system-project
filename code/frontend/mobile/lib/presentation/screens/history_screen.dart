@@ -5,6 +5,7 @@ import '../blocs/order/order_bloc.dart';
 import '../blocs/order/order_state.dart';
 import '../blocs/order/order_event.dart';
 import '../../../data/models/order_item.dart';
+import '../../../core/utils/table_mapper.dart';
 
 class HistoryScreen extends StatefulWidget {
   final VoidCallback onAddMore;
@@ -21,7 +22,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final tableId = context.watch<SessionCubit>().state;
-    final displayTable = tableId != null ? tableId.substring(0, 8).toUpperCase() : '00';
+    final displayTable = TableMapper.getTableName(tableId);
 
     return Scaffold(
       backgroundColor: const Color(0xFFFAFAFA),
@@ -32,14 +33,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
           icon: const Icon(Icons.restaurant, color: Colors.black87),
           onPressed: () {},
         ),
-        title: Text('Bàn $displayTable', style: const TextStyle(color: Color(0xFFD96B46), fontWeight: FontWeight.bold)),
+        title: Text(displayTable, style: const TextStyle(color: Color(0xFFD96B46), fontWeight: FontWeight.bold)),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black87),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: BlocBuilder<OrderBloc, OrderState>(
         builder: (context, state) {
@@ -212,7 +207,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 children: [
                   const Text('Tổng cộng', style: TextStyle(fontSize: 16, color: Colors.grey)),
                   const SizedBox(height: 4),
-                  Text('Đặt cho Bàn $displayTable', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF9A442D))),
+                  Text('Đặt cho $displayTable', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF9A442D))),
                 ],
               ),
               Text('${total.toInt()}đ', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF9A442D))),

@@ -7,6 +7,7 @@ import '../blocs/cart/cart_state.dart';
 import '../blocs/session/session_cubit.dart';
 import '../blocs/order/order_bloc.dart';
 import '../blocs/order/order_event.dart';
+import '../../../core/utils/table_mapper.dart';
 
 class CartScreen extends StatelessWidget {
   final VoidCallback onOrderSuccess;
@@ -16,7 +17,7 @@ class CartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tableId = context.watch<SessionCubit>().state;
-    final displayTable = tableId != null ? tableId.substring(0, 8).toUpperCase() : '00';
+    final displayTable = TableMapper.getTableName(tableId);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
@@ -109,7 +110,7 @@ class CartScreen extends StatelessWidget {
                           children: [
                             const Text('Tổng cộng', style: TextStyle(fontSize: 16, color: Colors.grey)),
                             const SizedBox(height: 4),
-                            Text('Đặt cho Bàn $displayTable', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF9A442D))),
+                            Text('Đặt cho $displayTable', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF9A442D))),
                           ],
                         ),
                         Text('${total.toInt()}đ', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF9A442D))),

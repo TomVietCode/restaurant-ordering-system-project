@@ -8,6 +8,7 @@ import '../blocs/menu/menu_state.dart';
 import '../blocs/session/session_cubit.dart';
 import '../blocs/cart/cart_bloc.dart';
 import '../blocs/cart/cart_event.dart';
+import '../../../core/utils/table_mapper.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -42,6 +43,7 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   Widget build(BuildContext context) {
     final tableId = context.watch<SessionCubit>().state;
+    final displayTable = TableMapper.getTableName(tableId);
 
     return Scaffold(
       appBar: AppBar(
@@ -57,7 +59,7 @@ class _MenuScreenState extends State<MenuScreen> {
             ),
           ),
         ),
-        title: Text(tableId != null ? 'Bàn: ${tableId.substring(0, 8)}...' : 'Menu Quán', style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(tableId != null ? displayTable : 'Menu Quán', style: const TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           BlocBuilder<MenuBloc, MenuState>(
             builder: (context, state) {
