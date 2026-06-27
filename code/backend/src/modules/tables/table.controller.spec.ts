@@ -68,10 +68,25 @@ describe('TableController', () => {
       serviceMock.findAll.mockResolvedValue(tables);
 
       // Act
-      const result = await controller.findAll();
+      const result = await controller.findAll({});
 
       // Assert
-      expect(serviceMock.findAll).toHaveBeenCalled();
+      expect(serviceMock.findAll).toHaveBeenCalledWith(undefined);
+      expect(result).toEqual(ApiResponseDto.success(tables));
+    });
+
+    it('should return tables filtered by status in a success response', async () => {
+      // Arrange
+      const tables: Table[] = [
+        { id: 'uuid-1', name: 'Bàn 01', capacity: 2, status: TableStatus.AVAILABLE },
+      ];
+      serviceMock.findAll.mockResolvedValue(tables);
+
+      // Act
+      const result = await controller.findAll({ status: TableStatus.AVAILABLE });
+
+      // Assert
+      expect(serviceMock.findAll).toHaveBeenCalledWith(TableStatus.AVAILABLE);
       expect(result).toEqual(ApiResponseDto.success(tables));
     });
   });

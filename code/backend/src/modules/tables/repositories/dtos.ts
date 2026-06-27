@@ -49,3 +49,12 @@ export class TableResponseDto {
   status: TableStatus;
 }
 
+export class TableQueryDto {
+  @ApiPropertyOptional({
+    description: 'Filter by table status',
+    enum: TableStatus,
+  })
+  @IsOptional()
+  @IsEnum(TableStatus)
+  status?: TableStatus;
+}

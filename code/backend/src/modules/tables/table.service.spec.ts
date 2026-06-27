@@ -117,6 +117,23 @@ describe('TableService', () => {
       expect(repositoryMock.findAll).toHaveBeenCalled();
       expect(result).toEqual(expectedTables);
     });
+
+    it('should return tables filtered by status', async () => {
+      // Arrange
+      const expectedTables: Table[] = [
+        { id: 'uuid-1', name: 'Bàn 01', capacity: 2, status: TableStatus.AVAILABLE },
+      ];
+      repositoryMock.findWithOptions.mockResolvedValue(expectedTables);
+
+      // Act
+      const result = await service.findAll(TableStatus.AVAILABLE);
+
+      // Assert
+      expect(repositoryMock.findWithOptions).toHaveBeenCalledWith({
+        where: { status: TableStatus.AVAILABLE },
+      });
+      expect(result).toEqual(expectedTables);
+    });
   });
 
   describe('findById', () => {

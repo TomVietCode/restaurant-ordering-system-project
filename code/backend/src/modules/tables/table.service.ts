@@ -33,7 +33,10 @@ export class TableService {
     return this.tableRepository.save(table);
   }
 
-  async findAll(): Promise<Table[]> {
+  async findAll(status?: TableStatus): Promise<Table[]> {
+    if (status) {
+      return this.tableRepository.findWithOptions({ where: { status } });
+    }
     return this.tableRepository.findAll();
   }
 

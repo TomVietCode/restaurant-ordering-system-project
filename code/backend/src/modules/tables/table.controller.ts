@@ -1,9 +1,9 @@
 import { Roles } from '@common/decorators';
 import { Role } from '@common/enums';
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, ParseUUIDPipe, NotFoundException } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, ParseUUIDPipe, NotFoundException, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { TableService } from './table.service';
-import { CreateTableDto, TableResponseDto, UpdateTableDto } from './repositories/dtos';
+import { CreateTableDto, TableQueryDto, TableResponseDto, UpdateTableDto } from './repositories/dtos';
 import { ApiResponseDto } from '@common/dtos/api-response.dto';
 
 const ParseTableUUID = new ParseUUIDPipe({
@@ -30,10 +30,10 @@ export class TableController {
   // ApiResponseDto<TableResponseDto>
 
   @Get()
-  @ApiOperation({ summary: 'List all tables' })
+  @ApiOperation({ summary: 'List all tables with optional status filter' })
   @ApiResponse({ status: 200, description: 'Returns all tables', type: [TableResponseDto] })
-  async findAll(): Promise<ApiResponseDto<TableResponseDto[]>> {
-    const tables = await this.tablesService.findAll();
+  async findAll(@Query() query: TableQueryDto): Promise<ApiResponseDto<TableResponseDto[]>> {
+    const tables = await this.tablesService.findAll(query.status);
     return ApiResponseDto.success(tables);
   }
 
