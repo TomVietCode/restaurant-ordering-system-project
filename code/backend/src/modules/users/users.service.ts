@@ -37,7 +37,7 @@ export class UsersService {
 
   async findById(id: number): Promise<User> {
     const user = await this.userRepository.findById(id);
-    if (!user || user == null) {
+    if (!user) {
       throw new NotFoundException('User not found');
     }
     return user;
@@ -46,8 +46,6 @@ export class UsersService {
   async create(dto: CreateUserDto): Promise<UserResponseDto> {
     const user = Object.assign(new User(), dto);
 
-    user.passwordHash = await bcrypt.hash(dto.password, 10);
-
     if (await this.findByEmail(dto.email)) {
       throw new ConflictException(`Email already exists`);
     }
@@ -55,6 +53,8 @@ export class UsersService {
     if (dto.phone && (await this.userRepository.findByPhone(dto.phone))) {
       throw new ConflictException(`Phone already exists`);
     }
+
+    user.passwordHash = await bcrypt.hash(dto.password, 10);
 
     const createdUser = await this.userRepository.save(user);
     const { passwordHash, ...userResponse } = createdUser;
@@ -96,7 +96,7 @@ export class UsersService {
     return userResponse as UserResponseDto;
   }
 
-  async toggleActivate (id:number, isActive: boolean, currentId: number ): Promise<void>{
+  async toggleActivate(id: number, isActive: boolean, currentId: number): Promise<void> {
     const user = await this.findById(id);
     if (isActive === false) {
       if (user.id === currentId) {

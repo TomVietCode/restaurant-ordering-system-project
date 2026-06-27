@@ -1,4 +1,5 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { In } from 'typeorm';
 import { CategoriesService } from '@modules/categories/categories.service';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
 import type { IItemRepository, ItemQueryOptions } from '@modules/items/repositories/item.repo.interface.js';
@@ -53,6 +54,15 @@ export class ItemsService {
       throw new NotFoundException('Item not found');
     }
     return item;
+  }
+
+  async findByIds(ids: number[]): Promise<Item[]> {
+    if (ids.length === 0) return [];
+    return this.itemRepository.findWithOptions({
+      where: {
+        id: In(ids),
+      },
+    });
   }
 
   async update(id: number, dto: UpdateItemDto): Promise<Item> {

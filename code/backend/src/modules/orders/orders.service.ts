@@ -13,6 +13,7 @@ import { CheckoutTableDto } from './dtos/checkout-table.dto.js';
 import { Order } from './entities/order.entity.js';
 import { OrderItem } from './entities/order-item.entity.js';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
+import { Table } from '@modules/tables/table.entity.js';
 
 const STATE_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.NEW]: [OrderStatus.PREPARING, OrderStatus.CANCEL],
@@ -49,11 +50,17 @@ export class OrdersService {
     const orderItems: OrderItem[] = [];
     let totalAmount = 0;
 
-    for (const orderItemDto of dto.items) {
-      const item = await this.itemsService.findById(orderItemDto.itemId);
+    const itemIds = [...new Set(dto.items.map((i) => i.itemId))];
+    const items = await this.itemsService.findByIds(itemIds);
+    const itemsMap = new Map(items.map((item) => [item.id, item]));
 
-      // Check soft-delete (findById in ItemsService already throws if not found,
-      // but withDeleted could change that, so double-check)
+    for (const orderItemDto of dto.items) {
+      const item = itemsMap.get(orderItemDto.itemId);
+      if (!item) {
+        throw new NotFoundException(`Item with ID ${orderItemDto.itemId} not found`);
+      }
+
+      // Check soft-delete
       if (item.deletedAt !== null) {
         throw new BadRequestException(`Item "${item.name}" has been removed from the menu.`);
       }
@@ -216,9 +223,11 @@ export class OrdersService {
       const saved = await manager.save(Order, activeOrders);
 
       // Free the table since all orders are now paid
-      const table = await this.tableService.findById(tableId);
-      table.isAvailable = true;
-      await manager.save(table);
+      const table = await manager.findOne(Table, { where: { id: tableId } });
+      if (table) {
+        table.isAvailable = true;
+        await manager.save(table);
+      }
 
       return saved;
     });

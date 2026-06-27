@@ -85,7 +85,7 @@ describe('OrdersService', () => {
       findPaginated: jest.fn(),
       findActiveOrdersByTableId: jest.fn(),
       countActiveOrdersByTableId: jest.fn(),
-    } as jest.Mocked<IOrderRepository>;
+    };
 
     tableService = {
       findById: jest.fn(),
@@ -97,6 +97,7 @@ describe('OrdersService', () => {
 
     itemsService = {
       findById: jest.fn(),
+      findByIds: jest.fn(),
     } as unknown as jest.Mocked<ItemsService>;
 
     realtimeService = {
@@ -133,7 +134,7 @@ describe('OrdersService', () => {
       const item = makeItem();
 
       tableService.findById.mockResolvedValue(table);
-      itemsService.findById.mockResolvedValue(item as any);
+      itemsService.findByIds.mockResolvedValue([item as any]);
       mockManager.save.mockImplementation((_entity, data) =>
         Promise.resolve(Object.assign(data ?? _entity, { id: 1 })),
       );
@@ -159,12 +160,25 @@ describe('OrdersService', () => {
       );
     });
 
+    it('should throw NotFoundException if any of the items do not exist', async () => {
+      const table = makeTable();
+      tableService.findById.mockResolvedValue(table);
+      itemsService.findByIds.mockResolvedValue([]); // item not found
+
+      await expect(
+        service.createOrder({
+          tableId: 'table-uuid-1',
+          items: [{ itemId: 999, quantity: 1 }],
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
     it('should throw BadRequestException for out-of-stock items', async () => {
       const table = makeTable();
       const item = makeItem({ isRemain: false, name: 'Cappuccino' });
 
       tableService.findById.mockResolvedValue(table);
-      itemsService.findById.mockResolvedValue(item as any);
+      itemsService.findByIds.mockResolvedValue([item as any]);
 
       await expect(
         service.createOrder({
@@ -186,7 +200,7 @@ describe('OrdersService', () => {
       const item = makeItem({ deletedAt: new Date(), name: 'Old Latte' });
 
       tableService.findById.mockResolvedValue(table);
-      itemsService.findById.mockResolvedValue(item as any);
+      itemsService.findByIds.mockResolvedValue([item as any]);
 
       await expect(
         service.createOrder({
@@ -201,7 +215,7 @@ describe('OrdersService', () => {
       const item = makeItem();
 
       tableService.findById.mockResolvedValue(table);
-      itemsService.findById.mockResolvedValue(item as any);
+      itemsService.findByIds.mockResolvedValue([item as any]);
       mockManager.save.mockImplementation((_entity, data) =>
         Promise.resolve(Object.assign(data ?? _entity, { id: 1 })),
       );
@@ -227,7 +241,7 @@ describe('OrdersService', () => {
       const item = makeItem();
 
       tableService.findById.mockResolvedValue(table);
-      itemsService.findById.mockResolvedValue(item as any);
+      itemsService.findByIds.mockResolvedValue([item as any]);
       mockManager.save.mockImplementation((_entity, data) =>
         Promise.resolve(Object.assign(data ?? _entity, { id: 2 })),
       );
