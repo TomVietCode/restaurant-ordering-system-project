@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { User } from './entities/user.entity.js';
 import type { IUserRepository } from './repositories/user.repository.interface.js';
-import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryOptions } from './dto/dtos.js';
+import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto } from './dto/dtos.js';
 import { AuthService } from '@modules/auth/auth.service.js';
 import * as bcrypt from 'bcryptjs';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
@@ -61,7 +61,7 @@ export class UsersService {
     return userResponse as UserResponseDto;
   }
 
-  async findAll(query: UserQueryOptions): Promise<PaginationDto<UserResponseDto>> {
+  async findAll(query: UserQueryDto): Promise<PaginationDto<UserResponseDto>> {
     const [users, total] = await this.userRepository.findPaginated(query);
 
     const pagination = new PaginationDto<UserResponseDto>();
@@ -104,9 +104,9 @@ export class UsersService {
       }
       await this.authService.logout(user.id);
     }
-    user.isActive = isActive;
-    this.userRepository.save(user);
-  }
+    user.isActive = isActive
+    await this.userRepository.save(user);
+  } 
 
   async remove(id: number): Promise<void> {
     const user = await this.findById(id);

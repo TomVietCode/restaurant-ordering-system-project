@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Body, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Param, Body, Patch, ParseIntPipe, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { CategoriesService } from './categories.service.js';
 import { Category } from './entities/category.entity.js';
@@ -8,6 +8,13 @@ import { ApiResponseDto } from '@common/dtos/api-response.dto.js';
 import { Roles } from '@common/decorators/roles.decorator.js';
 import { Role } from '@common/enums.js';
 import { Public } from '@common/decorators/public.decorator.js';
+<<<<<<< HEAD
+
+const ParseCategoryId = new ParseIntPipe({
+  exceptionFactory: () => new NotFoundException('Category not found'),
+});
+=======
+>>>>>>> 1d6397881f28dfb3d343f71a2b6924b0219a10a1
 
 @ApiTags('Categories')
 @Controller('categories')
@@ -38,7 +45,7 @@ export class CategoriesController {
   @ApiOperation({ summary: 'Get category by ID' })
   @ApiResponse({ status: 200, description: 'Category found', type: Category })
   @ApiResponse({ status: 404, description: 'Category not found' })
-  async findById(@Param('id') id: number): Promise<ApiResponseDto<Category | null>> {
+  async findById(@Param('id', ParseCategoryId) id: number): Promise<ApiResponseDto<Category | null>> {
     return ApiResponseDto.success(await this.categoriesService.findById(id));
   }
 
@@ -54,7 +61,7 @@ export class CategoriesController {
     status: 404,
     description: 'Category not found',
   })
-  async update(@Param('id') id: number, @Body() dto: UpdateCategoryDto): Promise<ApiResponseDto<Category | null>> {
+  async update(@Param('id', ParseCategoryId) id: number, @Body() dto: UpdateCategoryDto): Promise<ApiResponseDto<Category | null>> {
     return ApiResponseDto.success(await this.categoriesService.update(id, dto));
   }
 
@@ -63,7 +70,7 @@ export class CategoriesController {
   @ApiOperation({ summary: 'Delete category by ID' })
   @ApiResponse({ status: 204, description: 'Category deleted' })
   @ApiResponse({ status: 404, description: 'Category not found' })
-  async delete(@Param('id') id: number): Promise<ApiResponseDto<void>> {
+  async delete(@Param('id', ParseCategoryId) id: number): Promise<ApiResponseDto<void>> {
     await this.categoriesService.delete(id);
     return ApiResponseDto.success(undefined);
   }
