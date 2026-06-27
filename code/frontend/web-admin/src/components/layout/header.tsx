@@ -22,6 +22,7 @@ const pageTitles: Record<string, string> = {
   '/staffs':    'Nhân viên',
   '/kitchen':   'Màn hình Bếp',
   '/cashier':   'Thu ngân',
+  '/select-role': 'Chọn phân hệ',
 };
 
 const roleLabel: Record<string, string> = {
@@ -48,14 +49,16 @@ export function AppHeader({
   const baseTitle = pageTitles[pathname] ?? 'Trang quản lý';
   const title = pathname === '/dashboard' ? `${baseTitle} — Hôm nay` : baseTitle;
   const initial = user?.name?.charAt(0)?.toUpperCase() ?? 'A';
+  
+  const derivedBackHref = backHref ?? (['/kitchen', '/cashier'].includes(pathname) ? '/select-role' : undefined);
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b bg-primary-foreground px-4">
       <div className="flex items-center gap-2">
         {showTrigger && <SidebarTrigger />}
-        {backHref && (
+        {derivedBackHref && (
           <Link
-            href={backHref}
+            href={derivedBackHref}
             className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             title="Quay lại"
           >
