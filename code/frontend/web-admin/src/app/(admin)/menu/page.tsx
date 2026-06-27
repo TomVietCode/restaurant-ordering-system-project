@@ -1,4 +1,5 @@
-// Menu management — categories & items (FR-02, FR-03). Owner only.
+import { MenuBoard } from '@/components/features/Menu/MenuBoard';
+
 export default function MenuPage() {
-  return <h1>Quản lý Menu</h1>;
+  return <MenuBoard />;
 }
