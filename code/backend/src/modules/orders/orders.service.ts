@@ -1,5 +1,5 @@
 import { Injectable, Inject, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, In } from 'typeorm';
 import { randomUUID } from 'crypto';
 import { ORDER_REPO_TOKEN, REALTIME_SERVICE_TOKEN } from '@common/constants.js';
 import { OrderStatus } from '@common/enums.js';
@@ -10,6 +10,7 @@ import { ItemsService } from '@modules/items/item.service.js';
 import { CreateOrderDto } from './dtos/create-order.dto.js';
 import { UpdateOrderStatusDto } from './dtos/update-order-status.dto.js';
 import { CheckoutTableDto } from './dtos/checkout-table.dto.js';
+import { CheckoutOrdersDto } from './dtos/checkout-orders.dto.js';
 import { Order } from './entities/order.entity.js';
 import { OrderItem } from './entities/order-item.entity.js';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
@@ -244,6 +245,84 @@ export class OrdersService {
     }
 
     this.logger.log(`Bulk checkout: ${paidOrders.length} orders paid for table ${tableId}`);
+
+    return paidOrders;
+  }
+
+  async checkoutOrders(dto: CheckoutOrdersDto): Promise<Order[]> {
+    const { tableId, orderIds, paymentMethod } = dto;
+
+    // Validate table exists
+    await this.tableService.findById(tableId);
+
+    // Fetch matching orders
+    const orders = await this.orderRepository.findWithOptions({
+      where: {
+        id: In(orderIds),
+      },
+    });
+
+    // Validate all requested orders were found
+    if (orders.length !== orderIds.length) {
+      throw new NotFoundException('One or more orders not found');
+    }
+
+    // Validate orders belong to the specified table
+    const invalidTableOrder = orders.find((o) => o.tableId !== tableId);
+    if (invalidTableOrder) {
+      throw new BadRequestException(`Order #${invalidTableOrder.id} does not belong to table ${tableId}`);
+    }
+
+    // Validate all orders are currently active (not PAID or CANCEL)
+    const nonActiveOrders = orders.filter(
+      (o) => o.status === OrderStatus.PAID || o.status === OrderStatus.CANCEL,
+    );
+    if (nonActiveOrders.length > 0) {
+      const nonActiveIds = nonActiveOrders.map((o) => o.id).join(', ');
+      throw new BadRequestException(`Order(s) with ID(s) ${nonActiveIds} are already paid or cancelled`);
+    }
+
+    const now = new Date();
+    const paidOrders = await this.dataSource.transaction(async (manager) => {
+      for (const order of orders) {
+        order.status = OrderStatus.PAID;
+        order.paymentMethod = paymentMethod;
+        order.paidAt = now;
+      }
+
+      const saved = await manager.save(Order, orders);
+
+      // Check if all orders for this table are now terminal inside the transaction
+      const activeCount = await manager.count(Order, {
+        where: {
+          tableId,
+          status: In([OrderStatus.NEW, OrderStatus.PREPARING, OrderStatus.SERVED]),
+        },
+      });
+
+      if (activeCount === 0) {
+        const table = await manager.findOne(Table, { where: { id: tableId } });
+        if (table) {
+          table.isAvailable = true;
+          await manager.save(table);
+        }
+      }
+
+      return saved;
+    });
+
+    // Emit status change for each order
+    for (const order of paidOrders) {
+      const payload = {
+        trackingCode: order.trackingCode,
+        orderId: order.id,
+        status: order.status,
+      };
+      this.realtimeService.emitToRoom(`order:track:${order.trackingCode}`, 'order:status-changed', payload);
+      this.realtimeService.emit('order:status-changed', payload);
+    }
+
+    this.logger.log(`Split checkout: ${paidOrders.length} orders paid for table ${tableId}`);
 
     return paidOrders;
   }
