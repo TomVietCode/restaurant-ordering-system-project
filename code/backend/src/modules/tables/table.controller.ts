@@ -72,4 +72,17 @@ export class TableController {
     await this.tablesService.remove(id);
     return ApiResponseDto.success(null, 'Delete table successfully');
   }
+
+  @Patch(':id/toggle-status')
+  @Roles(Role.STAFF, Role.OWNER)
+  @ApiOperation({ summary: 'Toggle table status between AVAILABLE and CLOSED (realtime)' })
+  @ApiParam({ name: 'id', description: 'Table UUID' })
+  @ApiResponse({ status: 200, description: 'Table status toggled successfully', type: TableResponseDto })
+  @ApiResponse({ status: 400, description: 'Cannot toggle status of occupied table' })
+  @ApiResponse({ status: 404, description: 'Table not found' })
+  async toggleStatus(@Param('id', ParseTableUUID) id: string): Promise<ApiResponseDto<TableResponseDto>> {
+    const table = await this.tablesService.toggleStatus(id);
+    return ApiResponseDto.success(table, 'Table status toggled successfully');
+  }
 }
+
