@@ -15,9 +15,3 @@ export enum PaymentMethod {
   CASH = 'CASH',
   TRANSFER = 'TRANSFER',
 }
-
-export enum TableStatus {
-  AVAILABLE = 'AVAILABLE',
-  CLOSED = 'CLOSED',
-  OCCUPIED = 'OCCUPIED',
-}
