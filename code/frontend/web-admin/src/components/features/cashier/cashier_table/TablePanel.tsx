@@ -24,16 +24,18 @@ interface Props {
   orders: Order[];
   selectedTableId: string | null;
   onSelectTable: (id: string) => void;
+  onPayTable: (tableId: string, paymentMethod: 'CASH' | 'TRANSFER') => Promise<void>;
+  onPayOrders: (tableId: string, orderIds: number[], paymentMethod: 'CASH' | 'TRANSFER') => Promise<void>;
 }
 
-export function TablePanel({ tables, orders, selectedTableId, onSelectTable }: Props) {
+export function TablePanel({ tables, orders, selectedTableId, onSelectTable, onPayTable, onPayOrders }: Props) {
   const rows = enrich(tables, orders);
   const selected = rows.find(r => r.id === selectedTableId) ?? null;
 
   return (
     <div className="flex flex-1 overflow-hidden rounded-xl border border-border">
       <TableList rows={rows} selectedId={selectedTableId} onSelect={onSelectTable} />
-      <TableDetail selected={selected} />
+      <TableDetail selected={selected} onPayTable={onPayTable} onPayOrders={onPayOrders} />
     </div>
   );
 }

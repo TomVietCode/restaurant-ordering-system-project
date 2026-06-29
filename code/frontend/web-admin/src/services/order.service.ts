@@ -10,14 +10,9 @@ const MOCK_ORDERS: Order[] = [
     id: 1, tableId: 'uuid-05', tableName: 'Bàn 05', status: 'NEW',
     createdAt: new Date(Date.now() - 2 * 60_000).toISOString(),
     items: [
-      { name: 'Cà phê sữa đá', quantity: 2, note: 'Ít đường, không đá' },
-      { name: 'Trà đào cam sả', quantity: 1 },
-      { name: 'Bánh croissant', quantity: 1 },
-       { name: '424234', quantity: 1 },
-      { name: '4234234234234t', quantity: 1 },
-       { name: '4234234tb 2', quantity: 1 },
-      { name: '42342b4234setfwe', quantity: 1 },
-
+      { name: 'Cà phê sữa đá', quantity: 2, price: 29000, note: 'Ít đường, không đá' },
+      { name: 'Trà đào cam sả', quantity: 1, price: 35000 },
+      { name: 'Bánh croissant', quantity: 1, price: 22000 },
     ],
     totalAmount: 115_000,
   },
@@ -25,13 +20,9 @@ const MOCK_ORDERS: Order[] = [
     id: 7, tableId: 'uuid-12', tableName: 'Bàn 12', status: 'NEW',
     createdAt: new Date(Date.now() - 2 * 60_000).toISOString(),
     items: [
-      { name: 'Cà phê sữa đá', quantity: 2, note: 'Ít đường, không đá' },
-      { name: 'Trà đào cam sả', quantity: 1 },
-      { name: 'Bánh croissant', quantity: 1 },
-       { name: 'Trà đào cam sả', quantity: 1 },
-      { name: 'Bánh croissant', quantity: 1 },
-       { name: 'Trà đào cam sả', quantity: 1 },
-      { name: 'Bánh croissant', quantity: 1 },
+      { name: 'Cà phê sữa đá', quantity: 2, price: 29000, note: 'Ít đường, không đá' },
+      { name: 'Trà đào cam sả', quantity: 1, price: 35000 },
+      { name: 'Bánh croissant', quantity: 1, price: 22000 },
     ],
     totalAmount: 115_000,
   },
@@ -39,15 +30,15 @@ const MOCK_ORDERS: Order[] = [
     id: 3, tableId: 'uuid-03', tableName: 'Bàn 03', status: 'SERVED',
     createdAt: new Date(Date.now() - 15 * 60_000).toISOString(),
     items: [
-      { name: 'Sinh tố xoài', quantity: 2 },
-      { name: 'Bánh mì chảo', quantity: 1, note: 'Thêm pate' },
+      { name: 'Sinh tố xoài', quantity: 2, price: 36000 },
+      { name: 'Bánh mì chảo', quantity: 1, price: 45000, note: 'Thêm pate' },
     ],
     totalAmount: 117_000,
   },
   {
     id: 4, tableId: 'uuid-03', tableName: 'Bàn 03', status: 'SERVED',
     createdAt: new Date(Date.now() - 5 * 60_000).toISOString(),
-    items: [{ name: 'Trà chanh', quantity: 3 }],
+    items: [{ name: 'Trà chanh', quantity: 3, price: 25000 }],
     totalAmount: 75_000,
   },
 ];
@@ -79,6 +70,11 @@ export const orderService = {
 
   async payTable(token: string | null | undefined, tableId: string, paymentMethod: 'CASH' | 'TRANSFER'): Promise<void> {
     if (MOCK_MODE) return;
-    await apiWithToken(token).post('/orders/pay', { tableId, paymentMethod });
+    await apiWithToken(token).post(`/payments/checkout-table/${tableId}`, { paymentMethod });
+  },
+
+  async payOrders(token: string | null | undefined, tableId: string, orderIds: number[], paymentMethod: 'CASH' | 'TRANSFER'): Promise<void> {
+    if (MOCK_MODE) return;
+    await apiWithToken(token).post('/payments/checkout-orders', { tableId, orderIds, paymentMethod });
   },
 };

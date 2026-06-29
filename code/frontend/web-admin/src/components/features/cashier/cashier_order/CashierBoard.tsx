@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Columns, LayoutGrid } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import type { Order, OrderStatus } from '@/types/order';
 import type { Table } from '@/types/table';
@@ -20,16 +20,15 @@ const COLS = [
   { step: '③', label: 'ĐÃ PHỤC VỤ',    status: 'SERVED'    as OrderStatus, bg: 'bg-status-served border-status-served-foreground/20',       countBg: 'bg-status-served-dot',     border: 'border-status-served-dot'     },
 ];
 
-const NAV = [
-  { tab: 'orders' as Tab, icon: Columns,    label: 'Đơn hàng' },
-  { tab: 'tables' as Tab, icon: LayoutGrid, label: 'Bàn'      },
-];
+// NAV moved to header
 
 interface Props { initialOrders: Order[]; tables: Table[]; token: string | null }
 
 export function CashierBoard({ initialOrders, tables, token }: Props) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
-  const [tab,    setTab]    = useState<Tab>('orders');
+  const searchParams = useSearchParams();
+  const rawTab = searchParams.get('tab');
+  const tab = (rawTab === 'tables' ? 'tables' : 'orders') as Tab;
   const [bill,   setBill]   = useState<Bill | null>(null);
   const [method, setMethod] = useState<Method>('CASH');
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
@@ -57,33 +56,21 @@ export function CashierBoard({ initialOrders, tables, token }: Props) {
     setBill(null);
   };
 
+  const handlePayTable = async (tableId: string, paymentMethod: Method) => {
+    await orderService.payTable(token, tableId, paymentMethod);
+    setOrders(p => p.filter(o => o.tableId !== tableId));
+  };
+
+  const handlePayOrders = async (tableId: string, orderIds: number[], paymentMethod: Method) => {
+    await orderService.payOrders(token, tableId, orderIds, paymentMethod);
+    setOrders(p => p.filter(o => !orderIds.includes(o.id)));
+  };
+
   const sorted = (s: OrderStatus) =>
     orders.filter(o => o.status === s).sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
 
   return (
-    <div className="flex h-full gap-3">
-      {/* ── Sidebar ── */}
-      <aside className="flex w-44 min-w-44 flex-col rounded-xl border border-sidebar-border bg-sidebar">
-        <nav className="p-2">
-          <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">Thu ngân</p>
-          {NAV.map(({ tab: t, icon: Icon, label }) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={cn(
-                'flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm transition-colors',
-                tab === t
-                  ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-              )}>
-              <Icon className="size-4 shrink-0" />
-              {label}
-            </button>
-          ))}
-        </nav>
-
-      </aside>
-
-      {/* ── Nội dung chính ── */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
         {tab === 'orders' && (
           
           <div className={cn('grid flex-1 gap-3 overflow-hidden', bill ? 'grid-cols-4' : 'grid-cols-3')}>
@@ -106,9 +93,10 @@ export function CashierBoard({ initialOrders, tables, token }: Props) {
           <TablePanel
             tables={tables} orders={orders}
             selectedTableId={selectedTableId} onSelectTable={setSelectedTableId}
+            onPayTable={handlePayTable}
+            onPayOrders={handlePayOrders}
           />
         )}
-      </div>
     </div>
   );
 }

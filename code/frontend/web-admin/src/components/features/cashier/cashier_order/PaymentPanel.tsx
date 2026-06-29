@@ -15,11 +15,29 @@ export function PaymentPanel({ tableName, orders, total, method, onMethod, onCon
   return (
     <div className="flex flex-col rounded-xl border border-orange-200 bg-orange-50 p-4">
       <h2 className="mb-3 font-bold text-orange-700">Thanh toán — {tableName}</h2>
-      <div className="mb-3 flex-1 space-y-1 overflow-y-auto text-sm">
+      <div className="mb-3 flex-1 space-y-3 overflow-y-auto text-sm pr-1">
         {orders.map(o => (
-          <div key={o.id}>
-            <span className="text-muted-foreground">#{o.id} · {o.items.length} món ···· </span>
-            <span className="font-medium">{o.totalAmount.toLocaleString('vi-VN')}đ</span>
+          <div key={o.id} className="border-b border-orange-150 pb-2 last:border-b-0 last:pb-0">
+            <div className="font-bold text-orange-800 text-xs">Đơn #{o.id}</div>
+            <ul className="mt-1 space-y-1 pl-1">
+              {o.items.map((it, i) => (
+                <li key={i} className="flex justify-between text-xs text-orange-950">
+                  <span className="truncate pr-1">
+                    {it.quantity}x {it.name}
+                    {it.price !== undefined && (
+                      <span className="text-orange-700/60 ml-1 text-[10px]">
+                        ({it.price.toLocaleString('vi-VN')}đ)
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-semibold text-orange-900 shrink-0">
+                    {it.price !== undefined
+                      ? `${(it.quantity * it.price).toLocaleString('vi-VN')}đ`
+                      : ''}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         ))}
       </div>
