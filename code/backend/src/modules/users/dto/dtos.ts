@@ -166,7 +166,7 @@ export class UserQueryDto {
 }
 
 
-export class toggleActivateDto{
+export class ToggleActivateDto{
   @IsBoolean()
   isActive: boolean;
 }

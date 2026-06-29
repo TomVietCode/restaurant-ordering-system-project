@@ -3,7 +3,7 @@ import { Role } from '@common/enums';
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, NotFoundException, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service.js';
-import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto, toggleActivateDto } from './dto/dtos.js';
+import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto, ToggleActivateDto } from './dto/dtos.js';
 import { ApiResponseDto } from '@common/dtos/api-response.dto';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
 
@@ -60,7 +60,7 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'User updated active status successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 409, description: 'User email already exists' })
-  async toggleActivate(@Param('id') id: number, @Body() dto: toggleActivateDto, @CurrentUser('id') currentId: number): Promise<ApiResponseDto<null>> {
+  async toggleActivate(@Param('id') id: number, @Body() dto: ToggleActivateDto, @CurrentUser('id') currentId: number): Promise<ApiResponseDto<null>> {
     await this.userService.toggleActivate(id, dto.isActive, currentId);
     return ApiResponseDto.success(null, 'User updated successfully');
   }
