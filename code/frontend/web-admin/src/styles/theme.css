@@ -51,9 +51,9 @@
   --status-preparing: #fef3c7;
   --status-preparing-foreground: #92400e;
   --status-preparing-dot: #f59e0b;
-  --status-served: #ede9fe;
-  --status-served-foreground: #5b21b6;
-  --status-served-dot: #8b5cf6;
+  --status-served: #DCFCE7;
+  --status-served-foreground: #166534;
+  --status-served-dot: #22C55E;
   --status-paid: #dcfce7;
   --status-paid-foreground: #166534;
   --status-paid-dot: #22c55e;
@@ -65,8 +65,9 @@
   --kitchen: #1f2937;
   --kitchen-foreground: #f9fafb;
   --kitchen-muted: #9ca3af;
-  --kitchen-card: #f385853d;
-  --kitchen-text: #1f82e6;
+  --kitchen-card: #FEE2E2;
+  --kitchen-text-primary: #2B2520;
+  --kitchen-text-secondary: #8A8079;
 
   /* ── Sidebar (slot của shadcn) ────────────────────────── */
   --sidebar: #f1ece6;

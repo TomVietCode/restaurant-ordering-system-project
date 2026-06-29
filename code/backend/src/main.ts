@@ -57,7 +57,7 @@ async function bootstrap() {
   // Serve Swagger UI documentation at /api/docs
   SwaggerModule.setup('/api/docs', app, documentFactory);
 
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 
 bootstrap();

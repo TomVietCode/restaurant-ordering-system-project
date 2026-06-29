@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
 import { User, LogOut, ChevronLeft } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -22,6 +23,7 @@ const pageTitles: Record<string, string> = {
   '/staffs':    'Nhân viên',
   '/kitchen':   'Màn hình Bếp',
   '/cashier':   'Thu ngân',
+  '/select-role': 'Chọn phân hệ',
 };
 
 const roleLabel: Record<string, string> = {
@@ -45,17 +47,23 @@ export function AppHeader({
   backHref?: string;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tab = searchParams.get('tab') ?? 'orders';
+
   const baseTitle = pageTitles[pathname] ?? 'Trang quản lý';
   const title = pathname === '/dashboard' ? `${baseTitle} — Hôm nay` : baseTitle;
   const initial = user?.name?.charAt(0)?.toUpperCase() ?? 'A';
+  
+  const derivedBackHref = backHref ?? (['/kitchen', '/cashier'].includes(pathname) ? '/select-role' : undefined);
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b bg-primary-foreground px-4">
       <div className="flex items-center gap-2">
         {showTrigger && <SidebarTrigger />}
-        {backHref && (
+        {derivedBackHref && (
           <Link
-            href={backHref}
+            href={derivedBackHref}
             className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             title="Quay lại"
           >
@@ -64,6 +72,33 @@ export function AppHeader({
         )}
         <h1 className="text-base font-semibold text-foreground">{title}</h1>
       </div>
+
+      {pathname === '/cashier' && (
+        <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+          <button
+            onClick={() => router.push('/cashier?tab=orders')}
+            className={cn(
+              'rounded-md px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer border-0 outline-none',
+              tab === 'orders'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            Đơn hàng
+          </button>
+          <button
+            onClick={() => router.push('/cashier?tab=tables')}
+            className={cn(
+              'rounded-md px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer border-0 outline-none',
+              tab === 'tables'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            Danh sách bàn
+          </button>
+        </div>
+      )}
 
       <DropdownMenu>
         <DropdownMenuTrigger
