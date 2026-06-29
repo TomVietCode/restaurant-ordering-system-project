@@ -1,8 +1,9 @@
 import { ApiProperty, ApiPropertyOptional, PartialType } from "@nestjs/swagger";
-import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from "class-validator";
+import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from "class-validator";
+import { TableStatus } from "@common/enums.js";
 
 export class CreateTableDto {
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: 'Table name (must be unique)',
     example: 'Bàn 01',
     maxLength: 100,
@@ -13,23 +14,23 @@ export class CreateTableDto {
   name: string;
 
   @ApiProperty({
-    description: 'Seating capacity (optional)',
+    description: 'Seating capacity',
     example: 4,
-    required: false,
+    required: true,
   })
-  @IsOptional()
+  @IsNotEmpty({ message: 'Capacity is required' })
   @IsInt({ message: 'Capacity must be an integer' })
   @Min(1, { message: 'Capacity must be greater than 0' })
-  capacity?: number;
+  capacity: number;
 
-  @ApiProperty({
-    description: 'Whether the table is currently free (default: true)',
-    example: true,
-    required: false,
+  @ApiPropertyOptional({
+    description: 'Initial table status (default: AVAILABLE)',
+    enum: TableStatus,
+    example: TableStatus.AVAILABLE,
   })
   @IsOptional()
-  @IsBoolean()
-  isAvailable?: boolean = true;
+  @IsEnum(TableStatus)
+  status?: TableStatus = TableStatus.AVAILABLE;
 }
 
 export class UpdateTableDto extends PartialType(CreateTableDto) {}
@@ -41,9 +42,19 @@ export class TableResponseDto {
   @ApiProperty({ description: 'Table name', example: 'Bàn 01' })
   name: string;
 
-  @ApiProperty({ description: 'Seating capacity', example: 4, nullable: true })
-  capacity: number | null;
+  @ApiProperty({ description: 'Seating capacity', example: 4 })
+  capacity: number;
 
-  @ApiProperty({ description: 'Whether the table is currently free', example: true })
-  isAvailable: boolean;
+  @ApiProperty({ description: 'Table status', enum: TableStatus, example: TableStatus.AVAILABLE })
+  status: TableStatus;
+}
+
+export class TableQueryDto {
+  @ApiPropertyOptional({
+    description: 'Filter by table status',
+    enum: TableStatus,
+  })
+  @IsOptional()
+  @IsEnum(TableStatus)
+  status?: TableStatus;
 }

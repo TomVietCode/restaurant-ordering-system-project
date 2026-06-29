@@ -42,6 +42,7 @@
   --info: #3b82f6;
   --info-foreground: #ffffff;
   --disabled: #9ca3af; /* hết hàng / disabled */
+  
 
   /* ── Trạng thái đơn (badge: nền nhạt + chữ đậm + chấm) ─── */
   --status-new: #dbeafe;
@@ -64,6 +65,8 @@
   --kitchen: #1f2937;
   --kitchen-foreground: #f9fafb;
   --kitchen-muted: #9ca3af;
+  --kitchen-card: #f385853d;
+  --kitchen-text: #1f82e6;
 
   /* ── Sidebar (slot của shadcn) ────────────────────────── */
   --sidebar: #f1ece6;
@@ -137,7 +140,8 @@
   --color-kitchen: var(--kitchen);
   --color-kitchen-foreground: var(--kitchen-foreground);
   --color-kitchen-muted: var(--kitchen-muted);
-
+  --color-kitchen-card: var(--kitchen-card);
+  --color-kitchen-text: var(--kitchen-text);
   /* Sidebar */
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);

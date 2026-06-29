@@ -38,22 +38,19 @@ export class CategoriesService {
   }
 
   async update(id: number, dto: UpdateCategoryDto): Promise<Category | null> {
-    if(dto.name) {
+    const category = await this.findById(id);
+
+    if(dto.name && dto.name !== category.name) {
       await this.existsByName(dto.name);
     }
-    const category = await this.categoryRepository.findById(id);
-    if (!category) {
-      throw new NotFoundException('Category not found');
-    }
+
     Object.assign(category, dto);
     return this.categoryRepository.save(category);
   }
 
   async delete(id: number): Promise<void> {
-    const category = await this.categoryRepository.findById(id);
-    if (!category) {
-      throw new NotFoundException('Category not found');
-    }
+    await this.findById(id);
+
     const items = await this.itemRepository.findWithOptions({ where: { category: { id } } });
     if (items.length > 0) {
       throw new BadRequestException('Cannot delete category because items are linked to it');

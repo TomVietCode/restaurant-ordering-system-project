@@ -3,7 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { OrdersService } from './orders.service.js';
 import { ORDER_REPO_TOKEN, REALTIME_SERVICE_TOKEN } from '@common/constants.js';
-import { OrderStatus, PaymentMethod } from '@common/enums.js';
+import { OrderStatus, PaymentMethod, TableStatus } from '@common/enums.js';
 import { Order } from './entities/order.entity.js';
 import { Table } from '@modules/tables/table.entity.js';
 import { TableService } from '@modules/tables/table.service.js';
@@ -21,7 +21,7 @@ function makeTable(overrides: Partial<Table> = {}): Table {
   t.id = 'table-uuid-1';
   t.name = 'Bàn 01';
   t.capacity = 4;
-  t.isAvailable = true;
+  t.status = TableStatus.AVAILABLE;
   return Object.assign(t, overrides);
 }
 
@@ -69,6 +69,8 @@ describe('OrdersService', () => {
     // Create mock EntityManager used inside transaction callbacks
     mockManager = {
       save: jest.fn().mockImplementation((_entity, data) => Promise.resolve(data)),
+      findOne: jest.fn(),
+      count: jest.fn(),
     } as unknown as jest.Mocked<EntityManager>;
 
     // Create mocks for all dependencies
@@ -85,7 +87,7 @@ describe('OrdersService', () => {
       findPaginated: jest.fn(),
       findActiveOrdersByTableId: jest.fn(),
       countActiveOrdersByTableId: jest.fn(),
-    } as jest.Mocked<IOrderRepository>;
+    };
 
     tableService = {
       findById: jest.fn(),
@@ -97,6 +99,7 @@ describe('OrdersService', () => {
 
     itemsService = {
       findById: jest.fn(),
+      findByIds: jest.fn(),
     } as unknown as jest.Mocked<ItemsService>;
 
     realtimeService = {
@@ -129,11 +132,11 @@ describe('OrdersService', () => {
 
   describe('createOrder', () => {
     it('should create an order successfully', async () => {
-      const table = makeTable({ isAvailable: true });
+      const table = makeTable({ status: TableStatus.AVAILABLE });
       const item = makeItem();
 
       tableService.findById.mockResolvedValue(table);
-      itemsService.findById.mockResolvedValue(item as any);
+      itemsService.findByIds.mockResolvedValue([item as any]);
       mockManager.save.mockImplementation((_entity, data) =>
         Promise.resolve(Object.assign(data ?? _entity, { id: 1 })),
       );
@@ -150,7 +153,7 @@ describe('OrdersService', () => {
       expect(result.totalAmount).toBe(60000); // 30000 × 2
 
       // Table marked as occupied
-      expect(table.isAvailable).toBe(false);
+      expect(table.status).toBe(TableStatus.OCCUPIED);
 
       // Realtime event emitted to staff
       expect(realtimeService.emit).toHaveBeenCalledWith(
@@ -159,12 +162,25 @@ describe('OrdersService', () => {
       );
     });
 
+    it('should throw NotFoundException if any of the items do not exist', async () => {
+      const table = makeTable();
+      tableService.findById.mockResolvedValue(table);
+      itemsService.findByIds.mockResolvedValue([]); // item not found
+
+      await expect(
+        service.createOrder({
+          tableId: 'table-uuid-1',
+          items: [{ itemId: 999, quantity: 1 }],
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
     it('should throw BadRequestException for out-of-stock items', async () => {
       const table = makeTable();
       const item = makeItem({ isRemain: false, name: 'Cappuccino' });
 
       tableService.findById.mockResolvedValue(table);
-      itemsService.findById.mockResolvedValue(item as any);
+      itemsService.findByIds.mockResolvedValue([item as any]);
 
       await expect(
         service.createOrder({
@@ -186,7 +202,7 @@ describe('OrdersService', () => {
       const item = makeItem({ deletedAt: new Date(), name: 'Old Latte' });
 
       tableService.findById.mockResolvedValue(table);
-      itemsService.findById.mockResolvedValue(item as any);
+      itemsService.findByIds.mockResolvedValue([item as any]);
 
       await expect(
         service.createOrder({
@@ -201,7 +217,7 @@ describe('OrdersService', () => {
       const item = makeItem();
 
       tableService.findById.mockResolvedValue(table);
-      itemsService.findById.mockResolvedValue(item as any);
+      itemsService.findByIds.mockResolvedValue([item as any]);
       mockManager.save.mockImplementation((_entity, data) =>
         Promise.resolve(Object.assign(data ?? _entity, { id: 1 })),
       );
@@ -212,7 +228,7 @@ describe('OrdersService', () => {
       });
 
       // Reset table availability for second order
-      table.isAvailable = true;
+      table.status = TableStatus.AVAILABLE;
 
       const order2 = await service.createOrder({
         tableId: 'table-uuid-1',
@@ -223,11 +239,11 @@ describe('OrdersService', () => {
     });
 
     it('should not change table availability if table is already occupied', async () => {
-      const table = makeTable({ isAvailable: false });
+      const table = makeTable({ status: TableStatus.OCCUPIED });
       const item = makeItem();
 
       tableService.findById.mockResolvedValue(table);
-      itemsService.findById.mockResolvedValue(item as any);
+      itemsService.findByIds.mockResolvedValue([item as any]);
       mockManager.save.mockImplementation((_entity, data) =>
         Promise.resolve(Object.assign(data ?? _entity, { id: 2 })),
       );
@@ -243,6 +259,18 @@ describe('OrdersService', () => {
         (call) => call[0] !== Order,
       );
       expect(tableSaveCalls.length).toBe(0);
+    });
+
+    it('should throw BadRequestException if the table is closed', async () => {
+      const table = makeTable({ status: TableStatus.CLOSED });
+      tableService.findById.mockResolvedValue(table);
+
+      await expect(
+        service.createOrder({
+          tableId: 'table-uuid-1',
+          items: [{ itemId: 1, quantity: 1 }],
+        }),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -303,7 +331,7 @@ describe('OrdersService', () => {
 
     it('should allow SERVED → PAID and set paidAt + paymentMethod', async () => {
       const order = makeOrder({ status: OrderStatus.SERVED });
-      const table = makeTable({ isAvailable: false });
+      const table = makeTable({ status: TableStatus.OCCUPIED });
 
       orderRepo.findById.mockResolvedValue(order);
       orderRepo.countActiveOrdersByTableId.mockResolvedValue(0);
@@ -406,7 +434,7 @@ describe('OrdersService', () => {
   describe('table availability', () => {
     it('should free table when last order is paid', async () => {
       const order = makeOrder({ status: OrderStatus.SERVED });
-      const table = makeTable({ isAvailable: false });
+      const table = makeTable({ status: TableStatus.OCCUPIED });
 
       orderRepo.findById.mockResolvedValue(order);
       orderRepo.countActiveOrdersByTableId.mockResolvedValue(0);
@@ -421,12 +449,12 @@ describe('OrdersService', () => {
       });
 
       // Table should be freed
-      expect(table.isAvailable).toBe(true);
+      expect(table.status).toBe(TableStatus.AVAILABLE);
     });
 
     it('should NOT free table when other active orders remain', async () => {
       const order = makeOrder({ status: OrderStatus.SERVED });
-      const table = makeTable({ isAvailable: false });
+      const table = makeTable({ status: TableStatus.OCCUPIED });
 
       orderRepo.findById.mockResolvedValue(order);
       // There is still 1 other active order
@@ -442,7 +470,7 @@ describe('OrdersService', () => {
       });
 
       // Table should NOT be freed (stays occupied)
-      expect(table.isAvailable).toBe(false);
+      expect(table.status).toBe(TableStatus.OCCUPIED);
     });
   });
 
@@ -452,7 +480,7 @@ describe('OrdersService', () => {
 
   describe('checkoutTable', () => {
     it('should bulk pay all active orders and free table', async () => {
-      const table = makeTable({ isAvailable: false });
+      const table = makeTable({ status: TableStatus.OCCUPIED });
       const orders = [
         makeOrder({ id: 1, status: OrderStatus.NEW, trackingCode: 'tc-1' }),
         makeOrder({ id: 2, status: OrderStatus.SERVED, trackingCode: 'tc-2' }),
@@ -460,6 +488,7 @@ describe('OrdersService', () => {
 
       tableService.findById.mockResolvedValue(table);
       orderRepo.findActiveOrdersByTableId.mockResolvedValue(orders);
+      mockManager.findOne.mockResolvedValue(table);
       mockManager.save.mockImplementation((_entity, data) =>
         Promise.resolve(data ?? _entity),
       );
@@ -476,7 +505,7 @@ describe('OrdersService', () => {
       }
 
       // Table should be freed
-      expect(table.isAvailable).toBe(true);
+      expect(table.status).toBe(TableStatus.AVAILABLE);
 
       // Events emitted for each order
       expect(realtimeService.emit).toHaveBeenCalledTimes(2);
@@ -490,6 +519,121 @@ describe('OrdersService', () => {
 
       await expect(
         service.checkoutTable('table-uuid-1', {
+          paymentMethod: PaymentMethod.CASH,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────
+  //  checkoutOrders
+  // ──────────────────────────────────────────────────────────
+
+  describe('checkoutOrders', () => {
+    it('should check out specific orders and free the table if no active orders remain', async () => {
+      const table = makeTable({ status: TableStatus.OCCUPIED });
+      const orders = [
+        makeOrder({ id: 1, status: OrderStatus.NEW, trackingCode: 'tc-1' }),
+        makeOrder({ id: 2, status: OrderStatus.SERVED, trackingCode: 'tc-2' }),
+      ];
+
+      tableService.findById.mockResolvedValue(table);
+      orderRepo.findWithOptions.mockResolvedValue(orders);
+      mockManager.findOne.mockResolvedValue(table);
+      mockManager.count.mockResolvedValue(0); // no active orders left
+      mockManager.save.mockImplementation((_entity, data) =>
+        Promise.resolve(data ?? _entity),
+      );
+
+      const result = await service.checkoutOrders({
+        tableId: 'table-uuid-1',
+        orderIds: [1, 2],
+        paymentMethod: PaymentMethod.CASH,
+      });
+
+      expect(result).toHaveLength(2);
+      for (const order of result) {
+        expect(order.status).toBe(OrderStatus.PAID);
+        expect(order.paymentMethod).toBe(PaymentMethod.CASH);
+        expect(order.paidAt).toBeInstanceOf(Date);
+      }
+
+      expect(table.status).toBe(TableStatus.AVAILABLE);
+
+      expect(realtimeService.emit).toHaveBeenCalledTimes(2);
+      expect(realtimeService.emitToRoom).toHaveBeenCalledTimes(2);
+    });
+
+    it('should check out specific orders and NOT free the table if other active orders remain', async () => {
+      const table = makeTable({ status: TableStatus.OCCUPIED });
+      const ordersToPay = [
+        makeOrder({ id: 1, status: OrderStatus.NEW, trackingCode: 'tc-1' }),
+      ];
+
+      tableService.findById.mockResolvedValue(table);
+      orderRepo.findWithOptions.mockResolvedValue(ordersToPay);
+      mockManager.findOne.mockResolvedValue(table);
+      mockManager.count.mockResolvedValue(1); // 1 active order remains
+      mockManager.save.mockImplementation((_entity, data) =>
+        Promise.resolve(data ?? _entity),
+      );
+
+      const result = await service.checkoutOrders({
+        tableId: 'table-uuid-1',
+        orderIds: [1],
+        paymentMethod: PaymentMethod.TRANSFER,
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].status).toBe(OrderStatus.PAID);
+      expect(result[0].paymentMethod).toBe(PaymentMethod.TRANSFER);
+      expect(table.status).toBe(TableStatus.OCCUPIED); // stays occupied
+    });
+
+    it('should throw NotFoundException if one or more orders are not found', async () => {
+      const table = makeTable({ status: TableStatus.OCCUPIED });
+      tableService.findById.mockResolvedValue(table);
+      orderRepo.findWithOptions.mockResolvedValue([
+        makeOrder({ id: 1 }),
+      ]); // only returned 1 order instead of 2
+
+      await expect(
+        service.checkoutOrders({
+          tableId: 'table-uuid-1',
+          orderIds: [1, 2],
+          paymentMethod: PaymentMethod.CASH,
+        }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw BadRequestException if one or more orders belong to a different table', async () => {
+      const table = makeTable({ status: TableStatus.OCCUPIED });
+      tableService.findById.mockResolvedValue(table);
+      orderRepo.findWithOptions.mockResolvedValue([
+        makeOrder({ id: 1, tableId: 'table-uuid-1' }),
+        makeOrder({ id: 2, tableId: 'other-table-uuid' }),
+      ]);
+
+      await expect(
+        service.checkoutOrders({
+          tableId: 'table-uuid-1',
+          orderIds: [1, 2],
+          paymentMethod: PaymentMethod.CASH,
+        }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException if one or more orders are already paid or cancelled', async () => {
+      const table = makeTable({ status: TableStatus.OCCUPIED });
+      tableService.findById.mockResolvedValue(table);
+      orderRepo.findWithOptions.mockResolvedValue([
+        makeOrder({ id: 1, status: OrderStatus.PAID }),
+      ]);
+
+      await expect(
+        service.checkoutOrders({
+          tableId: 'table-uuid-1',
+          orderIds: [1],
           paymentMethod: PaymentMethod.CASH,
         }),
       ).rejects.toThrow(BadRequestException);

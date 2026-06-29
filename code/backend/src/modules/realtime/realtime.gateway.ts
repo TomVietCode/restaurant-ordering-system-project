@@ -12,8 +12,9 @@ import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
+  namespace: '/orders',
   cors: {
-    origin: '*',
+    origin: process.env.CORS_ORIGIN,
   },
 })
 export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
@@ -40,9 +41,9 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
    * and joins room: 'order:track:{trackingCode}'
    */
   @SubscribeMessage('join-order-tracking')
-  handleJoinOrderTracking(@MessageBody() data: { trackingCode: string }, @ConnectedSocket() client: Socket): void {
+  async handleJoinOrderTracking(@MessageBody() data: { trackingCode: string }, @ConnectedSocket() client: Socket): Promise<void> {
     const room = `order:track:${data.trackingCode}`;
-    client.join(room);
+    await client.join(room);
     this.logger.log(`Client ${client.id} joined room: ${room}`);
   }
 }

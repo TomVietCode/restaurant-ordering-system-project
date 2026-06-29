@@ -8,6 +8,7 @@ export const API_BASE_URL =
 export const ROUTES = {
   login: '/login', 
   dashboard: '/dashboard',
+  list: '/list',
   menu: '/menu',
   tables: '/tables',
   orders: '/orders',
