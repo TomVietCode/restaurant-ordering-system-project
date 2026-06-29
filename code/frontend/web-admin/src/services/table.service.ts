@@ -1,11 +1,7 @@
-import { apiWithToken } from "@/lib/api";
-import type { Table } from "@/types/table";
+import { apiWithToken } from '@/lib/api';
+import type { Table, TableStatus } from '@/types/table';
 
-/** Backend envelope: `{ success: true, data: [...] }` */
-interface ApiRes<T> {
-  success: boolean;
-  data: T;
-}
+interface ApiRes<T> { data: T }
 
 export const tableService = {
   /**
@@ -18,39 +14,25 @@ export const tableService = {
    * so we access `res.data` to get the actual array.
    */
   async getAll(token?: string | null): Promise<Table[]> {
-    const res = await apiWithToken(token).get<ApiRes<Table[]>>("/tables");
+    const res = await apiWithToken(token).get<ApiRes<Table[]>>('/tables');
     return res.data;
   },
 
-  /**
-   * Create a new table.
-   *
-   * Calls: `POST /tables` with `{ name, capacity? }`
-   */
-  async create(
-    token: string | null | undefined,
-    dto: { name: string; capacity?: number },
-  ): Promise<Table> {
-    const res = await apiWithToken(token).post<ApiRes<Table>>("/tables", dto);
+  async create(token: string | null | undefined, dto: { name: string; capacity: number; status?: TableStatus }): Promise<Table> {
+    const res = await apiWithToken(token).post<ApiRes<Table>>('/tables', dto);
     return res.data;
   },
 
-  /**
-   * Update an existing table.
-   *
-   * Calls: `PATCH /tables/:id` with partial fields.
-   */
-  async update(
-    token: string | null | undefined,
-    id: string,
-    dto: Partial<{ name: string; capacity: number; isAvailable: boolean }>,
-  ): Promise<Table> {
-    const res = await apiWithToken(token).patch<ApiRes<Table>>(
-      `/tables/${id}`,
-      dto,
-    );
+  async update(token: string | null | undefined, id: string, dto: { name?: string; capacity?: number; status?: TableStatus }): Promise<Table> {
+    const res = await apiWithToken(token).patch<ApiRes<Table>>(`/tables/${id}`, dto);
     return res.data;
   },
+
+  async toggleStatus(token: string | null | undefined, id: string): Promise<Table> {
+    const res = await apiWithToken(token).patch<ApiRes<Table>>(`/tables/${id}/toggle-status`);
+    return res.data;
+  },
+
 
   /**
    * Delete a table.
