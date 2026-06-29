@@ -2,7 +2,8 @@ import 'enums.dart';
 
 class OrderModel {
   final int orderId;
-  final int tableId;
+  final String tableId;
+  final String trackingCode;
   final OrderStatus status;
   final double? totalAmount;
   final PaymentMethod? paymentMethod;
@@ -12,6 +13,7 @@ class OrderModel {
   OrderModel({
     required this.orderId,
     required this.tableId,
+    required this.trackingCode,
     required this.status,
     this.totalAmount,
     this.paymentMethod,
@@ -20,14 +22,25 @@ class OrderModel {
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
+    final totalAmount = json['totalAmount'] ?? json['total_amount'];
+    final createdAt = json['createdAt'] ?? json['created_at'];
+    final paidAt = json['paidAt'] ?? json['paid_at'];
+    final paymentMethod = json['paymentMethod'] ?? json['payment_method'];
+
     return OrderModel(
-      orderId: json['order_id'],
-      tableId: json['table_id'],
+      orderId: json['id'] ?? json['order_id'],
+      tableId: (json['tableId'] ?? json['table_id']).toString(),
+      trackingCode: (json['trackingCode'] ?? json['tracking_code'] ?? '')
+          .toString(),
       status: OrderStatus.fromString(json['status'] ?? ''),
-      totalAmount: json['total_amount'] != null ? (json['total_amount'] as num).toDouble() : null,
-      paymentMethod: json['payment_method'] != null ? PaymentMethod.fromString(json['payment_method']) : null,
-      createdAt: DateTime.parse(json['created_at']),
-      paidAt: json['paid_at'] != null ? DateTime.parse(json['paid_at']) : null,
+      totalAmount: totalAmount != null
+          ? double.tryParse(totalAmount.toString())
+          : null,
+      paymentMethod: paymentMethod != null
+          ? PaymentMethod.fromString(paymentMethod.toString())
+          : null,
+      createdAt: DateTime.parse(createdAt.toString()),
+      paidAt: paidAt != null ? DateTime.parse(paidAt.toString()) : null,
     );
   }
 
@@ -35,6 +48,7 @@ class OrderModel {
     return {
       'order_id': orderId,
       'table_id': tableId,
+      'tracking_code': trackingCode,
       'status': status.value,
       'total_amount': totalAmount,
       'payment_method': paymentMethod?.value,

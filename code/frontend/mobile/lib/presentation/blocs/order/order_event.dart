@@ -23,4 +23,6 @@ class UpdateOrderStatus extends OrderEvent {
   List<Object?> get props => [itemId, statusIndex];
 }
 
+class RefreshTrackedOrder extends OrderEvent {}
+
 class ClearOrder extends OrderEvent {}

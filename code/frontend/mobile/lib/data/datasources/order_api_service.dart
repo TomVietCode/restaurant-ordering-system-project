@@ -1,4 +1,5 @@
 import '../models/cart_item.dart';
+<<<<<<< Updated upstream
 // TODO (BƯỚC 1): Bỏ comment dòng dưới để sử dụng API Client
 // import '../../core/network/dio_client.dart';
 
@@ -52,5 +53,39 @@ class OrderApiService {
         'paid_at': DateTime.now().subtract(const Duration(hours: 1, minutes: 50)).toIso8601String(),
       },
     ];
+=======
+import '../../core/network/dio_client.dart';
+
+class OrderApiService {
+  final _dioClient = DioClient();
+
+  Future<Map<String, dynamic>> placeOrder(
+    String tableId,
+    List<CartItem> items,
+  ) async {
+    final response = await _dioClient.dio.post(
+      '/orders',
+      data: {
+        'tableId': tableId,
+        'items': items
+            .map(
+              (item) => {
+                'itemId': item.product.id,
+                'quantity': item.quantity,
+                if (item.notes != null && item.notes!.trim().isNotEmpty)
+                  'note': item.notes!.trim(),
+              },
+            )
+            .toList(),
+      },
+    );
+
+    return response.data['data'] as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> trackOrder(String trackingCode) async {
+    final response = await _dioClient.dio.get('/orders/track/$trackingCode');
+    return response.data['data'] as Map<String, dynamic>;
+>>>>>>> Stashed changes
   }
 }
