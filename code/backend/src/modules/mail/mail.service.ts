@@ -1,0 +1,30 @@
+import { Injectable } from '@nestjs/common';
+import { MailerService } from '@nestjs-modules/mailer';
+
+@Injectable()
+export class MailService {
+  constructor(private readonly mailerService: MailerService) {}
+
+  async sendOtp(email: string, otp: string): Promise<void> {
+    console.log(process.env.MAIL_HOST);
+    console.log(process.env.MAIL_PORT);
+    console.log(process.env.MAIL_USER);
+    // await this.mailerService.sendMail({
+    //   to: email,
+    //   subject: 'Password Verification OTP',
+    //   html: `
+    //     <h2>Password Verification</h2>
+    //     <p>Your OTP is:</p>
+    //     <h1>${otp}</h1>
+    //     <p>This code will expire in 5 minutes.</p>
+    //   `,
+    // });
+
+    await this.mailerService.sendMail({
+    to: email,
+    subject: 'Test',
+    text: otp,
+  });
+
+  }
+}
