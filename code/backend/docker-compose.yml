@@ -8,18 +8,10 @@ services:
       POSTGRES_PASSWORD: ${DB_PASS}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - '5432:5432'
+      - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql
-  backend:
-    image: ghcr.io/tomvietcode/ioc-backend:latest
-    container_name: ioc-backend-app
-    ports:
-      - ${PORT}:${PORT}
-    env_file:
-      - .env
-    depends_on:
-      - postgres
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init:/docker-entrypoint-initdb.d
+
 volumes:
-  pgdata:
-    
+  pgdata:
