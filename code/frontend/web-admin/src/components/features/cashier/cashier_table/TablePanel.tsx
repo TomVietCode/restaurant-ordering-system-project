@@ -35,7 +35,7 @@ export function TablePanel({ tables, orders, selectedTableId, onSelectTable, onP
   return (
     <div className="flex flex-1 overflow-hidden rounded-xl border border-border">
       <TableList rows={rows} selectedId={selectedTableId} onSelect={onSelectTable} />
-      <TableDetail selected={selected} onPayTable={onPayTable} onPayOrders={onPayOrders} />
+      <TableDetail key={selected?.id ?? 'none'} selected={selected} onPayTable={onPayTable} onPayOrders={onPayOrders} />
     </div>
   );
 }

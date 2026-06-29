@@ -1,24 +1,32 @@
-import { useState, useEffect } from 'react';
-import { Armchair, Clock, Banknote, QrCode, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { OrderStatus } from '@/types/order';
-import type { Row, TblStatus } from './TablePanel';
+import { useState, useEffect } from "react";
+import { Armchair, Banknote, QrCode, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { OrderStatus } from "@/types/order";
+import type { Row, TblStatus } from "./TablePanel";
 
-const TBL_LABEL: Record<TblStatus, string> = { WAITPAY: 'Chờ TT', SERVING: 'Phục vụ', EMPTY: 'Trống' };
+const TBL_LABEL: Record<TblStatus, string> = {
+  WAITPAY: "Chờ TT",
+  SERVING: "Phục vụ",
+  EMPTY: "Trống",
+};
 const TBL_BADGE: Record<TblStatus, string> = {
-  WAITPAY: 'bg-status-paid text-status-paid-foreground',
-  SERVING: 'bg-status-preparing text-status-preparing-foreground',
-  EMPTY:   'bg-muted text-muted-foreground',
+  WAITPAY: "bg-status-paid text-status-paid-foreground",
+  SERVING: "bg-status-preparing text-status-preparing-foreground",
+  EMPTY: "bg-muted text-muted-foreground",
 };
 const ORDER_LABEL: Record<OrderStatus, string> = {
-  NEW: 'Mới', PREPARING: 'Đang làm', SERVED: 'Đã phục vụ', PAID: 'Đã TT', CANCEL: 'Đã hủy',
+  NEW: "Mới",
+  PREPARING: "Đang làm",
+  SERVED: "Đã phục vụ",
+  PAID: "Đã TT",
+  CANCEL: "Đã hủy",
 };
 const ORDER_BADGE: Record<OrderStatus, string> = {
-  NEW:       'bg-status-new text-status-new-foreground',
-  PREPARING: 'bg-status-preparing text-status-preparing-foreground',
-  SERVED:    'bg-status-served text-status-served-foreground',
-  PAID:      'bg-status-paid text-status-paid-foreground',
-  CANCEL:    'bg-status-cancel text-status-cancel-foreground',
+  NEW: "bg-status-new text-status-new-foreground",
+  PREPARING: "bg-status-preparing text-status-preparing-foreground",
+  SERVED: "bg-status-served text-status-served-foreground",
+  PAID: "bg-status-paid text-status-paid-foreground",
+  CANCEL: "bg-status-cancel text-status-cancel-foreground",
 };
 
 export function TableDetail({
@@ -27,78 +35,97 @@ export function TableDetail({
   onPayOrders,
 }: {
   selected: Row | null;
-  onPayTable: (tableId: string, paymentMethod: 'CASH' | 'TRANSFER') => Promise<void>;
-  onPayOrders: (tableId: string, orderIds: number[], paymentMethod: 'CASH' | 'TRANSFER') => Promise<void>;
+  onPayTable: (
+    tableId: string,
+    paymentMethod: "CASH" | "TRANSFER",
+  ) => Promise<void>;
+  onPayOrders: (
+    tableId: string,
+    orderIds: number[],
+    paymentMethod: "CASH" | "TRANSFER",
+  ) => Promise<void>;
 }) {
   const [checkoutTarget, setCheckoutTarget] = useState<{
-    type: 'TABLE' | 'ORDER' | 'SELECTED_ORDERS';
+    type: "TABLE" | "ORDER" | "SELECTED_ORDERS";
     orderId?: number;
     orderIds?: number[];
     total: number;
   } | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER'>('CASH');
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "TRANSFER">(
+    "CASH",
+  );
   const [loading, setLoading] = useState(false);
   const [selectedOrderIds, setSelectedOrderIds] = useState<number[]>([]);
 
-  useEffect(() => {
-    setCheckoutTarget(null);
-    setSelectedOrderIds([]);
-  }, [selected?.id]);
-
   const toggleSelectOrder = (id: number) => {
-    setSelectedOrderIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    setSelectedOrderIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
     );
   };
 
   if (!selected) {
     return (
-      <div className="flex flex-[2] flex-col items-center justify-center gap-2 text-muted-foreground">
+      <div className="flex flex-2 flex-col items-center justify-center gap-2 text-muted-foreground">
         <Armchair className="size-8" strokeWidth={1.5} />
         <p className="text-sm">Chọn bàn để xem chi tiết</p>
       </div>
     );
   }
 
-  const sorted = [...selected.active].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+  const sorted = [...selected.active].sort(
+    (a, b) => +new Date(a.createdAt) - +new Date(b.createdAt),
+  );
 
   const selectedTotal = sorted
-    .filter(o => selectedOrderIds.includes(o.id))
+    .filter((o) => selectedOrderIds.includes(o.id))
     .reduce((sum, o) => sum + o.totalAmount, 0);
 
   const handleConfirmCheckout = async () => {
     if (!checkoutTarget) return;
     setLoading(true);
     try {
-      if (checkoutTarget.type === 'TABLE') {
+      if (checkoutTarget.type === "TABLE") {
         await onPayTable(selected.id, paymentMethod);
-      } else if (checkoutTarget.type === 'ORDER' && checkoutTarget.orderId !== undefined) {
+      } else if (
+        checkoutTarget.type === "ORDER" &&
+        checkoutTarget.orderId !== undefined
+      ) {
         await onPayOrders(selected.id, [checkoutTarget.orderId], paymentMethod);
-      } else if (checkoutTarget.type === 'SELECTED_ORDERS' && checkoutTarget.orderIds !== undefined) {
+      } else if (
+        checkoutTarget.type === "SELECTED_ORDERS" &&
+        checkoutTarget.orderIds !== undefined
+      ) {
         await onPayOrders(selected.id, checkoutTarget.orderIds, paymentMethod);
       }
       setCheckoutTarget(null);
       setSelectedOrderIds([]);
     } catch (err) {
       console.error(err);
-      alert('Thanh toán thất bại, vui lòng thử lại.');
+      alert("Thanh toán thất bại, vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="relative flex flex-[2] flex-col overflow-hidden">
+    <div className="relative flex flex-2 flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
           <p className="font-semibold">{selected.name}</p>
           <p className="text-xs text-muted-foreground">
-            {selected.active.length ? `${selected.active.length} đơn` : 'Không có đơn'}
-            {selected.capacity ? ` · ${selected.capacity} chỗ` : ''}
+            {selected.active.length
+              ? `${selected.active.length} đơn`
+              : "Không có đơn"}
+            {selected.capacity ? ` · ${selected.capacity} chỗ` : ""}
           </p>
         </div>
-        <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-medium', TBL_BADGE[selected.tblStatus])}>
+        <span
+          className={cn(
+            "rounded-full px-2.5 py-0.5 text-xs font-medium",
+            TBL_BADGE[selected.tblStatus],
+          )}
+        >
           {TBL_LABEL[selected.tblStatus]}
         </span>
       </div>
@@ -111,51 +138,108 @@ export function TableDetail({
             <p className="text-xs">Bàn đang trống</p>
           </div>
         ) : (
-          sorted.map(o => {
+          sorted.map((o) => {
             return (
-              <div key={o.id} className="overflow-hidden rounded-lg border border-border bg-white shadow-xs">
-                <div 
+              <div
+                key={o.id}
+                className="overflow-hidden rounded-lg border border-border bg-white shadow-xs"
+              >
+                <div
                   className="flex items-center justify-between bg-secondary/50 px-3 py-1.5 border-b border-border cursor-pointer select-none"
                   onClick={() => toggleSelectOrder(o.id)}
                 >
-                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className="flex items-center gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <input
                       type="checkbox"
                       checked={selectedOrderIds.includes(o.id)}
                       onChange={() => toggleSelectOrder(o.id)}
-                      className="size-4 rounded border-gray-350 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                      className="size-4 rounded border-gray-350 text-zinc-950 focus:ring-zinc-900 cursor-pointer"
                     />
-                    <span className="text-xs font-semibold" onClick={() => toggleSelectOrder(o.id)}>#{o.id}</span>
-                    <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', ORDER_BADGE[o.status])}>
+                    <span
+                      className="text-xs font-semibold"
+                      onClick={() => toggleSelectOrder(o.id)}
+                    >
+                      #{o.trackingCode}
+                    </span>
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[10px] font-medium",
+                        ORDER_BADGE[o.status],
+                      )}
+                    >
                       {ORDER_LABEL[o.status]}
                     </span>
                   </div>
                 </div>
-                <div className="space-y-1.5 px-3 py-2">
-                  {o.items.map((it, i) => (
-                    <div key={i} className="flex justify-between items-center text-xs text-foreground/80">
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="w-4 text-right text-muted-foreground font-medium">{it.quantity}×</span>
-                        <span className="truncate">{it.name}</span>
-                        {it.price !== undefined && (
-                          <span className="text-[10px] text-muted-foreground">({it.price.toLocaleString('vi-VN')}đ)</span>
-                        )}
-                        {it.note && <span className="text-amber-600 text-[10px] ml-1">✏ {it.note}</span>}
-                      </div>
-                      <span className="font-semibold text-muted-foreground shrink-0 text-right">
-                        {it.price !== undefined ? `${(it.quantity * it.price).toLocaleString('vi-VN')}đ` : ''}
-                      </span>
-                    </div>
-                  ))}
+                <div className="px-3 py-2">
+                  <table className="w-full text-sm border-collapse text-left">
+                    <thead>
+                      <tr className="border-b border-zinc-200 text-xs font-semibold text-zinc-500 uppercase tracking-wide">
+                        <th className="py-1 px-1 font-semibold text-left">
+                          Tên món
+                        </th>
+                        <th className="py-1 px-1 font-semibold text-right w-[70px]">
+                          Đơn giá
+                        </th>
+                        <th className="py-1 px-1 font-semibold text-center w-[100px]">
+                          Số lượng
+                        </th>
+                        <th className="py-1 px-1 font-semibold text-right w-[85px]">
+                          Thành tiền
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                      {o.items.map((it, i) => (
+                        <tr
+                          key={i}
+                          className="text-zinc-800 hover:bg-zinc-50/50"
+                        >
+                          <td className="py-1.5 px-1 pr-2 max-w-[140px] truncate font-medium">
+                            {it.name}
+                            {it.note && (
+                              <span className="text-zinc-500 text-xs block mt-0.5 font-normal">
+                                - {it.note}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-1.5 px-1 text-right tabular-nums">
+                            {it.price !== undefined
+                              ? `${it.price.toLocaleString("vi-VN")}đ`
+                              : ""}
+                          </td>
+                          <td className="py-1.5 px-1 text-center font-medium tabular-nums">
+                            {it.quantity}
+                          </td>
+                          <td className="py-1.5 px-1 text-right font-semibold text-zinc-800 tabular-nums">
+                            {it.price !== undefined
+                              ? `${(it.quantity * it.price).toLocaleString("vi-VN")}đ`
+                              : ""}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
                 <div className="flex items-center justify-between border-t border-border bg-muted/20 px-3 py-1.5">
-                  <span className="text-xs font-bold text-foreground">Tổng: {o.totalAmount.toLocaleString('vi-VN')}đ</span>
                   <button
-                    className="inline-flex h-7 items-center justify-center rounded-md bg-green-600 px-2.5 text-[11px] font-bold text-white transition-colors hover:bg-green-700 cursor-pointer border-none outline-none"
-                    onClick={() => setCheckoutTarget({ type: 'ORDER', orderId: o.id, total: o.totalAmount })}
+                    className="inline-flex h-8 items-center justify-center rounded-md bg-zinc-900 px-2.5 text-sm font-bold text-white transition-colors hover:bg-zinc-800 cursor-pointer border-none outline-none"
+                    onClick={() =>
+                      setCheckoutTarget({
+                        type: "ORDER",
+                        orderId: o.id,
+                        total: o.totalAmount,
+                      })
+                    }
                   >
-                    💰 Thanh toán đơn
+                    Thanh toán đơn
                   </button>
+                  <span className="text-lg font-bold text-foreground">
+                    {o.totalAmount.toLocaleString("vi-VN")}đ
+                  </span>
                 </div>
               </div>
             );
@@ -169,31 +253,43 @@ export function TableDetail({
           {selectedOrderIds.length > 0 ? (
             <>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-muted-foreground uppercase">Tổng tiền đã chọn ({selectedOrderIds.length} đơn)</span>
-                <span className="text-lg font-extrabold text-orange-600">
-                  {selectedTotal.toLocaleString('vi-VN')}đ
+                <span className="text-sm font-bold text-muted-foreground uppercase">
+                  Tổng tiền đã chọn ({selectedOrderIds.length} đơn)
+                </span>
+                <span className="text-lg font-extrabold text-zinc-900">
+                  {selectedTotal.toLocaleString("vi-VN")}đ
                 </span>
               </div>
               <button
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 py-2.5 text-xs font-bold text-white transition-colors hover:bg-green-700 cursor-pointer border-none outline-none"
-                onClick={() => setCheckoutTarget({ type: 'SELECTED_ORDERS', orderIds: selectedOrderIds, total: selectedTotal })}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white py-2.5 text-lg font-bold text-zinc-800 transition-colors hover:bg-zinc-50 cursor-pointer outline-none"
+                onClick={() =>
+                  setCheckoutTarget({
+                    type: "SELECTED_ORDERS",
+                    orderIds: selectedOrderIds,
+                    total: selectedTotal,
+                  })
+                }
               >
-                💰 Thanh toán đơn đã chọn
+                Thanh toán đơn đã chọn
               </button>
             </>
           ) : (
             <>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-muted-foreground uppercase">Tổng tiền bàn này ({selected.active.length} đơn)</span>
-                <span className="text-lg font-extrabold text-orange-600">
-                  {selected.total.toLocaleString('vi-VN')}đ
+                <span className="text-sm font-bold text-muted-foreground uppercase">
+                  Tổng tiền bàn này ({selected.active.length} đơn)
+                </span>
+                <span className="text-2xl font-extrabold text-zinc-900">
+                  {selected.total.toLocaleString("vi-VN")}đ
                 </span>
               </div>
               <button
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 py-2.5 text-xs font-bold text-white transition-colors hover:bg-orange-600 cursor-pointer border-none outline-none"
-                onClick={() => setCheckoutTarget({ type: 'TABLE', total: selected.total })}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 py-2.5 text-lg font-bold text-white transition-colors hover:bg-zinc-800 cursor-pointer border-none outline-none"
+                onClick={() =>
+                  setCheckoutTarget({ type: "TABLE", total: selected.total })
+                }
               >
-                💳 Thanh toán toàn bộ bàn
+                Thanh toán toàn bộ bàn
               </button>
             </>
           )}
@@ -205,13 +301,12 @@ export function TableDetail({
         <div className="absolute inset-0 z-10 flex flex-col bg-background/95 p-4 backdrop-blur-xs">
           <div className="flex items-center justify-between border-b pb-3">
             <h3 className="font-bold text-base text-foreground">
-              Thanh toán {
-                checkoutTarget.type === 'TABLE'
-                  ? 'cả bàn'
-                  : checkoutTarget.type === 'SELECTED_ORDERS'
+              Thanh toán{" "}
+              {checkoutTarget.type === "TABLE"
+                ? "cả bàn"
+                : checkoutTarget.type === "SELECTED_ORDERS"
                   ? `gộp các đơn đã chọn (${checkoutTarget.orderIds?.length} đơn)`
-                  : `Đơn #${checkoutTarget.orderId}`
-              }
+                  : `Đơn #${checkoutTarget.orderId}`}
             </h3>
             <button
               onClick={() => setCheckoutTarget(null)}
@@ -222,33 +317,37 @@ export function TableDetail({
           </div>
 
           <div className="flex-1 flex flex-col justify-center py-6 text-center">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">CẦN THANH TOÁN</p>
-            <p className="text-2xl font-black text-orange-600 mt-1">
-              {checkoutTarget.total.toLocaleString('vi-VN')}đ
+            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
+              CẦN THANH TOÁN
+            </p>
+            <p className="text-2xl font-black text-zinc-900 mt-1">
+              {checkoutTarget.total.toLocaleString("vi-VN")}đ
             </p>
 
             <div className="mt-6">
-              <p className="text-xs text-muted-foreground mb-3 font-medium">PHƯƠNG THỨC THANH TOÁN</p>
+              <p className="text-xs text-muted-foreground mb-3 font-medium">
+                PHƯƠNG THỨC THANH TOÁN
+              </p>
               <div className="flex gap-3 justify-center max-w-xs mx-auto">
-                {(['CASH', 'TRANSFER'] as const).map(m => (
+                {(["CASH", "TRANSFER"] as const).map((m) => (
                   <button
                     key={m}
                     onClick={() => setPaymentMethod(m)}
                     className={cn(
-                      'flex flex-1 flex-col items-center gap-2 rounded-xl border p-3 text-xs font-semibold transition-all cursor-pointer bg-white shadow-xs',
+                      "flex flex-1 flex-col items-center gap-2 rounded-xl border p-3 text-xs font-semibold transition-all cursor-pointer bg-white shadow-xs",
                       paymentMethod === m
-                        ? 'border-orange-500 bg-orange-50/50 text-orange-700 ring-2 ring-orange-500/20'
-                        : 'border-border text-muted-foreground hover:bg-muted'
+                        ? "border-zinc-950 bg-zinc-100 text-zinc-900 ring-2 ring-zinc-950/10"
+                        : "border-border text-muted-foreground hover:bg-muted",
                     )}
                   >
-                    {m === 'CASH' ? (
+                    {m === "CASH" ? (
                       <>
-                        <Banknote className="size-5 text-green-600" />
+                        <Banknote className="size-5 text-zinc-700" />
                         <span>Tiền mặt</span>
                       </>
                     ) : (
                       <>
-                        <QrCode className="size-5 text-blue-600" />
+                        <QrCode className="size-5 text-zinc-700" />
                         <span>Chuyển khoản</span>
                       </>
                     )}
@@ -262,13 +361,10 @@ export function TableDetail({
             <button
               disabled={loading}
               onClick={handleConfirmCheckout}
-              className="flex w-full items-center justify-center rounded-lg bg-green-600 py-3 text-sm font-bold text-white transition-colors hover:bg-green-700 cursor-pointer disabled:opacity-50 border-none outline-none"
+              className="flex w-full items-center justify-center rounded-lg bg-zinc-900 py-3 text-sm font-bold text-white transition-colors hover:bg-zinc-800 cursor-pointer disabled:opacity-50 border-none outline-none"
             >
-              {loading ? 'Đang xử lý...' : 'Xác nhận thanh toán'}
+              {loading ? "Đang xử lý..." : "Xác nhận thanh toán"}
             </button>
-            <p className="text-[10px] text-center text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 leading-normal">
-              Lưu ý: Thao tác này không thể hoàn tác sau khi xác nhận.
-            </p>
           </div>
         </div>
       )}

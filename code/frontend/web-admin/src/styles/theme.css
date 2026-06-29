@@ -51,9 +51,9 @@
   --status-preparing: #fef3c7;
   --status-preparing-foreground: #92400e;
   --status-preparing-dot: #f59e0b;
-  --status-served: #ede9fe;
-  --status-served-foreground: #5b21b6;
-  --status-served-dot: #8b5cf6;
+  --status-served: #DCFCE7;
+  --status-served-foreground: #166534;
+  --status-served-dot: #22C55E;
   --status-paid: #dcfce7;
   --status-paid-foreground: #166534;
   --status-paid-dot: #22c55e;
