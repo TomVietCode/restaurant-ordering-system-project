@@ -1,6 +1,6 @@
-import { Injectable, Inject, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
-import { DataSource, EntityManager, In } from 'typeorm';
-import { randomUUID } from 'crypto';
+import { Injectable, Inject, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
+import { DataSource, EntityManager, In, QueryFailedError } from 'typeorm';
+import { generateTrackingCode } from '@common/utils/tracking-code.util.js';
 import { ORDER_REPO_TOKEN, REALTIME_SERVICE_TOKEN } from '@common/constants.js';
 import { OrderStatus, TableStatus } from '@common/enums.js';
 import type { IOrderRepository, OrderQueryOptions } from './repositories/order.repository.interface.js';
@@ -87,7 +87,7 @@ export class OrdersService {
     // 3. Build the order entity
     const order = new Order();
     order.tableId = table.id;
-    order.trackingCode = randomUUID();
+    order.trackingCode = generateTrackingCode();
     order.status = OrderStatus.NEW;
     order.totalAmount = totalAmount;
     order.orderItems = orderItems;
@@ -277,9 +277,7 @@ export class OrdersService {
     }
 
     // Validate all orders are currently active (not PAID or CANCEL)
-    const nonActiveOrders = orders.filter(
-      (o) => o.status === OrderStatus.PAID || o.status === OrderStatus.CANCEL,
-    );
+    const nonActiveOrders = orders.filter((o) => o.status === OrderStatus.PAID || o.status === OrderStatus.CANCEL);
     if (nonActiveOrders.length > 0) {
       const nonActiveIds = nonActiveOrders.map((o) => o.id).join(', ');
       throw new BadRequestException(`Order(s) with ID(s) ${nonActiveIds} are already paid or cancelled`);
@@ -347,5 +345,23 @@ export class OrdersService {
       await manager.save(table);
       this.logger.log(`Table ${table.name} is now free (all orders terminal)`);
     }
+  }
+
+  /**
+   * Check if the generated nanoid already exists
+   * if not, return Tracking Code
+   */
+  private async generateTrackingCode(): Promise<string> {
+    for (let i = 0; i < 5; i++) {
+      const trackingCode = generateTrackingCode();
+      const existed = await this.orderRepository.findByTrackingCode(trackingCode);
+
+      if (existed) {
+        continue;
+      }
+      return trackingCode;
+    }
+
+    throw new InternalServerErrorException('Unable to generate unique tracking code after 5 attempts.');
   }
 }
