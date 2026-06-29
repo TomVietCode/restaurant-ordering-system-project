@@ -1,4 +1,4 @@
-import { Injectable, Inject, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
 import { DataSource, EntityManager, In, QueryFailedError } from 'typeorm';
 import { generateTrackingCode } from '@common/utils/tracking-code.util.js';
 import { ORDER_REPO_TOKEN, REALTIME_SERVICE_TOKEN } from '@common/constants.js';
@@ -87,15 +87,7 @@ export class OrdersService {
     // 3. Build the order entity
     const order = new Order();
     order.tableId = table.id;
-    for (let i = 0; i < 5; i++) {
-      try {
-        order.trackingCode = generateTrackingCode();
-      } catch (e) {
-        if (this.isUniqueTrackingCodeError(e)) {
-          continue; // sinh mã khác
-        }
-      }
-    }
+    order.trackingCode = generateTrackingCode();
     order.status = OrderStatus.NEW;
     order.totalAmount = totalAmount;
     order.orderItems = orderItems;
@@ -357,11 +349,19 @@ export class OrdersService {
 
   /**
    * Check if the generated nanoid already exists
-   * The database returns a unique error.
+   * if not, return Tracking Code
    */
-  private isUniqueTrackingCodeError(error: unknown): boolean {
-    return (
-      error instanceof QueryFailedError && (error as any).driverError?.code === '23505' // PostgreSQL
-    );
+  private async generateTrackingCode(): Promise<string> {
+    for (let i = 0; i < 5; i++) {
+      const trackingCode = generateTrackingCode();
+      const existed = await this.orderRepository.findByTrackingCode(trackingCode);
+
+      if (existed) {
+        continue;
+      }
+      return trackingCode;
+    }
+
+    throw new InternalServerErrorException('Unable to generate unique tracking code after 5 attempts.');
   }
 }
