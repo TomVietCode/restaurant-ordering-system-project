@@ -35,6 +35,9 @@ import { ReportsModule } from '@modules/reports/reports.module.js';
         database: configService.get('database.database'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: configService.get('nodeEnv') !== 'production',
+        ssl: {
+          rejectUnauthorized: false,
+        },
       }),
     }),
     AuthModule,
