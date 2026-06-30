@@ -1,4 +1,4 @@
-import { Roles } from '@common/decorators';
+import { Public, Roles } from '@common/decorators';
 import { Role } from '@common/enums';
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, ParseUUIDPipe, NotFoundException, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -12,13 +12,13 @@ const ParseTableUUID = new ParseUUIDPipe({
 
 @ApiTags('Tables')
 @ApiBearerAuth('JWT-auth')
-@Roles(Role.OWNER)
 @Controller('tables')
 export class TableController {
   constructor(private readonly tablesService: TableService) {}
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @Roles(Role.OWNER)
   @ApiOperation({ summary: 'Create a new table with auto-generated QR-ready UUID' })
   @ApiResponse({ status: 201, description: 'Table created successfully', type: TableResponseDto })
   @ApiResponse({ status: 409, description: 'Table name already exists' })
@@ -26,10 +26,11 @@ export class TableController {
     const table = await this.tablesService.create(dto);
     return ApiResponseDto.success(table, 'Table created successfully');
   }
-  // ApiRes<Table> 
+  // ApiRes<Table>
   // ApiResponseDto<TableResponseDto>
 
   @Get()
+  @Roles(Role.OWNER)
   @ApiOperation({ summary: 'List all tables with optional status filter' })
   @ApiResponse({ status: 200, description: 'Returns all tables', type: [TableResponseDto] })
   async findAll(@Query() query: TableQueryDto): Promise<ApiResponseDto<TableResponseDto[]>> {
@@ -38,6 +39,7 @@ export class TableController {
   }
 
   @Get(':id')
+  @Public()
   @ApiOperation({ summary: 'Get a single table by UUID' })
   @ApiParam({ name: 'id', description: 'Table UUID' })
   @ApiResponse({ status: 200, description: 'Table found', type: TableResponseDto })
@@ -48,21 +50,20 @@ export class TableController {
   }
 
   @Patch(':id')
+  @Roles(Role.OWNER)
   @ApiOperation({ summary: 'Update table name and/or capacity (QR unchanged)' })
   @ApiParam({ name: 'id', description: 'Table UUID' })
   @ApiResponse({ status: 200, description: 'Table updated successfully', type: TableResponseDto })
   @ApiResponse({ status: 404, description: 'Table not found' })
   @ApiResponse({ status: 409, description: 'Table name already exists' })
-  async update(
-    @Param('id', ParseTableUUID) id: string,
-    @Body() dto: UpdateTableDto,
-  ): Promise<ApiResponseDto<TableResponseDto>> {
+  async update(@Param('id', ParseTableUUID) id: string, @Body() dto: UpdateTableDto): Promise<ApiResponseDto<TableResponseDto>> {
     const table = await this.tablesService.update(id, dto);
     return ApiResponseDto.success(table, 'Table updated successfully');
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
+  @Roles(Role.OWNER)
   @ApiOperation({ summary: 'Delete a table (blocked if it has unpaid orders)' })
   @ApiParam({ name: 'id', description: 'Table UUID' })
   @ApiResponse({ status: 200, description: 'Table deleted successfully' })
@@ -75,6 +76,7 @@ export class TableController {
 
   @Patch(':id/toggle-status')
   @Roles(Role.STAFF, Role.OWNER)
+  @Roles(Role.OWNER)
   @ApiOperation({ summary: 'Toggle table status between AVAILABLE and CLOSED (realtime)' })
   @ApiParam({ name: 'id', description: 'Table UUID' })
   @ApiResponse({ status: 200, description: 'Table status toggled successfully', type: TableResponseDto })
@@ -85,4 +87,3 @@ export class TableController {
     return ApiResponseDto.success(table, 'Table status toggled successfully');
   }
 }
-

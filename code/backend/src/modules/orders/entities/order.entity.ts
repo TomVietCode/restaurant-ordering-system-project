@@ -15,7 +15,7 @@ export class Order {
    * Secure random UUID exposed to customers for order tracking.
    * Never expose the internal integer `id` to customers.
    */
-  @Column({ name: 'tracking_code', type: 'uuid', unique: true })
+  @Column({ name: 'tracking_code', type: 'varchar', length: 11, unique: true })
   trackingCode: string;
 
   @Column({
