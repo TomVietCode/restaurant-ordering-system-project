@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, IsUUID, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
 import { OrderStatus } from '@common/enums.js';
 
 export class QueryOrdersDto {
@@ -28,4 +28,18 @@ export class QueryOrdersDto {
   @IsOptional()
   @IsUUID()
   tableId?: string;
+
+  @ApiPropertyOptional({ description: 'Search by order code/ID' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+  @ApiPropertyOptional({
+    enum: ['all', 'today', 'week', 'month'],
+    description: 'Filter by date (all, today, week, month)',
+  })
+  @IsOptional()
+  @IsEnum(['all', 'today', 'week', 'month'])
+  dateFilter?: 'all' | 'today' | 'week' | 'month';
 }
+

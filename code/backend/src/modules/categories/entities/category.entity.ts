@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn } from 'typeorm';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 @Entity('categories')
 export class Category {
@@ -16,4 +17,8 @@ export class Category {
 
   @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
+
+  @ApiPropertyOptional({ description: 'Total number of items in this category' })
+  totalItem?: number;
 }
+

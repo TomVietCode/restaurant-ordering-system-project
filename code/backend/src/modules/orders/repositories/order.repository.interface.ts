@@ -7,7 +7,10 @@ export interface OrderQueryOptions {
   limit: number;
   status?: OrderStatus;
   tableId?: string;
+  search?: string;
+  dateFilter?: 'all' | 'today' | 'week' | 'month';
 }
+
 
 export interface IOrderRepository extends IBaseRepository<Order> {
   /** Find an order by its public tracking code, including order items + item details. */

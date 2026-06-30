@@ -35,7 +35,7 @@ export class OrderRepository extends BaseRepository<Order> implements IOrderRepo
   }
 
   async findPaginated(options: OrderQueryOptions): Promise<[Order[], number]> {
-    const { page, limit, status, tableId } = options;
+    const { page, limit, status, tableId, search, dateFilter } = options;
 
     const qb = this.orderRepo
       .createQueryBuilder('order')
@@ -51,12 +51,45 @@ export class OrderRepository extends BaseRepository<Order> implements IOrderRepo
       qb.andWhere('order.tableId = :tableId', { tableId });
     }
 
+    if (search) {
+      const trimmedSearch = search.trim();
+      const searchNum = parseInt(trimmedSearch, 10);
+      if (!isNaN(searchNum) && String(searchNum) === trimmedSearch) {
+        qb.andWhere('(order.trackingCode ILIKE :search OR order.id = :searchId)', {
+          search: `%${trimmedSearch}%`,
+          searchId: searchNum,
+        });
+      } else {
+        qb.andWhere('order.trackingCode ILIKE :search', { search: `%${trimmedSearch}%` });
+      }
+    }
+
+    if (dateFilter && dateFilter !== 'all') {
+      const now = new Date();
+      let startDate: Date | null = null;
+
+      if (dateFilter === 'today') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      } else if (dateFilter === 'week') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+        startDate.setHours(0, 0, 0, 0);
+      } else if (dateFilter === 'month') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+        startDate.setHours(0, 0, 0, 0);
+      }
+
+      if (startDate) {
+        qb.andWhere('order.createdAt >= :startDate', { startDate });
+      }
+    }
+
     // Most recent orders first
     qb.orderBy('order.createdAt', 'DESC');
     qb.skip((page - 1) * limit).take(limit);
 
     return qb.getManyAndCount();
   }
+
 
   async findActiveOrdersByTableId(tableId: string): Promise<Order[]> {
     return this.orderRepo.find({

@@ -41,4 +41,23 @@ export class ItemRepository extends BaseRepository<Item> implements IItemReposit
 
     return qb.getManyAndCount();
   }
+
+  async countGroupedByCategory(): Promise<Map<number, number>> {
+    const rawCounts = await this.itemRepo
+      .createQueryBuilder('item')
+      .select('item.categoryId', 'categoryId')
+      .addSelect('COUNT(item.id)', 'count')
+      .where('item.deletedAt IS NULL')
+      .groupBy('item.categoryId')
+      .getRawMany();
+
+    const countMap = new Map<number, number>();
+    for (const row of rawCounts) {
+      if (row.categoryId !== null && row.categoryId !== undefined) {
+        countMap.set(Number(row.categoryId), Number(row.count));
+      }
+    }
+    return countMap;
+  }
 }
+

@@ -13,4 +13,6 @@ export interface ItemQueryOptions {
 export interface IItemRepository extends IBaseRepository<Item> {
   findByName(name: string): Promise<Item | null>;
   findPaginated(options: ItemQueryOptions): Promise<[Item[], number]>;
+  countGroupedByCategory(): Promise<Map<number, number>>;
 }
+
