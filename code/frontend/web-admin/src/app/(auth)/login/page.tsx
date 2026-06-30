@@ -1,7 +1,7 @@
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
 import { redirect } from 'next/navigation';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,43 +33,51 @@ export default async function LoginPage(props: {
   const hasError = Boolean(searchParams.error);
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
+    <main className="flex min-h-screen items-center justify-center bg-background p-6">
+      <Card className="w-full max-w-lg [--card-spacing:32px]">
         <CardHeader>
-          <CardTitle className="text-center text-xl">Đăng nhập Web Admin</CardTitle>
+          <CardTitle className="text-center text-2xl md:text-3xl font-bold tracking-tight">
+            Đăng nhập quản trị
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={login} className="flex flex-col gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+          <form action={login} className="flex flex-col gap-3">
+            <div className="grid gap-1">
+              <Label htmlFor="email" className="text-sm md:text-base font-semibold">
+                Email
+              </Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
                 placeholder="owner@restaurant.com"
                 required
+                className="h-12 px-4 text-base md:text-base"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">Mật khẩu</Label>
+            <div className="grid gap-1 mt-3">
+              <Label htmlFor="password" className="text-sm md:text-base font-semibold">
+                Mật khẩu
+              </Label>
               <Input
                 id="password"
                 name="password"
                 type="password"
+                placeholder="********"
                 required
+                className="h-12 px-4 text-base md:text-base"
               />
             </div>
-            {hasError && (
-              <p className="text-sm text-destructive" role="alert">
-                Email hoặc mật khẩu không đúng
-              </p>
-            )}
-            <Button type="submit" size="lg" className="w-full">
+            <div className="min-h-3">
+              {hasError && (
+                <p className="text-sm md:text-base text-destructive font-medium" role="alert">
+                  Email hoặc mật khẩu không đúng
+                </p>
+              )}
+            </div>
+            <Button type="submit" size="lg" className="w-full h-12 text-base font-semibold">
               Đăng nhập
             </Button>
-
-            <p className="text-center text-xs text-muted-foreground">quên thì bảo chủ quán</p>
-
           </form>
         </CardContent>
       </Card>

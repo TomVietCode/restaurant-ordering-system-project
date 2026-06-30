@@ -1,84 +1,205 @@
-// file mock dữ liệu tạm thời
 import { apiWithToken } from '@/lib/api';
-import type { Order, OrderStatus } from '@/types/order';
+import type { Order, OrderItem, OrderStatus } from '@/types/order';
 
-// ─── đổi thành false khi backend có /orders ───
-const MOCK_MODE = true;
+// ──────────────────────────────────────────────────────────────
+// Backend response types
+// ──────────────────────────────────────────────────────────────
 
-const MOCK_ORDERS: Order[] = [
-  {
-    id: 1, tableId: 'uuid-05', tableName: 'Bàn 05', status: 'NEW',
-    createdAt: new Date(Date.now() - 2 * 60_000).toISOString(),
-    items: [
-      { name: 'Cà phê sữa đá', quantity: 2, note: 'Ít đường, không đá' },
-      { name: 'Trà đào cam sả', quantity: 1 },
-      { name: 'Bánh croissant', quantity: 1 },
-       { name: '424234', quantity: 1 },
-      { name: '4234234234234t', quantity: 1 },
-       { name: '4234234tb 2', quantity: 1 },
-      { name: '42342b4234setfwe', quantity: 1 },
+/** Shape of a single order item as returned by the backend (TypeORM entity). */
+interface BackendOrderItem {
+  orderId: number;
+  itemId: number;
+  quantity: number;
+  /** Price snapshot at order time — mapped to `price` / `unitPrice` on frontend. */
+  priceAtOrder: number;
+  note: string | null;
+  /** Joined Item entity — contains the menu item's name. */
+  item: { id: number; name: string; price: number };
+}
 
-    ],
-    totalAmount: 115_000,
-  },
-   {
-    id: 7, tableId: 'uuid-12', tableName: 'Bàn 12', status: 'NEW',
-    createdAt: new Date(Date.now() - 2 * 60_000).toISOString(),
-    items: [
-      { name: 'Cà phê sữa đá', quantity: 2, note: 'Ít đường, không đá' },
-      { name: 'Trà đào cam sả', quantity: 1 },
-      { name: 'Bánh croissant', quantity: 1 },
-       { name: 'Trà đào cam sả', quantity: 1 },
-      { name: 'Bánh croissant', quantity: 1 },
-       { name: 'Trà đào cam sả', quantity: 1 },
-      { name: 'Bánh croissant', quantity: 1 },
-    ],
-    totalAmount: 115_000,
-  },
-  {
-    id: 3, tableId: 'uuid-03', tableName: 'Bàn 03', status: 'SERVED',
-    createdAt: new Date(Date.now() - 15 * 60_000).toISOString(),
-    items: [
-      { name: 'Sinh tố xoài', quantity: 2 },
-      { name: 'Bánh mì chảo', quantity: 1, note: 'Thêm pate' },
-    ],
-    totalAmount: 117_000,
-  },
-  {
-    id: 4, tableId: 'uuid-03', tableName: 'Bàn 03', status: 'SERVED',
-    createdAt: new Date(Date.now() - 5 * 60_000).toISOString(),
-    items: [{ name: 'Trà chanh', quantity: 3 }],
-    totalAmount: 75_000,
-  },
-];
+/** Shape of a single order as returned by the backend (TypeORM entity). */
+interface BackendOrder {
+  id: number;
+  tableId: string;
+  trackingCode: string;
+  status: OrderStatus;
+  totalAmount: number;
+  paymentMethod: string | null;
+  cancelReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  paidAt: string | null;
+  /** Joined Table entity — contains the table's name. */
+  table: { id: string; name: string };
+  orderItems: BackendOrderItem[];
+}
 
-interface ApiRes<T> { data: T }
+/**
+ * Backend envelope for paginated responses.
+ *
+ * Example:
+ * ```json
+ * { "success": true, "data": { "items": [...], "page": 1, "limit": 100, "total": 5, "totalPages": 1 } }
+ * ```
+ */
+interface PaginatedRes {
+  success: boolean;
+  data: {
+    items: BackendOrder[];
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+/** Backend envelope for non-paginated success responses. */
+interface ApiRes<T> { success: boolean; data: T }
+
+// ──────────────────────────────────────────────────────────────
+// Mapper: backend → frontend
+// ──────────────────────────────────────────────────────────────
+
+/**
+ * Converts a single backend order entity into the frontend `Order` shape.
+ *
+ * Key differences:
+ * ─ Backend uses `orderItems[].item.name` + `orderItems[].priceAtOrder`
+ * ─ Frontend uses `items[].name` + `items[].price` + `items[].unitPrice`
+ * ─ Backend has `table.name`; frontend uses `tableName` (flat string)
+ */
+function mapOrder(raw: BackendOrder): Order {
+  const items: OrderItem[] = (raw.orderItems ?? []).map((oi) => ({
+    name: oi.item?.name ?? 'Unknown',
+    quantity: oi.quantity,
+    price: Number(oi.priceAtOrder),
+    unitPrice: Number(oi.priceAtOrder),
+    note: oi.note ?? undefined,
+  }));
+
+  return {
+    id: raw.id,
+    tableId: raw.tableId,
+    tableName: raw.table?.name ?? `Table ${raw.tableId.slice(0, 6)}`,
+    status: raw.status,
+    items,
+    totalAmount: Number(raw.totalAmount),
+    createdAt: raw.createdAt,
+    trackingCode: raw.trackingCode,
+  };
+}
+
+// ──────────────────────────────────────────────────────────────
+// Service
+// ──────────────────────────────────────────────────────────────
 
 export const orderService = {
+  /**
+   * Fetch orders for the kitchen board (only NEW and PREPARING).
+   *
+   * Uses high `limit` to grab all active orders in one request.
+   * For a small restaurant this is more efficient than paginating.
+   */
   async getKitchenOrders(token?: string | null): Promise<Order[]> {
-    if (MOCK_MODE) return MOCK_ORDERS.filter(o => o.status === 'NEW' || o.status === 'PREPARING');
-    const res = await apiWithToken(token).get<ApiRes<Order[]>>('/orders?status=NEW,PREPARING');
-    return res.data;
+    const res = await apiWithToken(token).get<PaginatedRes>(
+      '/orders?limit=100',
+    );
+    return res.data.items
+      .filter((o) => o.status === 'PREPARING')
+      .map(mapOrder);
   },
 
+  /**
+   * Fetch orders for the cashier board (NEW, PREPARING, SERVED).
+   *
+   * Fetches all orders with a high limit, then filters out
+   * terminal statuses (PAID, CANCEL) client-side.
+   *
+   * Why not pass `status=NEW,PREPARING,SERVED`?
+   * → Backend `QueryOrdersDto` only accepts a single `OrderStatus` enum value.
+   */
   async getCashierOrders(token?: string | null): Promise<Order[]> {
-    if (MOCK_MODE) return MOCK_ORDERS;
-    const res = await apiWithToken(token).get<ApiRes<Order[]>>('/orders?status=NEW,PREPARING,SERVED');
-    return res.data;
+    const res = await apiWithToken(token).get<PaginatedRes>(
+      '/orders?limit=100',
+    );
+    return res.data.items
+      .filter((o) => ['NEW', 'PREPARING', 'SERVED'].includes(o.status))
+      .map(mapOrder);
   },
 
-  async updateStatus(token: string | null | undefined, id: number, status: OrderStatus): Promise<void> {
-    if (MOCK_MODE) return;
-    await apiWithToken(token).patch(`/orders/${id}`, { status });
+  /**
+   * Fetch a single order by ID.
+   * Used when a WebSocket `order:new` event fires — we need the full order data.
+   */
+  async getOrderById(token: string | null | undefined, id: number): Promise<Order> {
+    const res = await apiWithToken(token).get<ApiRes<BackendOrder>>(
+      `/orders/${id}`,
+    );
+    return mapOrder(res.data);
   },
 
-  async cancelOrder(token: string | null | undefined, id: number): Promise<void> {
-    if (MOCK_MODE) return;
-    await apiWithToken(token).patch(`/orders/${id}`, { status: 'CANCEL' });
+  /**
+   * Update an order's status (state machine transition).
+   *
+   * Calls: `PATCH /orders/:id/status` with `{ status }`.
+   * The backend validates the transition is allowed (e.g. NEW → PREPARING).
+   */
+  async updateStatus(
+    token: string | null | undefined,
+    id: number,
+    status: OrderStatus,
+  ): Promise<void> {
+    await apiWithToken(token).patch(`/orders/${id}/status`, { status });
   },
 
-  async payTable(token: string | null | undefined, tableId: string, paymentMethod: 'CASH' | 'TRANSFER'): Promise<void> {
-    if (MOCK_MODE) return;
-    await apiWithToken(token).post('/orders/pay', { tableId, paymentMethod });
+  /**
+   * Cancel an order by setting its status to CANCEL.
+   *
+   * Same endpoint as `updateStatus`, just with status = 'CANCEL'.
+   */
+  async cancelOrder(
+    token: string | null | undefined,
+    id: number,
+    cancelReason?: string,
+  ): Promise<void> {
+    await apiWithToken(token).patch(`/orders/${id}/status`, {
+      status: 'CANCEL',
+      cancelReason,
+    });
+  },
+
+  /**
+   * Pay ALL active orders for a table at once (bulk checkout).
+   *
+   * Calls: `POST /payments/checkout-table/:tableId` with `{ paymentMethod }`.
+   */
+  async payTable(
+    token: string | null | undefined,
+    tableId: string,
+    paymentMethod: 'CASH' | 'TRANSFER',
+  ): Promise<void> {
+    await apiWithToken(token).post(
+      `/payments/checkout-table/${tableId}`,
+      { paymentMethod },
+    );
+  },
+
+  /**
+   * Pay specific orders (split checkout).
+   *
+   * Calls: `POST /payments/checkout-orders` with `{ tableId, orderIds, paymentMethod }`.
+   * Used for single-order payment in the orders tab and multi-select in the tables tab.
+   */
+  async payOrders(
+    token: string | null | undefined,
+    tableId: string,
+    orderIds: number[],
+    paymentMethod: 'CASH' | 'TRANSFER',
+  ): Promise<void> {
+    await apiWithToken(token).post('/payments/checkout-orders', {
+      tableId,
+      orderIds,
+      paymentMethod,
+    });
   },
 };
