@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, ClipboardList, UtensilsCrossed,
-  QrCode, BarChart3, Users,
+  QrCode, BarChart3, Users,List,
 } from 'lucide-react';
 import {
   Sidebar, SidebarContent, SidebarFooter,
@@ -16,6 +16,7 @@ import { ROUTES } from '@/lib/constants';
 const NAV = [
   { label: 'Tổng quan',        href: ROUTES.dashboard, icon: LayoutDashboard },
   { label: 'Bảng đơn',         href: ROUTES.orders,    icon: ClipboardList   },
+    { label: 'Bảng danh mục',         href: ROUTES.list,    icon: List   },
   { label: 'Quản lý menu',      href: ROUTES.menu,      icon: UtensilsCrossed },
   { label: 'Bàn & mã QR',       href: ROUTES.tables,    icon: QrCode          },
   { label: 'Báo cáo doanh thu', href: ROUTES.revenue,   icon: BarChart3       },

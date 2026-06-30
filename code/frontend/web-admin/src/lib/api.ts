@@ -44,7 +44,15 @@ async function request<T>(path: string, options: Options = {}): Promise<T> {
   });
 
   if (!res.ok) {
-    throw new Error(`API ${res.status} ${res.statusText}: ${await res.text()}`);
+    let message = res.statusText;
+    try {
+      const data = (await res.json()) as { message?: string | string[] };
+      if (Array.isArray(data.message)) message = data.message.join(', ');
+      else if (data.message) message = data.message;
+    } catch {
+      // body không phải JSON hợp lệ — giữ statusText
+    }
+    throw new Error(message);
   }
   // 204 No Content → không có body để parse.
   return res.status === 204 ? (undefined as T) : (res.json() as Promise<T>);

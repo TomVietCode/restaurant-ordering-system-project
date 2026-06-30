@@ -15,13 +15,13 @@ import {
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'Tổng quan',
-  '/orders':    'Bảng đơn',
-  '/menu':      'Quản lý menu',
-  '/tables':    'Bàn & mã QR',
-  '/revenue':   'Báo cáo doanh thu',
-  '/staffs':    'Nhân viên',
-  '/kitchen':   'Màn hình Bếp',
-  '/cashier':   'Thu ngân',
+  '/orders': 'Bảng đơn',
+  '/menu': 'Quản lý menu',
+  '/tables': 'Bàn & mã QR',
+  '/revenue': 'Báo cáo doanh thu',
+  '/staffs': 'Nhân viên',
+  '/kitchen': 'Màn hình Bếp',
+  '/cashier': 'Thu ngân',
 };
 
 const roleLabel: Record<string, string> = {
@@ -50,7 +50,7 @@ export function AppHeader({
   const initial = user?.name?.charAt(0)?.toUpperCase() ?? 'A';
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b bg-primary-foreground px-4">
+    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b bg-primary-foreground px-4">
       <div className="flex items-center gap-2">
         {showTrigger && <SidebarTrigger />}
         {backHref && (
