@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
-import { User, LogOut, ChevronLeft } from 'lucide-react';
+import { User, LogOut, ChevronLeft, Key } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -120,7 +120,11 @@ export function AppHeader({
           <DropdownMenuSeparator />
           <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => alert('Chức năng xem hồ sơ đang được phát triển')}>
             <User className="size-4" />
-            функция размещения в разработке
+            Thông tin tài khoản
+          </DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => alert('Chức năng đổi mật khẩu đang được phát triển')}>
+            <Key className="size-4" />
+            Đổi mật khẩu
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
