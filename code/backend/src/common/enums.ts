@@ -21,3 +21,13 @@ export enum TableStatus {
   CLOSED = 'CLOSED',
   OCCUPIED = 'OCCUPIED',
 }
+
+export enum PaymentMethod {
+  VNPAY = 'VNPAY',
+}
+
+export enum PaymentStatus {
+  PENDING = 'PENDING',
+  SUCCESS = 'SUCCESS',
+  FAILED = 'FAILED',
+}

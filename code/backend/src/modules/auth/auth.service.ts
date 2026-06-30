@@ -236,6 +236,7 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
     await this.usersService.updatePassword(user, newPassword);
+    await this.logout(user.id);
     await this.resetPasswordTokenRepository.delete(token.id);
   }
 }

@@ -8,7 +8,7 @@ export class ResetPasswordToken {
   @Column({ type: 'varchar', unique: true })
   email: string;
 
-  @Column({ name: 'otp', type: 'varchar', length: 6 })
+  @Column({ name: 'otp', type: 'varchar', length: 6, unique: true })
   otp: string;
 
   @Column({ name: 'expired_at', type: 'timestamp' })
