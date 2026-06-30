@@ -6,7 +6,7 @@ import { UsersService } from './users.service.js';
 import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto, ToggleActivateDto } from './dtos/user-dtos.js';
 import { ApiResponseDto } from '@common/dtos/api-response.dto';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
-import { changePasswordDto } from './dtos/reset-password.dtos.js';
+import { OldPasswordDto, NewPasswordAndOtpDto, EmailDto } from './dtos/reset-password.dtos.js';
 import { User } from './entities/user.entity.js';
 import { JwtAuthGuard } from '@common/guards/jwt-auth.guard.js';
 
@@ -85,13 +85,35 @@ export class UserController {
     return ApiResponseDto.success(null, 'Deleted user successfully');
   }
 
-  
-  @Get('password/reset')
-  // @Public()
+  @Post('password/verify-password')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'User want to change password' })
-  async createPasswordOtp(@CurrentUser() user: User): Promise<ApiResponseDto<string>> {
-    await this.userService.createPasswordOtp(user);
-    return ApiResponseDto.success("gửi rồi ó");
+  @ApiOperation({ summary: 'Verify old password of user before update password' })
+  @ApiResponse({ status: 200, description: 'Old password is correct' })
+  @ApiResponse({ status: 400, description: 'Old password is incorrect' })
+  async changePasswordRequest(@CurrentUser('id') currentId: number, @Body() dto: OldPasswordDto): Promise<ApiResponseDto<null>> {
+    await this.userService.changePasswordRequest(currentId, dto);
+    return ApiResponseDto.success(null,"Old password is correct. Otp was sent to your email");
   }
+  
+  @Post('password/verify-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify otp before update password' })
+  @ApiResponse({ status: 200, description: 'otp is correct' })
+  @ApiResponse({ status: 400, description: 'otp does not exist' })
+  async changePasswordVerify(@Body() dto: NewPasswordAndOtpDto): Promise<ApiResponseDto<null>> {
+    await this.userService.changePasswordVerify(dto);
+    return ApiResponseDto.success(null,"OTP verified successfully. Your password has been updated");
+  }
+
+  @Post('password/forgot')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password' })
+  @ApiResponse({ status: 200, description: 'otp was sent to email' })
+  @ApiResponse({ status: 400, description: 'email does not exist' })
+  async forgetPassword(@Body() dto: EmailDto): Promise<ApiResponseDto<null>> {
+    await this.userService.forgetPassword(dto);
+    return ApiResponseDto.success(null,"OTP verified successfully. Your password has been updated");
+  }
+
+  
 }

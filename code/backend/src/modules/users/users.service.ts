@@ -15,10 +15,10 @@ import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto } from './d
 // import { AuthService } from '@modules/auth/auth.service.js';
 import * as bcrypt from 'bcryptjs';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
-import { changePasswordDto } from './dtos/reset-password.dtos.js';
-import { randomInt } from 'crypto';
+import { EmailDto, NewPasswordAndOtpDto, OldPasswordDto } from './dtos/reset-password.dtos.js';
 import { ResetPasswordToken } from './entities/reset-password-token.entity.js';
 import { MailService } from '@modules/mail/mail.service.js';
+import { generateOtp } from '@common/helpers/generate.js';
 
 /**
  * Dependency injection token for UserRepository.
@@ -35,7 +35,7 @@ export class UsersService {
     private readonly userRepository: IUserRepository,
     @Inject(RESET_PASSWORD_TOKEN_REPOSITORY_TOKEN)
     private readonly resetPasswordTokenRepository: IResetPasswordTokenRepository,
-    private readonly mailService: MailService, 
+    private readonly mailService: MailService,
     // @Inject(forwardRef(() => AuthService))
     // private readonly authService: AuthService,
   ) {}
@@ -113,9 +113,9 @@ export class UsersService {
       }
       // await this.authService.logout(user.id);
     }
-    user.isActive = isActive
+    user.isActive = isActive;
     await this.userRepository.save(user);
-  } 
+  }
 
   async remove(id: number): Promise<void> {
     const user = await this.findById(id);
@@ -125,26 +125,66 @@ export class UsersService {
     await this.userRepository.delete(id);
   }
 
-  async createPasswordOtp(current: User): Promise<void> {
-    const user = await this.findById(current.id);
-    const otp = this.generateOtp();
-  
-    const otpHash = await bcrypt.hash(otp, 10);
-  
+
+  /////// CHANGE PASS WORD
+  async createAndSendOtp(email: string): Promise<void> {
+    await this.resetPasswordTokenRepository.deleteByEmail(email);
+
+    const user = await this.userRepository.findByEmail(email);
+    if(!user) {
+      throw new NotFoundException("Email had not link to any user");
+    }
+    const otp = generateOtp();
+    
     const token = new ResetPasswordToken();
-    token.userId = current.id;
-    token.otpHash = otpHash;
-    token.expiredAt = new Date(Date.now() + 60 * 1000); //Hết hạn sau 1 phút
+    token.email = email;
+    token.otp = otp;
+    token.expiredAt = new Date(Date.now() + 5 * 60 * 1000); // hết hạn sau 5 phút
 
     await this.resetPasswordTokenRepository.save(token);
-  
-    await this.mailService.sendOtp(user.email, otp);
-}
+    await this.mailService.sendOtp(email, otp);
+  }
 
-  private generateOtp(length = 6): string {
-    const min = 10 ** (length - 1);
-    const max = 10 ** length;
-  
-    return randomInt(min, max).toString();
+  async changePasswordRequest(currentId: number, dto: OldPasswordDto): Promise<void> {
+    const user = await this.findById(currentId);
+    const isValid = await bcrypt.compare(dto.oldPassword, user.passwordHash);
+    if (!isValid) {
+      throw new BadRequestException('Old password invalid');
+    }
+
+    await this.createAndSendOtp(user.email);
+  }
+
+  async forgetPassword(dto: EmailDto): Promise<void> {
+    const { email } = dto;
+    await this.createAndSendOtp(email);
+  }
+
+  async changePasswordVerify(dto: NewPasswordAndOtpDto): Promise<void> {
+    const { newPassword, otp } = dto;
+
+    const token = await this.resetPasswordTokenRepository.findByOtp(otp);
+    if (!token) {
+      throw new BadRequestException('OTP not corret');
+    }
+    if (token.expiredAt < new Date()) {
+      throw new BadRequestException('OTP has expired');
+    }
+    const user = await this.userRepository.findByEmail(token.email);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    await this.updatePassword(user, newPassword);
+    await this.resetPasswordTokenRepository.delete(token.id);
+  }
+
+  async updatePassword(user: User, newPassword: string): Promise<void> {
+    const isSame = await bcrypt.compare(newPassword, user.passwordHash);
+    if (isSame) {
+      throw new BadRequestException('New password and old password can not be the same');
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.userRepository.save(user);
   }
 }

@@ -1,9 +1,9 @@
-import { BaseRepository } from "@common/repositories/base.repository.js";
-import { ResetPasswordToken } from "../entities/reset-password-token.entity.js";
-import { Repository } from "typeorm";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Injectable } from "@nestjs/common";
-import { IResetPasswordTokenRepository } from "./reset-password-token.repository.interface.js";
+import { BaseRepository } from '@common/repositories/base.repository.js';
+import { ResetPasswordToken } from '../entities/reset-password-token.entity.js';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Injectable } from '@nestjs/common';
+import { IResetPasswordTokenRepository } from './reset-password-token.repository.interface';
 
 @Injectable()
 export class ResetPasswordTokenRepository extends BaseRepository<ResetPasswordToken> implements IResetPasswordTokenRepository {
@@ -15,5 +15,11 @@ export class ResetPasswordTokenRepository extends BaseRepository<ResetPasswordTo
     super(resetPasswordTokenRepository);
   }
 
+  async findByOtp(otp: string): Promise<ResetPasswordToken | null> {
+    return this.repository.findOne({ where: { otp } });
+  }
 
+  async deleteByEmail(email: string): Promise<void>{
+    await this.repository.delete({ email });
+  }
 }
