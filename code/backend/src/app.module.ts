@@ -15,11 +15,8 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { ItemsModule } from '@modules/items/item.module.js';
 import { RealtimeModule } from '@modules/realtime/realtime.module.js';
 import { OrdersModule } from '@modules/orders/orders.module.js';
-<<<<<<< HEAD
 import { MailModule } from '@modules/mail/mail.module.js';
-=======
 import { ReportsModule } from '@modules/reports/reports.module.js';
->>>>>>> b03949f8f721eb2c510a31602f95a2caf378e0b6
 
 @Module({
   imports: [
@@ -52,11 +49,8 @@ import { ReportsModule } from '@modules/reports/reports.module.js';
     ItemsModule,
     RealtimeModule,
     OrdersModule,
-<<<<<<< HEAD
     MailModule,
-=======
     ReportsModule
->>>>>>> b03949f8f721eb2c510a31602f95a2caf378e0b6
   ],
   controllers: [AppController],
   providers: [
