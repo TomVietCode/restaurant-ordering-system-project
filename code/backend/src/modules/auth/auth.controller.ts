@@ -1,10 +1,12 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { TokenResponseDto } from './dto/token-response.dto.js';
 import { OldPasswordDto, NewPasswordAndOtpDto, EmailDto } from './dto/reset-password.dtos.js';
+import { UpdateProfileDto } from './dto/update-profile.dto.js';
+import { UserResponseDto } from '@modules/users/dtos/user-dtos.js';
 import { Public, CurrentUser, Cookies } from '@common/decorators/index.js';
 import { ApiResponseDto } from '@common/dtos/api-response.dto.js';
 import { AuthGuard } from '@nestjs/passport';
@@ -136,6 +138,34 @@ export class AuthController {
     data: Record<string, unknown>;
   }> {
     return { success: true, data: user };
+  }
+
+  @Patch('profile')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update current authenticated user profile (fullName and phone only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile updated successfully',
+    type: UserResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Missing or invalid access token',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Phone number already exists',
+  })
+  async updateProfile(
+    @CurrentUser('id') currentId: number,
+    @Body() dto: UpdateProfileDto,
+  ): Promise<ApiResponseDto<UserResponseDto>> {
+    const updatedUser = await this.authService.updateProfile(currentId, dto);
+    return ApiResponseDto.success(updatedUser, 'Profile updated successfully');
   }
 
   @Post('password/verify-password')

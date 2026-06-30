@@ -12,6 +12,8 @@ import { IJwtPayload } from './interfaces/jwt-payload.interface.js';
 import { ITokens } from './interfaces/tokens.interface.js';
 import { LoginDto } from './dto/login.dto.js';
 import { OldPasswordDto, NewPasswordAndOtpDto, EmailDto } from './dto/reset-password.dtos.js';
+import { UpdateProfileDto } from './dto/update-profile.dto.js';
+import { UserResponseDto } from '@modules/users/dtos/user-dtos.js';
 import { User } from '@modules/users/entities/user.entity.js';
 import { ResetPasswordToken } from './entities/reset-password-token.entity.js';
 import { InjectionToken } from '@nestjs/common';
@@ -238,5 +240,9 @@ export class AuthService {
     await this.usersService.updatePassword(user, newPassword);
     await this.logout(user.id);
     await this.resetPasswordTokenRepository.delete(token.id);
+  }
+
+  async updateProfile(userId: number, dto: UpdateProfileDto): Promise<UserResponseDto> {
+    return this.usersService.update(userId, dto);
   }
 }

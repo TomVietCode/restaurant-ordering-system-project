@@ -75,6 +75,13 @@ export class UsersService {
       }
     }
 
+    if (dto.phone && dto.phone !== user.phone) {
+      const existing = await this.userRepository.findByPhone(dto.phone);
+      if (existing) {
+        throw new ConflictException('Phone number already exists');
+      }
+    }
+
     const { password, ...rest } = dto;
     Object.assign(user, rest);
 

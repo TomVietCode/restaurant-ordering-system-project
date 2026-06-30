@@ -24,6 +24,7 @@ const pageTitles: Record<string, string> = {
   '/kitchen':   'Màn hình Bếp',
   '/cashier':   'Thu ngân',
   '/select-role': 'Chọn phân hệ',
+  '/profile':   'Thông tin tài khoản',
 };
 
 const roleLabel: Record<string, string> = {
@@ -118,7 +119,7 @@ export function AppHeader({
             )}
           </div>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => alert('Chức năng xem hồ sơ đang được phát triển')}>
+          <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/profile')}>
             <User className="size-4" />
             Thông tin tài khoản
           </DropdownMenuItem>
