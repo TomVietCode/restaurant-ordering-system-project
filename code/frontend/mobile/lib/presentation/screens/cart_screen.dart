@@ -8,12 +8,8 @@ import '../blocs/cart/cart_event.dart';
 import '../blocs/cart/cart_state.dart';
 import '../blocs/order/order_bloc.dart';
 import '../blocs/order/order_event.dart';
-<<<<<<< Updated upstream
-import '../../../core/utils/table_mapper.dart';
-=======
 import '../blocs/order/order_state.dart';
 import '../blocs/session/session_cubit.dart';
->>>>>>> Stashed changes
 
 class CartScreen extends StatelessWidget {
   final VoidCallback onOrderSuccess;
@@ -116,82 +112,9 @@ class CartScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-<<<<<<< Updated upstream
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -5))],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildSummaryRow('Tạm tính ($totalItems món)', '${subtotal.toInt()}đ'),
-                    const SizedBox(height: 12),
-                    _buildSummaryRow('VAT (8%)', '${vat.toInt()}đ'),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Divider(thickness: 1, color: Color(0xFFEEEEEE)),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Tổng cộng', style: TextStyle(fontSize: 16, color: Colors.grey)),
-                            const SizedBox(height: 4),
-                            Text('Đặt cho $displayTable', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF9A442D))),
-                          ],
-                        ),
-                        Text('${total.toInt()}đ', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF9A442D))),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4A3428),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        onPressed: () {
-                          final cartItems = context.read<CartBloc>().state.items;
-                          if (cartItems.isEmpty) return;
-                          
-                          context.read<OrderBloc>().add(PlaceOrder(tableId ?? '0', cartItems));
-                          context.read<CartBloc>().add(ClearCart());
-                          
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Xác nhận đặt món thành công!'), backgroundColor: Colors.green),
-                          );
-                          onOrderSuccess();
-                        },
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('Xác nhận đặt món', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                            SizedBox(width: 8),
-                            Icon(Icons.arrow_forward),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-=======
                       ],
                     ),
                   ),
->>>>>>> Stashed changes
                 ),
                 _CheckoutPanel(
                   tableId: tableId,

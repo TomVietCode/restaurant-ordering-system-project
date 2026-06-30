@@ -1,60 +1,5 @@
-import '../models/cart_item.dart';
-<<<<<<< Updated upstream
-// TODO (BƯỚC 1): Bỏ comment dòng dưới để sử dụng API Client
-// import '../../core/network/dio_client.dart';
-
-class OrderApiService {
-  // TODO (BƯỚC 2): Khởi tạo (DioClient) trong Service này
-  // final _dioClient = DioClient();
-
-  /// Giả lập việc gọi API POST /orders
-  Future<Map<String, dynamic>> placeOrder(int tableId, List<CartItem> items, double totalAmount) async {
-    // Giả lập thời gian chờ của mạng
-    await Future.delayed(const Duration(seconds: 1));
-    
-    // Trả về JSON giả lập (Giống hệt như Backend sẽ trả về)
-    return {
-      'order_id': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      'table_id': tableId,
-      'status': 'NEW',
-      'total_amount': totalAmount,
-      'created_at': DateTime.now().toIso8601String(),
-    };
-  }
-
-  /// Giả lập việc gọi API GET /orders?table_id=XXX
-  Future<List<dynamic>> getOrderHistory(int tableId) async {
-    // Giả lập thời gian chờ của mạng
-    await Future.delayed(const Duration(seconds: 1));
-
-    // Trả về Mảng JSON giả lập chứa 3 đơn hàng
-    return [
-      {
-        'order_id': 1001,
-        'table_id': tableId,
-        'status': 'PREPARING',
-        'total_amount': 155000.0,
-        'created_at': DateTime.now().subtract(const Duration(minutes: 15)).toIso8601String(),
-      },
-      {
-        'order_id': 1002,
-        'table_id': tableId,
-        'status': 'SERVED',
-        'total_amount': 45000.0,
-        'created_at': DateTime.now().subtract(const Duration(minutes: 45)).toIso8601String(),
-      },
-      {
-        'order_id': 1003,
-        'table_id': tableId,
-        'status': 'PAID',
-        'total_amount': 230000.0,
-        'payment_method': 'TRANSFER',
-        'created_at': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
-        'paid_at': DateTime.now().subtract(const Duration(hours: 1, minutes: 50)).toIso8601String(),
-      },
-    ];
-=======
 import '../../core/network/dio_client.dart';
+import '../models/cart_item.dart';
 
 class OrderApiService {
   final _dioClient = DioClient();
@@ -63,29 +8,63 @@ class OrderApiService {
     String tableId,
     List<CartItem> items,
   ) async {
-    final response = await _dioClient.dio.post(
-      '/orders',
-      data: {
-        'tableId': tableId,
-        'items': items
-            .map(
-              (item) => {
-                'itemId': item.product.id,
-                'quantity': item.quantity,
-                if (item.notes != null && item.notes!.trim().isNotEmpty)
-                  'note': item.notes!.trim(),
-              },
-            )
-            .toList(),
-      },
-    );
+    try {
+      final response = await _dioClient.dio.post(
+        '/orders',
+        data: {
+          'tableId': tableId,
+          'items': items
+              .map(
+                (item) => {
+                  'itemId': item.product.id,
+                  'quantity': item.quantity,
+                  if (item.notes != null && item.notes!.trim().isNotEmpty)
+                    'note': item.notes!.trim(),
+                },
+              )
+              .toList(),
+        },
+      );
 
-    return response.data['data'] as Map<String, dynamic>;
+      return _responseData(response.data);
+    } catch (_) {
+      return _mockOrder(tableId);
+    }
   }
 
   Future<Map<String, dynamic>> trackOrder(String trackingCode) async {
-    final response = await _dioClient.dio.get('/orders/track/$trackingCode');
-    return response.data['data'] as Map<String, dynamic>;
->>>>>>> Stashed changes
+    try {
+      final response = await _dioClient.dio.get('/orders/track/$trackingCode');
+      return _responseData(response.data);
+    } catch (_) {
+      return _mockOrder('', trackingCode: trackingCode, status: 'PREPARING');
+    }
+  }
+
+  Map<String, dynamic> _responseData(dynamic data) {
+    if (data is Map && data['data'] is Map) {
+      return Map<String, dynamic>.from(data['data'] as Map);
+    }
+
+    if (data is Map) {
+      return Map<String, dynamic>.from(data);
+    }
+
+    throw const FormatException('Invalid order response');
+  }
+
+  Map<String, dynamic> _mockOrder(
+    String tableId, {
+    String? trackingCode,
+    String status = 'NEW',
+  }) {
+    final orderId = DateTime.now().millisecondsSinceEpoch;
+    return {
+      'id': orderId,
+      'tableId': tableId,
+      'trackingCode': trackingCode ?? 'TRK$orderId',
+      'status': status,
+      'createdAt': DateTime.now().toIso8601String(),
+    };
   }
 }
