@@ -26,8 +26,14 @@ export class CategoriesService {
   }
 
   async findAll(): Promise<Category[]> {
-    return this.categoryRepository.findAll();
+    const categories = await this.categoryRepository.findAll();
+    const countMap = await this.itemRepository.countGroupedByCategory();
+    for (const category of categories) {
+      category.totalItem = countMap.get(category.id) ?? 0;
+    }
+    return categories;
   }
+
 
   async findById(id: number): Promise<Category> {
     const category = await this.categoryRepository.findById(id);
