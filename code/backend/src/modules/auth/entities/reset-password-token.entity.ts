@@ -1,6 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
-import { User } from './user.entity.js';
-import { IsEmail } from 'class-validator';
+import { Column, Entity, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
 
 @Entity('reset_password_tokens')
 export class ResetPasswordToken {

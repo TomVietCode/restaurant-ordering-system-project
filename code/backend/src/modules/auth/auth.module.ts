@@ -9,14 +9,19 @@ import { AuthService, REFRESH_TOKEN_REPOSITORY_TOKEN } from './auth.service.js';
 import { AuthController } from './auth.controller.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { ConfigModule } from '@nestjs/config/dist/index.js';
+import { ResetPasswordToken } from './entities/reset-password-token.entity.js';
+import { RESET_PASSWORD_TOKEN_REPOSITORY_TOKEN } from '@common/constants.js';
+import { ResetPasswordTokenRepository } from './repositories/reset-password-token.repository.js';
+import { MailModule } from '@modules/mail/mail.module.js';
 
 @Module({
   imports: [
     ConfigModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({}),
-    TypeOrmModule.forFeature([RefreshToken]),
+    TypeOrmModule.forFeature([RefreshToken, ResetPasswordToken]),
     forwardRef(() => UsersModule),
+    MailModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -26,6 +31,10 @@ import { ConfigModule } from '@nestjs/config/dist/index.js';
     {
       provide: REFRESH_TOKEN_REPOSITORY_TOKEN,
       useClass: RefreshTokenRepository,
+    },
+    {
+      provide: RESET_PASSWORD_TOKEN_REPOSITORY_TOKEN,
+      useClass: ResetPasswordTokenRepository,
     },
   ],
   exports: [AuthService],

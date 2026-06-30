@@ -1,17 +1,23 @@
-import { forwardRef, Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { randomUUID } from 'crypto';
 import { UsersService } from '@modules/users/users.service.js';
+import { MailService } from '@modules/mail/mail.service.js';
 import type { IRefreshTokenRepository } from './repositories/refresh-token.repository.interface.js';
+import type { IResetPasswordTokenRepository } from './repositories/reset-password-token.repository.interface.js';
 import { RefreshToken } from './entities/refresh-token.entity.js';
 import { IJwtPayload } from './interfaces/jwt-payload.interface.js';
 import { ITokens } from './interfaces/tokens.interface.js';
 import { LoginDto } from './dto/login.dto.js';
+import { OldPasswordDto, NewPasswordAndOtpDto, EmailDto } from './dto/reset-password.dtos.js';
 import { User } from '@modules/users/entities/user.entity.js';
+import { ResetPasswordToken } from './entities/reset-password-token.entity.js';
 import { InjectionToken } from '@nestjs/common';
 import { parseDurationToSeconds } from '@common/helpers/date.js';
+import { RESET_PASSWORD_TOKEN_REPOSITORY_TOKEN } from '@common/constants.js';
+import { generateOtp } from '@common/helpers/generate.js';
 
 export const REFRESH_TOKEN_REPOSITORY_TOKEN: InjectionToken<IRefreshTokenRepository> = Symbol('IRefreshTokenRepository');
 
@@ -26,6 +32,10 @@ export class AuthService {
     private readonly refreshTokenRepository: IRefreshTokenRepository,
     @Inject(forwardRef(() => UsersService))
     private readonly usersService: UsersService,
+    @Inject(forwardRef(() => MailService))
+    private readonly mailService: MailService,
+    @Inject(RESET_PASSWORD_TOKEN_REPOSITORY_TOKEN)
+    private readonly resetPasswordTokenRepository: IResetPasswordTokenRepository,
   ) {}
 
   async login(dto: LoginDto): Promise<ITokens> {
@@ -168,5 +178,64 @@ export class AuthService {
   private calculateExpiryDate(duration: string): Date {
     const seconds = parseDurationToSeconds(duration);
     return new Date(Date.now() + seconds * 1000);
+  }
+
+  /**
+   * ============================================
+   *  CHANGE PASSWORD
+   * - verify old password
+   * - verify OTP and update password
+   * ============================================
+   */
+
+  async createAndSendOtp(email: string): Promise<void> {
+    await this.resetPasswordTokenRepository.deleteByEmail(email);
+
+    const user = await this.usersService.findByEmail(email);
+    if (!user) {
+      throw new NotFoundException('Email had not link to any user');
+    }
+    const otp = generateOtp();
+
+    const token = new ResetPasswordToken();
+    token.email = email;
+    token.otp = otp;
+    token.expiredAt = new Date(Date.now() + 5 * 60 * 1000); // hết hạn sau 5 phút
+
+    await this.resetPasswordTokenRepository.save(token);
+    await this.mailService.sendOtp(email, otp);
+  }
+
+  async changePasswordRequest(currentId: number, dto: OldPasswordDto): Promise<void> {
+    const user = await this.usersService.findById(currentId);
+    const isValid = await bcrypt.compare(dto.oldPassword, user.passwordHash);
+    if (!isValid) {
+      throw new BadRequestException('Old password invalid');
+    }
+
+    await this.createAndSendOtp(user.email);
+  }
+
+  async forgetPassword(dto: EmailDto): Promise<void> {
+    const { email } = dto;
+    await this.createAndSendOtp(email);
+  }
+
+  async changePasswordVerify(dto: NewPasswordAndOtpDto): Promise<void> {
+    const { newPassword, otp } = dto;
+
+    const token = await this.resetPasswordTokenRepository.findByOtp(otp);
+    if (!token) {
+      throw new BadRequestException('OTP not corret');
+    }
+    if (token.expiredAt < new Date()) {
+      throw new BadRequestException('OTP has expired');
+    }
+    const user = await this.usersService.findByEmail(token.email);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    await this.usersService.updatePassword(user, newPassword);
+    await this.resetPasswordTokenRepository.delete(token.id);
   }
 }

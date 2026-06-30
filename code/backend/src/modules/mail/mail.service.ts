@@ -6,9 +6,6 @@ export class MailService {
   constructor(private readonly mailerService: MailerService) {}
 
   async sendOtp(email: string, otp: string): Promise<void> {
-    console.log(process.env.MAIL_HOST);
-    console.log(process.env.MAIL_PORT);
-    console.log(process.env.MAIL_USER);
     await this.mailerService.sendMail({
       to: email,
       subject: 'Password Verification OTP',
