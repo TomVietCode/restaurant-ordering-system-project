@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import '../../core/network/dio_client.dart';
 import '../models/cart_item.dart';
 
@@ -25,10 +26,16 @@ class OrderApiService {
               .toList(),
         },
       );
-
       return _responseData(response.data);
-    } catch (_) {
-      return _mockOrder(tableId);
+    } on DioException catch (e) {
+      if (e.response?.data is Map && e.response?.data['message'] != null) {
+        final message = e.response!.data['message'];
+        if (message is List) {
+          throw Exception(message.join(', '));
+        }
+        throw Exception(message.toString());
+      }
+      throw Exception(e.message ?? 'Unknown error occurred');
     }
   }
 
@@ -47,20 +54,5 @@ class OrderApiService {
     }
 
     throw const FormatException('Invalid order response');
-  }
-
-  Map<String, dynamic> _mockOrder(
-    String tableId, {
-    String? trackingCode,
-    String status = 'NEW',
-  }) {
-    final orderId = DateTime.now().millisecondsSinceEpoch;
-    return {
-      'id': orderId,
-      'tableId': tableId,
-      'trackingCode': trackingCode ?? 'TRK$orderId',
-      'status': status,
-      'createdAt': DateTime.now().toIso8601String(),
-    };
   }
 }

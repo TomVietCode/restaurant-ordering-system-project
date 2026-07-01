@@ -8,7 +8,9 @@ import '../blocs/menu/menu_state.dart';
 import '../blocs/session/session_cubit.dart';
 import '../blocs/cart/cart_bloc.dart';
 import '../blocs/cart/cart_event.dart';
+import '../widgets/food_image.dart';
 import '../../../core/utils/table_mapper.dart';
+import '../../../core/utils/currency_formatter.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -50,16 +52,23 @@ class _MenuScreenState extends State<MenuScreen> {
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Container(
-            decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+            ),
             clipBehavior: Clip.antiAlias,
             child: Image.asset(
               'assets/images/logo.png',
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.restaurant, color: Colors.orange),
+              errorBuilder: (context, error, stackTrace) =>
+                  const Icon(Icons.restaurant, color: Colors.orange),
             ),
           ),
         ),
-        title: Text(tableId != null ? displayTable : 'Menu Quán', style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          tableId != null ? displayTable : 'Menu Quán',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         actions: [
           BlocBuilder<MenuBloc, MenuState>(
             builder: (context, state) {
@@ -84,10 +93,12 @@ class _MenuScreenState extends State<MenuScreen> {
       ),
       body: BlocConsumer<MenuBloc, MenuState>(
         listener: (context, state) {
-          if (state is MenuLoaded && state.categories.isNotEmpty && _selectedCategoryId == -1) {
-             setState(() {
-               _selectedCategoryId = state.categories.first.id;
-             });
+          if (state is MenuLoaded &&
+              state.categories.isNotEmpty &&
+              _selectedCategoryId == -1) {
+            setState(() {
+              _selectedCategoryId = state.categories.first.id;
+            });
           }
         },
         builder: (context, state) {
@@ -103,23 +114,48 @@ class _MenuScreenState extends State<MenuScreen> {
                   child: SingleChildScrollView(
                     child: Column(
                       children: state.categories.map((category) {
-                        final categoryProducts = state.products.where((p) => p.categoryId == category.id).toList();
+                        final categoryProducts = state.products
+                            .where((p) => p.categoryId == category.id)
+                            .toList();
                         return Container(
-                          key: _categoryKeys.putIfAbsent(category.id, () => GlobalKey()),
+                          key: _categoryKeys.putIfAbsent(
+                            category.id,
+                            () => GlobalKey(),
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                                child: Text(category.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  24,
+                                  16,
+                                  8,
+                                ),
+                                child: Text(
+                                  category.name,
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                               if (categoryProducts.isEmpty)
                                 const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 16.0),
-                                  child: Text('Chưa có món ăn nào trong danh mục này.', style: TextStyle(fontStyle: FontStyle.italic)),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 16.0,
+                                  ),
+                                  child: Text(
+                                    'Chưa có món ăn nào trong danh mục này.',
+                                    style: TextStyle(
+                                      fontStyle: FontStyle.italic,
+                                    ),
+                                  ),
                                 )
                               else
-                                ...categoryProducts.map((p) => _buildProductItem(context, p)),
+                                ...categoryProducts.map(
+                                  (p) => _buildProductItem(context, p),
+                                ),
                             ],
                           ),
                         );
@@ -141,7 +177,9 @@ class _MenuScreenState extends State<MenuScreen> {
       height: 50,
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade300, width: 1)),
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+        ),
       ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
@@ -157,7 +195,9 @@ class _MenuScreenState extends State<MenuScreen> {
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
-                    color: isSelected ? const Color(0xFF9A442D) : Colors.transparent,
+                    color: isSelected
+                        ? const Color(0xFF9A442D)
+                        : Colors.transparent,
                     width: 3,
                   ),
                 ),
@@ -205,24 +245,47 @@ class _MenuScreenState extends State<MenuScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  product.imagesUrl.isNotEmpty
-                      ? Image.network(product.imagesUrl.first, fit: BoxFit.cover)
-                      : Container(color: Colors.grey[200], child: const Icon(Icons.fastfood, size: 50, color: Colors.grey)),
+                  FoodImage(
+                    imageUrl: product.imagesUrl.isNotEmpty
+                        ? product.imagesUrl.first
+                        : null,
+                    fit: BoxFit.cover,
+                  ),
                   if (product.price >= 80000)
                     Positioned(
                       top: 12,
                       left: 12,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4)),
-                        child: const Text('BESTSELLER', style: TextStyle(color: Color(0xFF9A442D), fontWeight: FontWeight.bold, fontSize: 10)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'BESTSELLER',
+                          style: TextStyle(
+                            color: Color(0xFF9A442D),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 10,
+                          ),
+                        ),
                       ),
                     ),
                   if (!product.isRemain)
                     Container(
                       color: Colors.white.withOpacity(0.6),
                       alignment: Alignment.center,
-                      child: const Text('HẾT HÀNG', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 20)),
+                      child: const Text(
+                        'HẾT HÀNG',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
                     ),
                 ],
               ),
@@ -234,7 +297,11 @@ class _MenuScreenState extends State<MenuScreen> {
                 children: [
                   Text(
                     product.name,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   if (product.description != null)
@@ -242,15 +309,22 @@ class _MenuScreenState extends State<MenuScreen> {
                       product.description!,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 14,
+                      ),
                     ),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${product.price}đ',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.black),
+                        product.price.toVND(),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.black,
+                        ),
                       ),
                       if (product.isRemain)
                         Container(
@@ -260,7 +334,11 @@ class _MenuScreenState extends State<MenuScreen> {
                             color: Color(0xFF9A442D),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.add, color: Colors.white, size: 24),
+                          child: const Icon(
+                            Icons.add,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                         ),
                     ],
                   ),
@@ -314,7 +392,10 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
                 width: 40,
                 height: 5,
                 margin: const EdgeInsets.only(bottom: 24),
-                decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
             Row(
@@ -322,18 +403,35 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: widget.product.imagesUrl.isNotEmpty
-                      ? Image.network(widget.product.imagesUrl.first, width: 90, height: 90, fit: BoxFit.cover)
-                      : Container(width: 90, height: 90, color: Colors.grey[200], child: const Icon(Icons.fastfood)),
+                  child: FoodImage(
+                    imageUrl: widget.product.imagesUrl.isNotEmpty
+                        ? widget.product.imagesUrl.first
+                        : null,
+                    width: 90,
+                    height: 90,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(widget.product.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                      Text(
+                        widget.product.name,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 8),
-                      Text('${widget.product.price} đ', style: const TextStyle(fontSize: 18, color: Color(0xFF9A442D), fontWeight: FontWeight.bold)),
+                      Text(
+                        widget.product.price.toVND(),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          color: Color(0xFF9A442D),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -341,24 +439,46 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
             ),
             const SizedBox(height: 16),
             if (widget.product.description != null) ...[
-              Text(widget.product.description!, style: TextStyle(color: Colors.grey[700], fontSize: 14)),
+              Text(
+                widget.product.description!,
+                style: TextStyle(color: Colors.grey[700], fontSize: 14),
+              ),
               const SizedBox(height: 24),
             ],
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Số lượng', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Số lượng',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
                 Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.remove_circle_outline, color: Color(0xFF9A442D), size: 28),
-                      onPressed: _quantity > 1 ? () => setState(() => _quantity--) : null,
+                      icon: const Icon(
+                        Icons.remove_circle_outline,
+                        color: Color(0xFF9A442D),
+                        size: 28,
+                      ),
+                      onPressed: _quantity > 1
+                          ? () => setState(() => _quantity--)
+                          : null,
                     ),
                     const SizedBox(width: 8),
-                    Text('$_quantity', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Text(
+                      '$_quantity',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     IconButton(
-                      icon: const Icon(Icons.add_circle_outline, color: Color(0xFF9A442D), size: 28),
+                      icon: const Icon(
+                        Icons.add_circle_outline,
+                        color: Color(0xFF9A442D),
+                        size: 28,
+                      ),
                       onPressed: () => setState(() => _quantity++),
                     ),
                   ],
@@ -366,15 +486,26 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
               ],
             ),
             const SizedBox(height: 16),
-            const Text('Ghi chú đặc biệt', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Text(
+              'Ghi chú đặc biệt',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 8),
             TextField(
               controller: _notesController,
               decoration: InputDecoration(
                 hintText: 'VD: Ít đường, không đá, nhiều hành...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF9A442D))),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF9A442D)),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
               maxLines: 2,
             ),
@@ -386,22 +517,37 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF9A442D),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 onPressed: () {
                   context.read<CartBloc>().add(
                     AddProductToCart(
                       product: widget.product,
                       quantity: _quantity,
-                      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+                      notes: _notesController.text.trim().isEmpty
+                          ? null
+                          : _notesController.text.trim(),
                     ),
                   );
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Đã thêm ${widget.product.name} (x$_quantity) vào giỏ hàng'), backgroundColor: Colors.green),
+                    SnackBar(
+                      content: Text(
+                        'Đã thêm ${widget.product.name} (x$_quantity) vào giỏ hàng',
+                      ),
+                      backgroundColor: Colors.green,
+                    ),
                   );
                 },
-                child: Text('Thêm vào giỏ - ${widget.product.price * _quantity} đ', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'Thêm vào giỏ - ${(widget.product.price * _quantity).toVND()}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -417,7 +563,7 @@ class FoodSearchDelegate extends SearchDelegate<Product?> {
   final CartBloc cartBloc;
 
   FoodSearchDelegate({required this.products, required this.cartBloc})
-      : super(searchFieldLabel: 'Tìm món ăn...');
+    : super(searchFieldLabel: 'Tìm món ăn...');
 
   @override
   List<Widget>? buildActions(BuildContext context) {
@@ -448,7 +594,9 @@ class FoodSearchDelegate extends SearchDelegate<Product?> {
   Widget buildSuggestions(BuildContext context) => _buildSearchResults();
 
   Widget _buildSearchResults() {
-    final results = products.where((p) => p.name.toLowerCase().contains(query.toLowerCase())).toList();
+    final results = products
+        .where((p) => p.name.toLowerCase().contains(query.toLowerCase()))
+        .toList();
 
     if (results.isEmpty) {
       return const Center(child: Text('Không tìm thấy món ăn nào.'));
@@ -469,17 +617,15 @@ class FoodSearchDelegate extends SearchDelegate<Product?> {
               );
             }
           },
-          leading: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(8),
-              image: product.imagesUrl.isNotEmpty
-                  ? DecorationImage(image: NetworkImage(product.imagesUrl.first), fit: BoxFit.cover)
+          leading: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: FoodImage(
+              imageUrl: product.imagesUrl.isNotEmpty
+                  ? product.imagesUrl.first
                   : null,
+              width: 50,
+              height: 50,
             ),
-            child: product.imagesUrl.isEmpty ? const Icon(Icons.fastfood, color: Colors.grey) : null,
           ),
           title: Text(
             product.name,
@@ -488,7 +634,13 @@ class FoodSearchDelegate extends SearchDelegate<Product?> {
               decoration: product.isRemain ? null : TextDecoration.lineThrough,
             ),
           ),
-          subtitle: Text('${product.price} đ', style: const TextStyle(color: Color(0xFF9A442D), fontWeight: FontWeight.bold)),
+          subtitle: Text(
+            product.price.toVND(),
+            style: const TextStyle(
+              color: Color(0xFF9A442D),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           trailing: product.isRemain
               ? IconButton(
                   icon: const Icon(Icons.add_circle, color: Color(0xFF9A442D)),
@@ -497,7 +649,8 @@ class FoodSearchDelegate extends SearchDelegate<Product?> {
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (context) => _ProductDetailSheet(product: product),
+                      builder: (context) =>
+                          _ProductDetailSheet(product: product),
                     );
                   },
                 )

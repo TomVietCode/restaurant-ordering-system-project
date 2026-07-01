@@ -4,11 +4,9 @@ import { AppService } from './app.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import configuration from './config/configuration';
-import { TablesModule } from './tables/tables.module';
 
 @Module({
   imports: [
-    TablesModule,
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],

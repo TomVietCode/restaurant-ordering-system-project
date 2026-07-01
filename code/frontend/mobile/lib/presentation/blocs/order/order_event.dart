@@ -27,11 +27,13 @@ class RefreshTrackedOrder extends OrderEvent {}
 
 class ApplyTrackedOrderStatus extends OrderEvent {
   final String status;
+  final String? trackingCode;
+  final String? orderId;
 
-  const ApplyTrackedOrderStatus(this.status);
+  const ApplyTrackedOrderStatus(this.status, {this.trackingCode, this.orderId});
 
   @override
-  List<Object?> get props => [status];
+  List<Object?> get props => [status, trackingCode, orderId];
 }
 
 class ClearOrder extends OrderEvent {}

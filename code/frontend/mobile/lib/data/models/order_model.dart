@@ -2,6 +2,7 @@ import 'enums.dart';
 
 class OrderModel {
   final int orderId;
+  final String displayCode;
   final String tableId;
   final String trackingCode;
   final OrderStatus status;
@@ -13,6 +14,7 @@ class OrderModel {
 
   OrderModel({
     required this.orderId,
+    required this.displayCode,
     required this.tableId,
     required this.trackingCode,
     required this.status,
@@ -31,6 +33,7 @@ class OrderModel {
 
     return OrderModel(
       orderId: json['id'] ?? json['order_id'],
+      displayCode: _displayCodeFromJson(json),
       tableId: (json['tableId'] ?? json['table_id']).toString(),
       trackingCode: (json['trackingCode'] ?? json['tracking_code'] ?? '')
           .toString(),
@@ -50,6 +53,7 @@ class OrderModel {
   Map<String, dynamic> toJson() {
     return {
       'order_id': orderId,
+      'display_code': displayCode,
       'table_id': tableId,
       'tracking_code': trackingCode,
       'status': status.value,
@@ -75,6 +79,33 @@ class OrderModel {
         .whereType<Map>()
         .map((item) => OrderLineModel.fromJson(Map<String, dynamic>.from(item)))
         .toList();
+  }
+
+  static String _displayCodeFromJson(Map<String, dynamic> json) {
+    final candidates = [
+      json['orderCode'],
+      json['order_code'],
+      json['orderNumber'],
+      json['order_number'],
+      json['orderNo'],
+      json['order_no'],
+      json['displayCode'],
+      json['display_code'],
+      json['publicCode'],
+      json['public_code'],
+      json['code'],
+      json['reference'],
+      json['ref'],
+      json['trackingCode'],
+      json['tracking_code'],
+    ];
+
+    for (final value in candidates) {
+      final text = value?.toString().trim();
+      if (text != null && text.isNotEmpty) return text;
+    }
+
+    return '';
   }
 }
 

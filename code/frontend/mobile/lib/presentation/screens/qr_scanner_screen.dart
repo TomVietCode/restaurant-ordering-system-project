@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image/image.dart' as img;
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/utils/table_mapper.dart';
@@ -36,10 +39,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-      final BarcodeCapture? capture = await _controller.analyzeImage(
-        image.path,
-        formats: const [BarcodeFormat.qrCode],
-      );
+      final BarcodeCapture? capture = await _analyzeQrImage(image.path);
       if (capture != null && capture.barcodes.isNotEmpty) {
         _onDetect(capture);
       } else {
@@ -48,6 +48,51 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           const SnackBar(content: Text('Không tìm thấy mã QR trong ảnh.')),
         );
       }
+    }
+  }
+
+  Future<BarcodeCapture?> _analyzeQrImage(String imagePath) async {
+    final BarcodeCapture? originalCapture = await _controller.analyzeImage(
+      imagePath,
+      formats: const [BarcodeFormat.qrCode],
+    );
+    if (originalCapture != null && originalCapture.barcodes.isNotEmpty) {
+      return originalCapture;
+    }
+
+    final paddedImagePath = await _createQrImageWithQuietZone(imagePath);
+    if (paddedImagePath == null) return originalCapture;
+
+    return _controller.analyzeImage(
+      paddedImagePath,
+      formats: const [BarcodeFormat.qrCode],
+    );
+  }
+
+  Future<String?> _createQrImageWithQuietZone(String imagePath) async {
+    try {
+      final bytes = await File(imagePath).readAsBytes();
+      final decoded = img.decodeImage(bytes);
+      if (decoded == null) return null;
+
+      final source = img.bakeOrientation(decoded);
+      final shortestSide = math.min(source.width, source.height);
+      final padding = (shortestSide * 0.15).ceil().clamp(32, 160);
+      final canvas = img.Image(
+        width: source.width + padding * 2,
+        height: source.height + padding * 2,
+      );
+
+      img.fill(canvas, color: img.ColorRgb8(255, 255, 255));
+      img.compositeImage(canvas, source, dstX: padding, dstY: padding);
+
+      final output = File(
+        '${Directory.systemTemp.path}/qr_quiet_zone_${DateTime.now().microsecondsSinceEpoch}.png',
+      );
+      await output.writeAsBytes(img.encodePng(canvas));
+      return output.path;
+    } catch (_) {
+      return null;
     }
   }
 
