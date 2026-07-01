@@ -58,9 +58,8 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'User found', type: UserResponseDto })
   @ApiResponse({ status: 404, description: 'User not found' })
   async findOne(@Param('id', ParseUserId) id: number): Promise<ApiResponseDto<UserResponseDto>> {
-    const user = await this.userService.findById(id);
-    const { passwordHash, ...rest } = user;
-    return ApiResponseDto.success(rest as UserResponseDto);
+    const userResponse = await this.userService.findOne(id);
+    return ApiResponseDto.success(userResponse);
   }
 
   @Patch(':id')
