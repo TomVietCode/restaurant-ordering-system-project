@@ -8,10 +8,11 @@ abstract class OrderEvent extends Equatable {
 }
 
 class PlaceOrder extends OrderEvent {
+  final String tableId;
   final List<CartItem> cartItems;
-  const PlaceOrder(this.cartItems);
+  const PlaceOrder(this.tableId, this.cartItems);
   @override
-  List<Object?> get props => [cartItems];
+  List<Object?> get props => [tableId, cartItems];
 }
 
 class UpdateOrderStatus extends OrderEvent {
@@ -20,6 +21,19 @@ class UpdateOrderStatus extends OrderEvent {
   const UpdateOrderStatus(this.itemId, this.statusIndex);
   @override
   List<Object?> get props => [itemId, statusIndex];
+}
+
+class RefreshTrackedOrder extends OrderEvent {}
+
+class ApplyTrackedOrderStatus extends OrderEvent {
+  final String status;
+  final String? trackingCode;
+  final String? orderId;
+
+  const ApplyTrackedOrderStatus(this.status, {this.trackingCode, this.orderId});
+
+  @override
+  List<Object?> get props => [status, trackingCode, orderId];
 }
 
 class ClearOrder extends OrderEvent {}
