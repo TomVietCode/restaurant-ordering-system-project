@@ -58,7 +58,7 @@ export function AppHeader({
   const derivedBackHref = backHref ?? (['/kitchen', '/cashier'].includes(pathname) ? '/select-role' : undefined);
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b bg-primary-foreground px-4">
+    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b bg-primary-foreground px-4">
       <div className="flex items-center gap-2">
         {showTrigger && <SidebarTrigger />}
         {derivedBackHref && (

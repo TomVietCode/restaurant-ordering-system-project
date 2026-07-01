@@ -1,5 +1,10 @@
-import { MenuBoard } from '@/components/features/Menu/MenuBoard';
+import { Suspense } from 'react';
+import { MenuPage } from '@/components/features/Menu/MenuPage';
 
-export default function MenuPage() {
-  return <MenuBoard />;
+export default function Page() {
+  return (
+    <Suspense>
+      <MenuPage />
+    </Suspense>
+  );
 }

@@ -1,11 +1,4 @@
-export interface Category {
-  id: number;
-  name: string;
-  description?: string;
-  itemCount?: number;
-  createdAt: string;
-  updatedAt: string;
-}
+export type { Category, CreateCategoryDto } from './category';
 
 export interface Item {
   id: number;
@@ -15,7 +8,7 @@ export interface Item {
   description: string | null;
   isRemain: boolean;
   categoryId: number;
-  category: Category;
+  category: import('./category').Category;
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
@@ -27,11 +20,6 @@ export interface ItemsPage {
   limit: number;
   total: number;
   totalPages: number;
-}
-
-export interface CreateCategoryDto {
-  name: string;
-  description?: string;
 }
 
 export interface CreateItemDto {

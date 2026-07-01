@@ -21,12 +21,12 @@ export class Item {
   @Column({ type: 'boolean', default: true, name: 'is_remain' })
   isRemain: boolean;
 
-  @Column({ name: 'category_id' })
-  categoryId: number;
+  @Column({ name: 'category_id', nullable: true })
+  categoryId: number | null;
 
-  @ManyToOne(() => Category, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => Category, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'category_id' })
-  category: Category;
+  category: Category | null;
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;
