@@ -177,19 +177,50 @@ describe('CategoriesService', () => {
 
       // Assert
       expect(categoryRepoMock.findById).toHaveBeenCalledWith(1);
-      expect(itemRepoMock.findWithOptions).toHaveBeenCalledWith({ where: { category: { id: 1 } } });
+      expect(itemRepoMock.findWithOptions).toHaveBeenCalledWith({
+        where: { category: { id: 1 } },
+        withDeleted: true,
+      });
       expect(categoryRepoMock.delete).toHaveBeenCalledWith(1);
     });
 
-    it('should throw BadRequestException when items are linked to category', async () => {
+    it('should throw BadRequestException when active items are linked to category', async () => {
       // Arrange
       const existing = Object.assign(new Category(), { id: 1, name: 'Coffee' });
       categoryRepoMock.findById.mockResolvedValue(existing);
-      itemRepoMock.findWithOptions.mockResolvedValue([{} as any]);
+      itemRepoMock.findWithOptions.mockResolvedValue([{ id: 10, name: 'Latte', deletedAt: null } as any]);
 
       // Act & Assert
       await expect(service.delete(1)).rejects.toThrow(BadRequestException);
+      expect(itemRepoMock.findWithOptions).toHaveBeenCalledWith({
+        where: { category: { id: 1 } },
+        withDeleted: true,
+      });
       expect(categoryRepoMock.delete).not.toHaveBeenCalled();
+    });
+
+    it('should set categoryId to null for soft-deleted items and delete category', async () => {
+      // Arrange
+      const existing = Object.assign(new Category(), { id: 1, name: 'Coffee' });
+      categoryRepoMock.findById.mockResolvedValue(existing);
+      
+      const softDeletedItem = { id: 10, name: 'Old Latte', categoryId: 1, deletedAt: new Date() } as any;
+      itemRepoMock.findWithOptions.mockResolvedValue([softDeletedItem]);
+      itemRepoMock.saveMany.mockResolvedValue([softDeletedItem]);
+      categoryRepoMock.delete.mockResolvedValue(undefined);
+
+      // Act
+      await service.delete(1);
+
+      // Assert
+      expect(categoryRepoMock.findById).toHaveBeenCalledWith(1);
+      expect(itemRepoMock.findWithOptions).toHaveBeenCalledWith({
+        where: { category: { id: 1 } },
+        withDeleted: true,
+      });
+      expect(softDeletedItem.categoryId).toBeNull();
+      expect(itemRepoMock.saveMany).toHaveBeenCalledWith([softDeletedItem]);
+      expect(categoryRepoMock.delete).toHaveBeenCalledWith(1);
     });
   });
 });
