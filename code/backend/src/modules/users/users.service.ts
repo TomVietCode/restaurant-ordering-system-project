@@ -48,7 +48,7 @@ export class UsersService {
     user.passwordHash = await bcrypt.hash(dto.password, 10);
 
     const createdUser = await this.userRepository.save(user);
-    const { passwordHash, ...userResponse } = createdUser;
+    const { passwordHash, password, ...userResponse } = createdUser;
     return userResponse as UserResponseDto;
   }
 
@@ -56,7 +56,7 @@ export class UsersService {
     const [users, total] = await this.userRepository.findPaginated(query);
 
     const pagination = new PaginationDto<UserResponseDto>();
-    pagination.items = users.map(({ passwordHash, ...rest }) => rest as UserResponseDto);
+    pagination.items = users.map(({ passwordHash, password, ...rest }) => rest as UserResponseDto);
     pagination.page = query.page;
     pagination.limit = query.limit;
     pagination.total = total;
@@ -90,7 +90,7 @@ export class UsersService {
     }
     await this.userRepository.save(user);
 
-    const { passwordHash, ...userResponse } = await this.findById(id);
+    const { passwordHash, password, ...userResponse } = await this.findById(id);
     return userResponse as UserResponseDto;
   }
 
