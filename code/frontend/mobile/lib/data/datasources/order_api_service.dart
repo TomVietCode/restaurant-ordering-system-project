@@ -33,12 +33,8 @@ class OrderApiService {
   }
 
   Future<Map<String, dynamic>> trackOrder(String trackingCode) async {
-    try {
-      final response = await _dioClient.dio.get('/orders/track/$trackingCode');
-      return _responseData(response.data);
-    } catch (_) {
-      return _mockOrder('', trackingCode: trackingCode, status: 'PREPARING');
-    }
+    final response = await _dioClient.dio.get('/orders/track/$trackingCode');
+    return _responseData(response.data);
   }
 
   Map<String, dynamic> _responseData(dynamic data) {

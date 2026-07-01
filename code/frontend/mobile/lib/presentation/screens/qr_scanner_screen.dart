@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../core/utils/table_mapper.dart';
 import '../blocs/session/session_cubit.dart';
 
 class QrScannerScreen extends StatefulWidget {
@@ -71,11 +72,15 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     return match?.group(0)?.toLowerCase();
   }
 
-  void _openTable(String tableId) {
+  void _openTable(String tableId) async {
     _isScanned = true;
     unawaited(_controller.stop());
     if (!mounted) return;
 
+    // Load tên bàn từ API public trước khi chuyển màn hình
+    await TableMapper.loadTableName(tableId);
+
+    if (!mounted) return;
     context.read<SessionCubit>().setTableId(tableId);
     context.go('/main');
   }

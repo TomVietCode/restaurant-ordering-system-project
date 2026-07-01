@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -68,6 +69,14 @@ class WebSocketClient {
   }
 
   void _addEvent(String event, dynamic payload) {
+    if (payload is String) {
+      try {
+        payload = jsonDecode(payload);
+      } catch (_) {
+        return;
+      }
+    }
+
     if (payload is! Map) return;
     _streamController.add({
       'event': event,

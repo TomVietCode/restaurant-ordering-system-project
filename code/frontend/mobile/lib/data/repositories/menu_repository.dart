@@ -12,16 +12,13 @@ class MenuRepository {
 
   Future<List<Category>> getCategories() async {
     try {
-      final response = await _client.dio.get('/menu');
+      final response = await _client.dio.get('/categories');
       final data = response.data;
-      final categories = data is Map ? data['categories'] : null;
+      final categories = data is Map ? data['data'] : null;
 
       if (categories is List) {
         return categories
-            .map(
-              (json) =>
-                  Category.fromJson(Map<String, dynamic>.from(json as Map)),
-            )
+            .map((json) => Category.fromJson(_categoryJson(json)))
             .toList();
       }
     } catch (e) {
@@ -33,16 +30,18 @@ class MenuRepository {
 
   Future<List<Product>> getProducts() async {
     try {
-      final response = await _client.dio.get('/menu');
+      final response = await _client.dio.get(
+        '/customer/items',
+        queryParameters: {'limit': 100},
+      );
       final data = response.data;
-      final products = data is Map ? data['products'] : null;
+      final products = data is Map && data['data'] is Map
+          ? (data['data'] as Map)['items']
+          : null;
 
       if (products is List) {
         return products
-            .map(
-              (json) =>
-                  Product.fromJson(Map<String, dynamic>.from(json as Map)),
-            )
+            .map((json) => Product.fromJson(_productJson(json)))
             .toList();
       }
     } catch (e) {
@@ -50,5 +49,27 @@ class MenuRepository {
     }
 
     return mockProducts;
+  }
+
+  Map<String, dynamic> _categoryJson(dynamic json) {
+    final map = Map<String, dynamic>.from(json as Map);
+    return {
+      'category_id': map['id'],
+      'name': map['name'],
+      'description': map['description'],
+    };
+  }
+
+  Map<String, dynamic> _productJson(dynamic json) {
+    final map = Map<String, dynamic>.from(json as Map);
+    return {
+      'item_id': map['id'],
+      'name': map['name'],
+      'category_id': map['categoryId'],
+      'price': double.tryParse(map['price'].toString()) ?? 0,
+      'is_remain': map['isRemain'],
+      'images_url': map['imagesUrl'] ?? [],
+      'description': map['description'],
+    };
   }
 }

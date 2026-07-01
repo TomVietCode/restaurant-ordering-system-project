@@ -1,6 +1,6 @@
 import 'product.dart';
 
-enum OrderStatus { pending, preparing, served }
+enum OrderStatus { pending, preparing, served, cancelled }
 
 class OrderItem {
   final String id;

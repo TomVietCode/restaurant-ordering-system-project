@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/session/session_cubit.dart';
@@ -18,6 +20,14 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   bool showCheckout = false;
+  bool showCancelledBanner = true;
+  Timer? _cancelledBannerTimer;
+
+  @override
+  void dispose() {
+    _cancelledBannerTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,8 +72,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
             );
           }
 
+          final isCancelled = items.any((i) => i.status == OrderStatus.cancelled);
+
+          if (isCancelled && showCancelledBanner && _cancelledBannerTimer == null) {
+            _cancelledBannerTimer = Timer(const Duration(seconds: 3), () {
+              if (mounted) {
+                setState(() {
+                  showCancelledBanner = false;
+                  _cancelledBannerTimer = null;
+                });
+              }
+            });
+          } else if (!isCancelled) {
+            _cancelledBannerTimer?.cancel();
+            _cancelledBannerTimer = null;
+            showCancelledBanner = true;
+          }
+
           int activeStep = 0;
-          if (items.every((i) => i.status == OrderStatus.served)) {
+          if (isCancelled) {
+            activeStep = -1;
+          } else if (items.every((i) => i.status == OrderStatus.served)) {
             activeStep = 2;
           } else if (items.any((i) => i.status == OrderStatus.preparing)) {
             activeStep = 1;
@@ -82,7 +111,35 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 Text('Mã đơn hàng: #${state.orderId}', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                 const SizedBox(height: 24),
 
-                _buildTimeline(activeStep),
+                if (isCancelled && showCancelledBanner)
+                  Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 24),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFEBEB),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.red.shade200),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.cancel, color: Colors.red, size: 28),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Đơn hàng đã bị hủy', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red)),
+                              SizedBox(height: 4),
+                              Text('Vui lòng liên hệ nhân viên nếu cần hỗ trợ.', style: TextStyle(fontSize: 13, color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  _buildTimeline(activeStep),
 
                 const SizedBox(height: 32),
                 const Align(
@@ -104,30 +161,32 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 
                 const SizedBox(height: 32),
                 
-                _buildActionButton(
-                  icon: Icons.add_circle_outline,
-                  label: 'Đặt thêm món',
-                  backgroundColor: const Color(0xFFDC7B5C),
-                  textColor: Colors.white,
-                  onPressed: () {
-                    setState(() { showCheckout = false; });
-                    widget.onAddMore();
-                  },
-                ),
-                const SizedBox(height: 12),
-                _buildActionButton(
-                  icon: Icons.notifications_active_outlined,
-                  label: 'Gọi nhân viên',
-                  backgroundColor: Colors.white,
-                  textColor: const Color(0xFFDC7B5C),
-                  borderColor: const Color(0xFFDC7B5C),
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Đã gửi yêu cầu gọi nhân viên!'), backgroundColor: Colors.orange),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
+                if (!isCancelled) ...[
+                  _buildActionButton(
+                    icon: Icons.add_circle_outline,
+                    label: 'Đặt thêm món',
+                    backgroundColor: const Color(0xFFDC7B5C),
+                    textColor: Colors.white,
+                    onPressed: () {
+                      setState(() { showCheckout = false; });
+                      widget.onAddMore();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _buildActionButton(
+                    icon: Icons.notifications_active_outlined,
+                    label: 'Gọi nhân viên',
+                    backgroundColor: Colors.white,
+                    textColor: const Color(0xFFDC7B5C),
+                    borderColor: const Color(0xFFDC7B5C),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Đã gửi yêu cầu gọi nhân viên!'), backgroundColor: Colors.orange),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 
                 if (!showCheckout)
                   _buildActionButton(
@@ -316,7 +375,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     Color badgeIconColor;
     IconData badgeIcon;
 
-    if (status == OrderStatus.pending) {
+    if (status == OrderStatus.cancelled) {
+      badgeBgColor = const Color(0xFFFFEBEB);
+      badgeIconColor = Colors.red;
+      badgeIcon = Icons.cancel;
+    } else if (status == OrderStatus.pending) {
       badgeBgColor = const Color(0xFFE3EFFF);
       badgeIconColor = const Color(0xFF0056D2);
       badgeIcon = Icons.receipt_long;

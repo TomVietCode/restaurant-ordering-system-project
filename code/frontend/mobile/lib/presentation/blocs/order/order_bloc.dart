@@ -19,14 +19,29 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   OrderBloc({required this.repository}) : super(const OrderState()) {
     on<PlaceOrder>(_onPlaceOrder);
     on<RefreshTrackedOrder>(_onRefreshTrackedOrder);
+    on<ApplyTrackedOrderStatus>(_onApplyTrackedOrderStatus);
     on<UpdateOrderStatus>(_onUpdateOrderStatus);
     on<ClearOrder>(_onClearOrder);
 
     _socketSubscription = repository.orderUpdatesStream.listen((data) {
       if (isClosed || data.isEmpty) return;
       final payload = data['payload'] as Map<String, dynamic>?;
-      final trackingCode = payload?['trackingCode']?.toString();
-      if (trackingCode != null && trackingCode == state.trackingCode) {
+      if (payload == null) return;
+
+      final trackingCode = _stringValue(payload, [
+        'trackingCode',
+        'tracking_code',
+      ]);
+      final orderId = _stringValue(payload, ['orderId', 'order_id', 'id']);
+      final status = _stringValue(payload, ['status']);
+      final isCurrentTracking =
+          trackingCode != null && trackingCode == state.trackingCode;
+      final isCurrentOrder = orderId != null && orderId == state.orderId;
+
+      if (isCurrentTracking || isCurrentOrder) {
+        if (status != null) {
+          add(ApplyTrackedOrderStatus(status));
+        }
         add(RefreshTrackedOrder());
       }
     });
@@ -88,6 +103,14 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     emit(state.copyWith(items: updatedList));
   }
 
+  void _onApplyTrackedOrderStatus(
+    ApplyTrackedOrderStatus event,
+    Emitter<OrderState> emit,
+  ) {
+    final status = _toUiOrderStatus(api.OrderStatus.fromString(event.status));
+    emit(state.copyWith(items: _itemsWithStatus(status), clearError: true));
+  }
+
   void _onClearOrder(ClearOrder event, Emitter<OrderState> emit) {
     _trackingTimer?.cancel();
     emit(const OrderState());
@@ -112,15 +135,14 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
 
   OrderState _stateFromTrackedOrder(OrderModel order) {
     final status = _toUiOrderStatus(order.status);
-    final orderItemPrefix = '${order.orderId}_';
-    final updatedItems = state.items.map((item) {
-      if (!item.id.startsWith(orderItemPrefix)) return item;
-      return item.copyWith(status: status);
-    }).toList();
+    final orderId = order.orderId.toString();
+    final items = order.items == null
+        ? _itemsWithStatus(status, orderId: orderId)
+        : _itemsFromTrackedOrder(order.items!, status, orderId: orderId);
 
     return state.copyWith(
-      items: updatedItems,
-      orderId: order.orderId.toString(),
+      items: items,
+      orderId: orderId,
       trackingCode: order.trackingCode.isNotEmpty
           ? order.trackingCode
           : state.trackingCode,
@@ -135,10 +157,88 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       case api.OrderStatus.served:
       case api.OrderStatus.paid:
         return OrderStatus.served;
-      case api.OrderStatus.newOrder:
       case api.OrderStatus.cancel:
+        return OrderStatus.cancelled;
+      case api.OrderStatus.newOrder:
         return OrderStatus.pending;
     }
+  }
+
+  List<OrderItem> _itemsFromTrackedOrder(
+    List<OrderLineModel> trackedItems,
+    OrderStatus fallbackStatus, {
+    required String orderId,
+  }) {
+    final updatedItems = <OrderItem>[];
+    final usedIndexes = <int>{};
+
+    for (final line in trackedItems.where((item) => item.shouldShow)) {
+      final index = _indexOfMatchingLine(line, usedIndexes);
+      if (index == -1) continue;
+
+      usedIndexes.add(index);
+      final status = line.status != null
+          ? _toUiOrderStatus(line.status!)
+          : fallbackStatus;
+
+      updatedItems.add(
+        state.items[index].copyWith(
+          id: '${orderId}_$index',
+          quantity: line.quantity,
+          status: status,
+        ),
+      );
+    }
+
+    return updatedItems;
+  }
+
+  int _indexOfMatchingLine(OrderLineModel line, Set<int> usedIndexes) {
+    for (var index = 0; index < state.items.length; index++) {
+      if (usedIndexes.contains(index)) continue;
+      if (_matchesLine(state.items[index], line)) return index;
+    }
+
+    return -1;
+  }
+
+  bool _matchesLine(OrderItem item, OrderLineModel line) {
+    if (line.itemId != null && line.itemId != item.product.id) {
+      return false;
+    }
+
+    final lineNote = line.note?.trim();
+    if (lineNote == null || lineNote.isEmpty) return true;
+    return (item.notes ?? '').trim() == lineNote;
+  }
+
+  List<OrderItem> _itemsWithStatus(OrderStatus status, {String? orderId}) {
+    final currentOrderId = orderId?.isNotEmpty == true
+        ? orderId!
+        : state.orderId;
+    var foundCurrentOrderItems = false;
+
+    final updatedItems = state.items.map((item) {
+      if (currentOrderId.isNotEmpty &&
+          item.id.startsWith('${currentOrderId}_')) {
+        foundCurrentOrderItems = true;
+        return item.copyWith(status: status);
+      }
+      return item;
+    }).toList();
+
+    if (foundCurrentOrderItems) return updatedItems;
+    return state.items.map((item) => item.copyWith(status: status)).toList();
+  }
+
+  String? _stringValue(Map<String, dynamic> map, List<String> keys) {
+    for (final key in keys) {
+      final value = map[key];
+      if (value != null && value.toString().isNotEmpty) {
+        return value.toString();
+      }
+    }
+    return null;
   }
 
   void _startTrackingTimer() {

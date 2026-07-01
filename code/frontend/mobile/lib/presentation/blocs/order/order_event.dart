@@ -25,4 +25,13 @@ class UpdateOrderStatus extends OrderEvent {
 
 class RefreshTrackedOrder extends OrderEvent {}
 
+class ApplyTrackedOrderStatus extends OrderEvent {
+  final String status;
+
+  const ApplyTrackedOrderStatus(this.status);
+
+  @override
+  List<Object?> get props => [status];
+}
+
 class ClearOrder extends OrderEvent {}
