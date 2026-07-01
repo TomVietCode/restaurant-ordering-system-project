@@ -2,7 +2,7 @@ import { Injectable, Inject, BadRequestException, NotFoundException, Logger, Int
 import { DataSource, EntityManager, In, QueryFailedError } from 'typeorm';
 import { generateTrackingCode } from '@common/utils/tracking-code.util.js';
 import { ORDER_REPO_TOKEN, REALTIME_SERVICE_TOKEN } from '@common/constants.js';
-import { OrderStatus, TableStatus } from '@common/enums.js';
+import { OrderStatus, PaymentMethod, TableStatus } from '@common/enums.js';
 import type { IOrderRepository, OrderQueryOptions } from './repositories/order.repository.interface.js';
 import type { IRealtimeService } from '@modules/realtime/realtime.service.interface.js';
 import { TableService } from '@modules/tables/table.service.js';
@@ -15,6 +15,9 @@ import { Order } from './entities/order.entity.js';
 import { OrderItem } from './entities/order-item.entity.js';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
 import { Table } from '@modules/tables/table.entity.js';
+import { VnpayService } from 'nestjs-vnpay';
+import { ConfigService } from '@nestjs/config';
+import { VnpayIpnResponse, VnpayReturn } from './dtos/vnpay-ipn-response.js';
 
 const STATE_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.NEW]: [OrderStatus.PREPARING, OrderStatus.CANCEL],
@@ -39,6 +42,9 @@ export class OrdersService {
     private readonly realtimeService: IRealtimeService,
 
     private readonly dataSource: DataSource,
+
+    private readonly vnpayService: VnpayService,
+    private readonly configService: ConfigService,
   ) {}
 
   //  PUBLIC CUSTOMER ENDPOINTS
@@ -328,6 +334,103 @@ export class OrdersService {
     return paidOrders;
   }
 
+  // ────────────────────────────────────────────────────────────
+  //  PAYMENT BUSSINESS
+  // ────────────────────────────────────────────────────────────
+  async getBankList() {
+    return await this.vnpayService.getBankList();
+  }
+
+  async createPaymentUrl(orderId: number, ipAddr: string): Promise<any> {
+    const order = await this.findById(orderId);
+
+    if (order.status !== OrderStatus.SERVED) {
+      throw new BadRequestException('Order is not payable');
+    }
+
+    const paymentUrl = this.vnpayService.buildPaymentUrl({
+      vnp_Amount: order.totalAmount,
+      vnp_OrderInfo: `Thanh toan don hang ${order.id}`,
+      vnp_TxnRef: order.id.toString(),
+      vnp_IpAddr: ipAddr,
+      vnp_ReturnUrl: 'http://localhost:3000/api/payments/vnpay-return',
+    });
+    return paymentUrl;
+  }
+
+  async handleVnpayIpn(query: any): Promise<VnpayIpnResponse> {
+    // const isValid = await this.vnpayService.verifyIpnCall(query);
+    // if (!isValid) {
+    //   return { RspCode: '97', Message: 'Invalid signature' };
+    // }
+    // if (!query.vnp_ResponseCode) {
+    //   return { RspCode: '99', Message: 'Missing response code' };
+    // }
+
+    const orderId = Number(query.vnp_TxnRef);
+    if (Number.isNaN(orderId)) {
+      return { RspCode: '01', Message: 'Invalid TxnRef' };
+    }
+
+    const order = await this.findById(orderId);
+
+    if (!order) {
+      return { RspCode: '01', Message: 'Order not found' };
+    }
+
+    if (Number(query.vnp_Amount) !== order.totalAmount * 100) {
+      return { RspCode: '00', Message: 'Invalid amount' };
+    }
+    if (order.status !== OrderStatus.SERVED) {
+      return { RspCode: '00', Message: 'Order status invalid' };
+    }
+
+    if (query.vnp_ResponseCode === '00' && query.vnp_TransactionStatus === '00') {
+      order.paidAt = new Date();
+      order.paymentMethod = PaymentMethod.TRANSFER;
+      order.status = OrderStatus.PAID;
+      await this.orderRepository.save(order);
+      return { RspCode: '00', Message: 'Success' };
+    }
+
+    return { RspCode: '04', Message: 'Failed recorded' };
+  }
+
+  async handleVnpayReturn(query: any): Promise<VnpayReturn> {
+    const result = await this.handleVnpayIpn(query);
+    if(result.Message !== 'Success') {
+      console.log("VNPay return failed: ", result);
+      return { isSuccess: false, message: result.Message };
+    }
+
+    const isValid = await this.vnpayService.verifyReturnUrl(query);
+    if (!isValid) {
+      return { isSuccess: false, message: 'Invalid signature' };
+    }
+
+    const orderId = Number(query.vnp_TxnRef);
+
+    if (Number.isNaN(orderId)) {
+      return { isSuccess: false, message: 'Invalid transaction reference' };
+    }
+
+    const order = await this.findById(orderId);
+
+    if (!order) {
+      return { isSuccess: false, message: 'Order not found' };
+    }
+    if (Number(query.vnp_Amount) !== order.totalAmount * 100) {
+      return { isSuccess: false, message: 'Invalid amount' };
+    }
+
+    const isSuccess = query.vnp_ResponseCode === '00' && query.vnp_TransactionStatus === '00';
+
+    return {
+      isSuccess: isSuccess,
+      data: { orderId: order.id, amount: order.totalAmount },
+      message: isSuccess ? 'Payment successful' : 'Payment failed',
+    };
+  }
   // ────────────────────────────────────────────────────────────
   //  PRIVATE HELPERS
   // ────────────────────────────────────────────────────────────

@@ -16,13 +16,15 @@ import { ItemsModule } from '@modules/items/item.module.js';
 import { RealtimeModule } from '@modules/realtime/realtime.module.js';
 import { OrdersModule } from '@modules/orders/orders.module.js';
 import { ReportsModule } from '@modules/reports/reports.module.js';
-
+import { VnpayModule,  } from 'nestjs-vnpay';
+import { HashAlgorithm } from 'vnpay';
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       load: [configuration],
     }),
+
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -35,9 +37,6 @@ import { ReportsModule } from '@modules/reports/reports.module.js';
         database: configService.get('database.database'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: configService.get('nodeEnv') !== 'production',
-        // ssl: {
-        //   rejectUnauthorized: false,
-        // },
       }),
     }),
     AuthModule,

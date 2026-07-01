@@ -23,4 +23,8 @@ export default () => ({
     secretKey: process.env.S3_SECRET_KEY,
     region: process.env.S3_REGION,
   },
+  vnpay: {
+    tmnCode: process.env.VNPAY_TMN_CODE,
+    secureSecret: process.env.VNPAY_SECURE_SECRET,
+  },
 });
