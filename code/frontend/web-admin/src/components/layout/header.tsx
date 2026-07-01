@@ -123,7 +123,7 @@ export function AppHeader({
             <User className="size-4" />
             Thông tin tài khoản
           </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => alert('Chức năng đổi mật khẩu đang được phát triển')}>
+          <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/profile?action=change-password')}>
             <Key className="size-4" />
             Đổi mật khẩu
           </DropdownMenuItem>

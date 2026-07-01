@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, Phone, Mail, Shield, Calendar, Loader2 } from 'lucide-react';
 import { authService, UserProfile } from '@/services/auth.service';
+import { ChangePasswordDialog } from './change-password-dialog';
 
 interface ProfileFormProps {
   initialProfile: UserProfile;
@@ -24,6 +25,7 @@ const roleMap: Record<string, { label: string; color: string }> = {
 export function ProfileForm({ initialProfile, token }: ProfileFormProps) {
   const { data: session, update } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [profile, setProfile] = useState<UserProfile>(initialProfile);
   const [fullName, setFullName] = useState(initialProfile.fullName);
@@ -31,6 +33,19 @@ export function ProfileForm({ initialProfile, token }: ProfileFormProps) {
   
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ fullName?: string; phone?: string }>({});
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'change-password') {
+      setChangePasswordOpen(true);
+      
+      const newParams = new URLSearchParams(searchParams.toString());
+      newParams.delete('action');
+      const queryStr = newParams.toString();
+      router.replace(queryStr ? `/profile?${queryStr}` : '/profile');
+    }
+  }, [searchParams, router]);
 
   const formattedDate = new Date(profile.createdAt).toLocaleDateString('vi-VN', {
     year: 'numeric',
@@ -196,6 +211,14 @@ export function ProfileForm({ initialProfile, token }: ProfileFormProps) {
               {/* Form buttons */}
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-muted/40">
                 <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setChangePasswordOpen(true)}
+                  className="cursor-pointer"
+                >
+                  Đổi mật khẩu
+                </Button>
+                <Button
                   type="submit"
                   disabled={loading || !fullName.trim()}
                   className="cursor-pointer bg-primary hover:bg-primary/95 text-primary-foreground min-w-28"
@@ -216,6 +239,7 @@ export function ProfileForm({ initialProfile, token }: ProfileFormProps) {
         </Card>
 
       </div>
+      <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} token={token} />
     </div>
   );
 }
