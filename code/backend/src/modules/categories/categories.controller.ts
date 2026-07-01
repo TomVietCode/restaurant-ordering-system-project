@@ -15,13 +15,14 @@ const ParseCategoryId = new ParseIntPipe({
 
 @ApiTags('Categories')
 @Controller('categories')
-@ApiBearerAuth('JWT-auth')
+
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post()
   @Roles(Role.OWNER)
   @ApiOperation({ summary: 'Create a new category' })
+  @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 201, description: 'Category created successfully', type: Category })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 409, description: 'Category name already exists' })
@@ -40,6 +41,7 @@ export class CategoriesController {
   @Get(':id')
   @Roles(Role.OWNER)
   @ApiOperation({ summary: 'Get category by ID' })
+  @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 200, description: 'Category found', type: Category })
   @ApiResponse({ status: 404, description: 'Category not found' })
   async findById(@Param('id', ParseCategoryId) id: number): Promise<ApiResponseDto<Category | null>> {
@@ -49,6 +51,7 @@ export class CategoriesController {
   @Patch(':id')
   @Roles(Role.OWNER)
   @ApiOperation({ summary: 'Update category by ID' })
+  @ApiBearerAuth('JWT-auth')
   @ApiResponse({
     status: 200,
     description: 'Category updated',
@@ -65,6 +68,7 @@ export class CategoriesController {
   @Delete(':id')
   @Roles(Role.OWNER)
   @ApiOperation({ summary: 'Delete category by ID' })
+  @ApiBearerAuth('JWT-auth')
   @ApiResponse({ status: 204, description: 'Category deleted' })
   @ApiResponse({ status: 404, description: 'Category not found' })
   async delete(@Param('id', ParseCategoryId) id: number): Promise<ApiResponseDto<void>> {
