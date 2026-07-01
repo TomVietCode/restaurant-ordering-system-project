@@ -1,6 +1,15 @@
+jest.mock('nanoid', () => {
+  let count = 0;
+  return {
+    customAlphabet: () => () => `ABCDEFGH_${count++}`,
+  };
+});
+
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
+
 import { OrdersService } from './orders.service.js';
 import { ORDER_REPO_TOKEN, REALTIME_SERVICE_TOKEN } from '@common/constants.js';
 import { OrderStatus, PaymentMethod, TableStatus } from '@common/enums.js';
@@ -655,7 +664,18 @@ describe('OrdersService', () => {
       expect(result.total).toBe(1);
       expect(result.page).toBe(1);
     });
+
+    it('should forward search and dateFilter parameters to orderRepository', async () => {
+      const orders = [makeOrder()];
+      orderRepo.findPaginated.mockResolvedValue([orders, 1]);
+
+      const query = { page: 1, limit: 20, search: 'OD123', dateFilter: 'today' as const };
+      await service.findAll(query);
+
+      expect(orderRepo.findPaginated).toHaveBeenCalledWith(query);
+    });
   });
+
 
   describe('findById', () => {
     it('should return the order', async () => {

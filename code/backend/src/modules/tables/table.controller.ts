@@ -30,7 +30,7 @@ export class TableController {
   // ApiResponseDto<TableResponseDto>
 
   @Get()
-  @Roles(Role.OWNER)
+  @Roles(Role.STAFF, Role.OWNER)
   @ApiOperation({ summary: 'List all tables with optional status filter' })
   @ApiResponse({ status: 200, description: 'Returns all tables', type: [TableResponseDto] })
   async findAll(@Query() query: TableQueryDto): Promise<ApiResponseDto<TableResponseDto[]>> {

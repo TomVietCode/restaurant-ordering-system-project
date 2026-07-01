@@ -22,7 +22,7 @@ interface Props {
 
 export function TableList({ rows, selectedId, onSelect }: Props) {
   return (
-    <div className="flex flex-[3] flex-col gap-5 overflow-y-auto border-r border-border p-4">
+    <div className="flex flex-3 flex-col gap-5 overflow-y-auto border-r border-border p-4">
       {GROUPS.map(({ label, status }) => {
         const items = rows.filter(r => r.tblStatus === status);
         if (!items.length) return null;
