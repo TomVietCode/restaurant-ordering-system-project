@@ -8,7 +8,7 @@ import { selectPage } from '@/lib/paginate';
 import { toViError } from '@/lib/errors';
 import type { Category, Item } from '@/types/menu';
 
-export const PAGE = 10;
+export const PAGE = 8;
 
 type Status = 'ALL' | 'REMAIN' | 'OUT';
 type PriceSort = '' | 'ASC' | 'DESC';
