@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
-import { User, LogOut, ChevronLeft } from 'lucide-react';
+import { User, LogOut, ChevronLeft, Key } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -24,6 +24,7 @@ const pageTitles: Record<string, string> = {
   '/kitchen':   'Màn hình Bếp',
   '/cashier':   'Thu ngân',
   '/select-role': 'Chọn phân hệ',
+  '/profile':   'Thông tin tài khoản',
 };
 
 const roleLabel: Record<string, string> = {
@@ -118,9 +119,13 @@ export function AppHeader({
             )}
           </div>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => alert('Chức năng xem hồ sơ đang được phát triển')}>
+          <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/profile')}>
             <User className="size-4" />
-            функция размещения в разработке
+            Thông tin tài khoản
+          </DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/profile?action=change-password')}>
+            <Key className="size-4" />
+            Đổi mật khẩu
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

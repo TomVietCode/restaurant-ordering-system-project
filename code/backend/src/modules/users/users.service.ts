@@ -1,17 +1,8 @@
-import {
-  Injectable,
-  Inject,
-  InjectionToken,
-  NotFoundException,
-  ConflictException,
-  ForbiddenException,
-  BadRequestException,
-  forwardRef,
-} from '@nestjs/common';
+import { Injectable, Inject, InjectionToken, NotFoundException, ConflictException, BadRequestException, forwardRef } from '@nestjs/common';
 import { User } from './entities/user.entity.js';
 import type { IUserRepository } from './repositories/user.repository.interface.js';
-import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto } from './dto/dtos.js';
-import { AuthService } from '@modules/auth/auth.service.js';
+import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto } from './dtos/user-dtos.js';
+// import { AuthService } from '@modules/auth/auth.service.js';
 import * as bcrypt from 'bcryptjs';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
 
@@ -27,8 +18,8 @@ export class UsersService {
   constructor(
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userRepository: IUserRepository,
-    @Inject(forwardRef(() => AuthService))
-    private readonly authService: AuthService,
+    // @Inject(forwardRef(() => AuthService))
+    // private readonly authService: AuthService,
   ) {}
 
   async findByEmail(email: string): Promise<User | null> {
@@ -57,7 +48,7 @@ export class UsersService {
     user.passwordHash = await bcrypt.hash(dto.password, 10);
 
     const createdUser = await this.userRepository.save(user);
-    const { passwordHash, ...userResponse } = createdUser;
+    const { passwordHash, password, ...userResponse } = createdUser;
     return userResponse as UserResponseDto;
   }
 
@@ -65,7 +56,7 @@ export class UsersService {
     const [users, total] = await this.userRepository.findPaginated(query);
 
     const pagination = new PaginationDto<UserResponseDto>();
-    pagination.items = users.map(({ passwordHash, ...rest }) => rest as UserResponseDto);
+    pagination.items = users.map(({ passwordHash, password, ...rest }) => rest as UserResponseDto);
     pagination.page = query.page;
     pagination.limit = query.limit;
     pagination.total = total;
@@ -84,6 +75,13 @@ export class UsersService {
       }
     }
 
+    if (dto.phone && dto.phone !== user.phone) {
+      const existing = await this.userRepository.findByPhone(dto.phone);
+      if (existing) {
+        throw new ConflictException('Phone number already exists');
+      }
+    }
+
     const { password, ...rest } = dto;
     Object.assign(user, rest);
 
@@ -92,7 +90,7 @@ export class UsersService {
     }
     await this.userRepository.save(user);
 
-    const { passwordHash, ...userResponse } = await this.findById(id);
+    const { passwordHash, password, ...userResponse } = await this.findById(id);
     return userResponse as UserResponseDto;
   }
 
@@ -102,11 +100,11 @@ export class UsersService {
       if (user.id === currentId) {
         throw new BadRequestException('Owner cant inactive yourself');
       }
-      await this.authService.logout(user.id);
+      // await this.authService.logout(user.id);
     }
-    user.isActive = isActive
+    user.isActive = isActive;
     await this.userRepository.save(user);
-  } 
+  }
 
   async remove(id: number): Promise<void> {
     const user = await this.findById(id);
@@ -114,5 +112,15 @@ export class UsersService {
       throw new BadRequestException(`Can not delete use still active`);
     }
     await this.userRepository.delete(id);
+  }
+
+  async updatePassword(user: User, newPassword: string): Promise<void> {
+    const isSame = await bcrypt.compare(newPassword, user.passwordHash);
+    if (isSame) {
+      throw new BadRequestException('New password and old password can not be the same');
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await this.userRepository.save(user);
   }
 }

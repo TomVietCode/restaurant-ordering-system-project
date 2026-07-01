@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { BaseRepository } from '@common/repositories/base.repository.js';
 import { User } from '@modules/users/entities/user.entity.js';
 import { IUserRepository } from './user.repository.interface.js';
-import { UserQueryDto } from '../dto/dtos.js'
+import { UserQueryDto } from '../dtos/user-dtos.js'
 
 /**
  * TypeORM implementation of IUserRepository.
