@@ -36,7 +36,9 @@ export function CategoryList() {
   const load = useCallback(async () => {
     try {
       const cats = await categoryService.getAll();
-      setCategories(cats);
+      // BE trả về không đảm bảo thứ tự — sắp xếp mới nhất lên trước ở client
+      const sorted = [...cats].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setCategories(sorted);
     } catch {
       toast.error('Không thể lấy danh sách danh mục');
     } finally {

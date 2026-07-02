@@ -5,6 +5,9 @@ interface ApiRes<T> { data: T }
 
 export interface ItemsQuery {
   page?: number; limit?: number; search?: string; categoryId?: number;
+  // ⚠️ BE (QueryItemsDto) hiện CHƯA whitelist field này — gửi lên sẽ bị 400 Bad Request
+  // (main.ts bật whitelist + forbidNonWhitelisted). Giữ nguyên theo yêu cầu, chờ BE bổ sung.
+  isRemain?: boolean;
   sortBy?: 'price' | 'name' | 'createdAt'; sortOrder?: 'ASC' | 'DESC';
 }
 function normalizeItem(raw: Item): Item {
@@ -30,28 +33,12 @@ export const categoryService = {
 };
 
 export const itemService = {
-  // Một trang item (server-side pagination) — dùng cho kiểm tra trùng tên trong ItemDialog.
+  // Server-side pagination — mọi tìm kiếm/lọc/sắp xếp/phân trang đều xử lý ở backend.
   async getAll(q: ItemsQuery = {}, token?: string | null): Promise<ItemsPage> {
     const p = new URLSearchParams();
     Object.entries(q).forEach(([k, v]) => { if (v !== undefined && v !== '') p.set(k, String(v)); });
     const res = await apiWithToken(token).get<ApiRes<ItemsPage>>(`/items?${p}`);
     return { ...res.data, items: res.data.items.map(normalizeItem) };
-  },
-
-  // Toàn bộ item (duyệt hết các trang, 100 item/trang — giới hạn limit của BE).
-  // Trang /menu lọc + sắp xếp + phân trang hoàn toàn client-side trên danh sách này,
-  // vì BE không hỗ trợ lọc theo trạng thái còn/hết hàng (isRemain).
-  async getAllItems(token?: string | null): Promise<Item[]> {
-    const all: Item[] = [];
-    let page = 1;
-    let totalPages = 1;
-    do {
-      const res = await apiWithToken(token).get<ApiRes<ItemsPage>>(`/items?limit=100&page=${page}`);
-      all.push(...res.data.items.map(normalizeItem));
-      totalPages = res.data.totalPages;
-      page++;
-    } while (page <= totalPages);
-    return all;
   },
 
   async create(dto: CreateItemDto, token?: string | null): Promise<Item> {
