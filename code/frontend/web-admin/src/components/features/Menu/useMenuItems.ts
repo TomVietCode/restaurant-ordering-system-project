@@ -32,7 +32,7 @@ export function useMenuItems() {
 
   // Bộ lọc — khởi tạo từ URL để chia sẻ/đổi tab giữ nguyên trạng thái
   const [cur, setCur]       = useState(() => Number(sp.get('p') || 1));
-  const [search, setSearch] = useState(() => sp.get('q') ?? '');
+  const [search, setSearch] = useState(''); // không khôi phục từ URL — reload trang là ô tìm kiếm trống
   const [catId, setCatId]   = useState<number | undefined>(() => { const v = sp.get('cat'); return v ? Number(v) : undefined; });
   const [status, setStatus] = useState<Status>(() => { const v = sp.get('s'); return (v === 'REMAIN' || v === 'OUT') ? v : 'ALL'; });
   const [price, setPrice]   = useState<PriceSort>(() => { const v = sp.get('sort'); return (v === 'ASC' || v === 'DESC') ? v : ''; });
@@ -99,7 +99,7 @@ export function useMenuItems() {
 
   const { total, totalPages, page, rows: visible } = selectPage(filtered, cur, PAGE);
 
-  const onSearch     = (v: string) => { setSearch(v); setCur(1); pushUrl({ q: v, p: undefined }); };
+  const onSearch     = (v: string) => { setSearch(v); setCur(1); pushUrl({ q: undefined, p: undefined }); };
   const onCatChange  = (v: number | undefined) => { setCatId(v); setCur(1); pushUrl({ cat: v, p: undefined }); };
   const onPriceChange = (v: PriceSort) => { setPrice(v); setCur(1); pushUrl({ sort: v, p: undefined }); };
   const onStatusChange = (v: Status) => { setStatus(v); setCur(1); pushUrl({ s: v, p: undefined }); };

@@ -32,7 +32,8 @@ export function useOrders() {
   const [loading, setLoading]       = useState(true);
 
   const [cur, setCur]       = useState(() => parsePage(sp.get('p')));
-  const [search, setSearch] = useState(() => sp.get('q') ?? '');
+  // Search KHÔNG đồng bộ vào URL — reload trang là ô tìm kiếm trống lại (yêu cầu user).
+  const [search, setSearch] = useState('');
   const [status, setStatus] = useState<StatusFilter>(() => {
     const v = sp.get('s');
     return v && STATUSES.includes(v as OrderStatus) ? (v as OrderStatus) : 'ALL';
@@ -63,10 +64,11 @@ export function useOrders() {
     if (!token) return;
     setLoading(true);
     try {
+      // Bỏ dấu "#" nếu user dán mã đơn từ bảng (hiển thị dạng "#ODXXXX") — BE tìm ILIKE trên trackingCode thuần.
       const res = await orderService.getOrdersPage({
         page,
         limit: ORDERS_PAGE,
-        search: q.trim() || undefined,
+        search: q.trim().replace(/^#/, '') || undefined,
         status: s === 'ALL' ? undefined : s,
         dateFilter: d === 'all' ? undefined : d,
       }, token);
@@ -93,7 +95,7 @@ export function useOrders() {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [token, sessionResolved, cur, search, status, dateFilter, fetchPage]);
 
-  const onSearch       = (v: string) => { setSearch(v); setCur(1); pushUrl({ q: v, p: undefined }); };
+  const onSearch       = (v: string) => { setSearch(v); setCur(1); pushUrl({ p: undefined }); };
   const onStatusChange = (v: StatusFilter) => { setStatus(v); setCur(1); pushUrl({ s: v, p: undefined }); };
   const onDateChange   = (v: DateFilter) => { setDateFilter(v); setCur(1); pushUrl({ d: v, p: undefined }); };
   const onPageChange   = (n: number) => { setCur(parsePage(String(n))); pushUrl({ p: n }); };
