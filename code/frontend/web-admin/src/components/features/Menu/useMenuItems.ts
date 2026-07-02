@@ -34,10 +34,6 @@ export function useMenuItems() {
   const [reloadKey, setReloadKey]   = useState(0);
 
   // Bộ lọc — khởi tạo từ URL để chia sẻ/đổi tab giữ nguyên trạng thái
-<<<<<<< Updated upstream
-  const [cur, setCur]       = useState(() => Number(sp.get('p') || 1));
-  const [search, setSearch] = useState(() => sp.get('q') ?? '');
-=======
   const [cur, setCur]           = useState(() => Number(sp.get('p') || 1));
   const [pageSize, setPageSize] = useState(() => {
     const v = Number(sp.get('ps'));
@@ -45,7 +41,6 @@ export function useMenuItems() {
   });
   const [search, setSearch]                   = useState(''); // không khôi phục từ URL — reload trang là ô tìm kiếm trống
   const [searchDebounced, setSearchDebounced] = useState('');
->>>>>>> Stashed changes
   const [catId, setCatId]   = useState<number | undefined>(() => { const v = sp.get('cat'); return v ? Number(v) : undefined; });
   const [status, setStatus] = useState<Status>(() => { const v = sp.get('s'); return (v === 'REMAIN' || v === 'OUT') ? v : 'ALL'; });
   const [price, setPrice]   = useState<PriceSort>(() => { const v = sp.get('sort'); return (v === 'ASC' || v === 'DESC') ? v : ''; });
@@ -124,29 +119,12 @@ export function useMenuItems() {
 
   const reload = () => setReloadKey(k => k + 1);
 
-<<<<<<< Updated upstream
-  const { total, totalPages, page, rows: visible } = selectPage(filtered, cur, PAGE);
-
-  const onSearch     = (v: string) => { setSearch(v); setCur(1); pushUrl({ q: v, p: undefined }); };
-  const onCatChange  = (v: number | undefined) => { setCatId(v); setCur(1); pushUrl({ cat: v, p: undefined }); };
-  const onPriceChange = (v: PriceSort) => { setPrice(v); setCur(1); pushUrl({ sort: v, p: undefined }); };
-  const onStatusChange = (v: Status) => { setStatus(v); setCur(1); pushUrl({ s: v, p: undefined }); };
-  const onPageChange = (n: number) => { setCur(n); pushUrl({ p: n }); };
-
-  // POST/PATCH /items chỉ trả categoryId, KHÔNG kèm object `category` → cột "Danh mục" sẽ hiện "—".
-  // Gắn lại category từ danh sách `cats` đã có để hiển thị đúng ngay, không cần tải lại toàn bộ.
-  function withCategory(it: Item): Item {
-    const cat = cats.find(c => c.id === it.categoryId);
-    return cat ? { ...it, category: cat } : it;
-  }
-=======
   const onSearch         = (v: string) => { setSearch(v); setCur(1); };
   const onCatChange      = (v: number | undefined) => { setCatId(v); setCur(1); pushUrl({ cat: v, p: undefined }); };
   const onPriceChange    = (v: PriceSort) => { setPrice(v); setCur(1); pushUrl({ sort: v, p: undefined }); };
   const onStatusChange   = (v: Status) => { setStatus(v); setCur(1); pushUrl({ s: v, p: undefined }); };
   const onPageChange     = (n: number) => { setCur(n); pushUrl({ p: n }); };
   const onPageSizeChange = (n: number) => { setPageSize(n); setCur(1); pushUrl({ ps: n === DEFAULT_PAGE_SIZE ? undefined : n, p: undefined }); };
->>>>>>> Stashed changes
 
   async function onSave(f: SaveForm, id?: number) {
     const dto = {
