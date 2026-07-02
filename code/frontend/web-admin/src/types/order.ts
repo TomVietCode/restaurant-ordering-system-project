@@ -1,4 +1,5 @@
 export type OrderStatus = 'NEW' | 'PREPARING' | 'SERVED' | 'PAID' | 'CANCEL';
+export type PaymentMethod = 'CASH' | 'TRANSFER';
 
 export interface OrderItem {
   name: string;
@@ -19,4 +20,22 @@ export interface Order {
   totalAmount: number;
   createdAt: string; // ISO string
   trackingCode: string;
+  paymentMethod: PaymentMethod | null;
+  paidAt: string | null; // ISO string, chỉ có giá trị khi status = PAID
 }
+
+export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  NEW: 'Mới',
+  PREPARING: 'Đang chuẩn bị',
+  SERVED: 'Đã phục vụ',
+  PAID: 'Đã thanh toán',
+  CANCEL: 'Đã hủy',
+};
+
+export const ORDER_STATUS_CLASS: Record<OrderStatus, string> = {
+  NEW: 'bg-status-new text-status-new-foreground',
+  PREPARING: 'bg-status-preparing text-status-preparing-foreground',
+  SERVED: 'bg-status-served text-status-served-foreground',
+  PAID: 'bg-status-paid text-status-paid-foreground',
+  CANCEL: 'bg-status-cancel text-status-cancel-foreground',
+};
