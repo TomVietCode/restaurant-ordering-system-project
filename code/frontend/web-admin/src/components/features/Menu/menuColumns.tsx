@@ -18,6 +18,7 @@ export function getMenuColumns({ onToggleClick, onView, onEdit, onDelete }: Args
     {
       accessorKey: 'name',
       header: 'Tên món',
+      meta: { className: 'w-[34%] pl-6' },
       cell: ({ row }) => {
         const item = row.original;
         return (
@@ -37,6 +38,7 @@ export function getMenuColumns({ onToggleClick, onView, onEdit, onDelete }: Args
     {
       accessorKey: 'categoryId',
       header: 'Danh mục',
+      meta: { className: 'w-[16%]' },
       cell: ({ row }) => (
         <span className="rounded-full bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">
           {row.original.category?.name ?? '—'}
@@ -46,6 +48,7 @@ export function getMenuColumns({ onToggleClick, onView, onEdit, onDelete }: Args
     {
       accessorKey: 'price',
       header: () => <div className="text-right">Giá bán</div>,
+      meta: { className: 'w-[16%]' },
       cell: ({ row }) => {
         const item = row.original;
         return (
@@ -58,6 +61,7 @@ export function getMenuColumns({ onToggleClick, onView, onEdit, onDelete }: Args
     {
       accessorKey: 'isRemain',
       header: () => <div className="text-center">Trạng thái</div>,
+      meta: { className: 'w-[18%]' },
       cell: ({ row }) => {
         const item = row.original;
         return (
@@ -75,6 +79,7 @@ export function getMenuColumns({ onToggleClick, onView, onEdit, onDelete }: Args
     {
       id: 'actions',
       header: () => <div className="text-center">Thao tác</div>,
+      meta: { className: 'w-[16%] pr-6' },
       cell: ({ row }) => {
         const item = row.original;
         return (
