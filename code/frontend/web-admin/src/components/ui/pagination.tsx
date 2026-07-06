@@ -12,7 +12,7 @@ interface Props {
 }
 
 const SIBLING_COUNT = 0;
-const MAX_SLOTS = 4; // tối đa 5 nút số trang hiển thị (kể cả "…")
+const MAX_SLOTS = 4; 
 
 /**
  * Tính dải số trang rút gọn, tối đa MAX_SLOTS nút, kiểu "1 … 5 … 50".
