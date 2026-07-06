@@ -379,11 +379,6 @@ export function TableDetail({
                   </button>
                 ))}
               </div>
-              {checkoutTarget.type !== "ORDER" && (
-                <p className="mt-3 text-[11px] text-muted-foreground">
-                  Chuyển khoản chỉ áp dụng khi thanh toán từng đơn.
-                </p>
-              )}
             </div>
           </div>
 

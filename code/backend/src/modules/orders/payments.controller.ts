@@ -6,7 +6,6 @@ import { ApiResponseDto } from '@common/dtos/api-response.dto.js';
 import { OrdersService } from './orders.service.js';
 import { CheckoutTableDto } from './dtos/checkout-table.dto.js';
 import { CheckoutOrdersDto } from './dtos/checkout-orders.dto.js';
-import { DataResponse, VnpayIpnResponse, VnpayReturn } from './dtos/vnpay-ipn-response.js';
 
 const ParseTableUUID = new ParseUUIDPipe({
   exceptionFactory: () => new NotFoundException('Table not found'),
@@ -74,7 +73,7 @@ export class PaymentsController {
   @ApiResponse({ status: 200, description: 'Payment result returned successfully' })
   async handleVnpayReturn(@Query() query: any) {
     const result = await this.ordersService.handleVnpayReturn(query);
-    if(!result.isSuccess) {
+    if (!result.isSuccess) {
       return ApiResponseDto.error(result.message || 'Payment failed');
     }
     return ApiResponseDto.success(result.data, 'Payment processed');

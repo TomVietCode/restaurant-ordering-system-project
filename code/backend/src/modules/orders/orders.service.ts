@@ -1,5 +1,5 @@
 import { Injectable, Inject, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
-import { DataSource, EntityManager, In, QueryFailedError } from 'typeorm';
+import { DataSource, EntityManager, In } from 'typeorm';
 import { generateTrackingCode } from '@common/utils/tracking-code.util.js';
 import { ORDER_REPO_TOKEN, REALTIME_SERVICE_TOKEN } from '@common/constants.js';
 import { OrderStatus, PaymentMethod, TableStatus } from '@common/enums.js';
@@ -99,6 +99,7 @@ export class OrdersService {
     order.orderItems = orderItems;
 
     // 4. Save in a transaction
+    let tableStatusChanged = false;
     const savedOrder = await this.dataSource.transaction(async (manager) => {
       const saved = await manager.save(Order, order);
 
@@ -106,10 +107,19 @@ export class OrdersService {
       if (table.status === TableStatus.AVAILABLE) {
         table.status = TableStatus.OCCUPIED;
         await manager.save(table);
+        tableStatusChanged = true;
       }
 
       return saved;
     });
+
+    // 5.1 Emit table status change if changed
+    if (tableStatusChanged) {
+      this.realtimeService.emit('table:status-changed', {
+        tableId: table.id,
+        status: TableStatus.OCCUPIED,
+      });
+    }
 
     // 6. Emit realtime event to staff
     this.realtimeService.emit('order:new', {
@@ -233,11 +243,7 @@ export class OrdersService {
       const saved = await manager.save(Order, activeOrders);
 
       // Free the table since all orders are now paid
-      const table = await manager.findOne(Table, { where: { id: tableId } });
-      if (table) {
-        table.status = TableStatus.AVAILABLE;
-        await manager.save(table);
-      }
+      await this.freeTableIfAllPaid(tableId, manager);
 
       return saved;
     });
@@ -299,21 +305,8 @@ export class OrdersService {
 
       const saved = await manager.save(Order, orders);
 
-      // Check if all orders for this table are now terminal inside the transaction
-      const activeCount = await manager.count(Order, {
-        where: {
-          tableId,
-          status: In([OrderStatus.NEW, OrderStatus.PREPARING, OrderStatus.SERVED]),
-        },
-      });
-
-      if (activeCount === 0) {
-        const table = await manager.findOne(Table, { where: { id: tableId } });
-        if (table) {
-          table.status = TableStatus.AVAILABLE;
-          await manager.save(table);
-        }
-      }
+      // Free the table since all orders are now paid
+      await this.freeTableIfAllPaid(tableId, manager);
 
       return saved;
     });
@@ -356,9 +349,7 @@ export class OrdersService {
       vnp_OrderInfo: `Thanh toan don hang ${order.id}`,
       vnp_TxnRef: order.id.toString(),
       vnp_IpAddr: ipAddr,
-      vnp_ReturnUrl:
-        this.configService.get<string>('VNPAY_RETURN_URL') ??
-        'http://localhost:3000/cashier/payment-return',
+      vnp_ReturnUrl: this.configService.getOrThrow<string>('vnpay.returnUrl'),
     });
     return paymentUrl;
   }
@@ -394,7 +385,22 @@ export class OrdersService {
       order.paidAt = new Date();
       order.paymentMethod = PaymentMethod.TRANSFER;
       order.status = OrderStatus.PAID;
-      await this.orderRepository.save(order);
+
+      const savedOrder = await this.dataSource.transaction(async (manager) => {
+        const saved = await manager.save(Order, order);
+        await this.freeTableIfAllPaid(saved.tableId, manager);
+        return saved;
+      });
+
+      // Emit status change to the order's tracking room + staff broadcast
+      const payload = {
+        trackingCode: savedOrder.trackingCode,
+        orderId: savedOrder.id,
+        status: savedOrder.status,
+      };
+      this.realtimeService.emitToRoom(`order:track:${savedOrder.trackingCode}`, 'order:status-changed', payload);
+      this.realtimeService.emit('order:status-changed', payload);
+
       return { RspCode: '00', Message: 'Success' };
     }
 
@@ -445,13 +451,25 @@ export class OrdersService {
    * If so, set the table as available (free).
    */
   private async freeTableIfAllPaid(tableId: string, manager: EntityManager): Promise<void> {
-    const activeCount = await this.orderRepository.countActiveOrdersByTableId(tableId);
+    const activeCount = await manager.count(Order, {
+      where: {
+        tableId,
+        status: In([OrderStatus.NEW, OrderStatus.PREPARING, OrderStatus.SERVED]),
+      },
+    });
 
     if (activeCount === 0) {
-      const table = await this.tableService.findById(tableId);
-      table.status = TableStatus.AVAILABLE;
-      await manager.save(table);
-      this.logger.log(`Table ${table.name} is now free (all orders terminal)`);
+      const table = await manager.findOne(Table, { where: { id: tableId } });
+      if (table && table.status !== TableStatus.AVAILABLE) {
+        table.status = TableStatus.AVAILABLE;
+        await manager.save(table);
+        this.logger.log(`Table ${table.name} is now free (all orders terminal)`);
+
+        this.realtimeService.emit('table:status-changed', {
+          tableId,
+          status: TableStatus.AVAILABLE,
+        });
+      }
     }
   }
 

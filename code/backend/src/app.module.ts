@@ -38,6 +38,7 @@ import { HashAlgorithm } from 'vnpay';
         database: configService.get('database.database'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: configService.get('nodeEnv') !== 'production',
+        ...(configService.get('nodeEnv') === 'production' && { ssl: { rejectUnauthorized: false } })
       }),
     }),
     AuthModule,

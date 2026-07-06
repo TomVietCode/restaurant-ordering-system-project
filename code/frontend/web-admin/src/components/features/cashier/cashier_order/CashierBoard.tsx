@@ -338,7 +338,7 @@ export function CashierBoard({ initialOrders, tables, token }: Props) {
                   : undefined
               }
               onCancel={
-                c.status !== "SERVED" ? (id) => requestCancel(id) : undefined
+                c.status !== "PAID" ? (id) => requestCancel(id) : undefined
               }
             />
           ))}
