@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Armchair, Banknote, QrCode, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { OrderStatus } from "@/types/order";
@@ -33,6 +33,7 @@ export function TableDetail({
   selected,
   onPayTable,
   onPayOrders,
+  onVnpayOrder,
 }: {
   selected: Row | null;
   onPayTable: (
@@ -44,6 +45,7 @@ export function TableDetail({
     orderIds: number[],
     paymentMethod: "CASH" | "TRANSFER",
   ) => Promise<void>;
+  onVnpayOrder: (orderId: number) => void;
 }) {
   const [checkoutTarget, setCheckoutTarget] = useState<{
     type: "TABLE" | "ORDER" | "SELECTED_ORDERS";
@@ -80,8 +82,28 @@ export function TableDetail({
     .filter((o) => selectedOrderIds.includes(o.id))
     .reduce((sum, o) => sum + o.totalAmount, 0);
 
+  /** Open the checkout overlay, always defaulting to cash. */
+  const openCheckout = (target: NonNullable<typeof checkoutTarget>) => {
+    setPaymentMethod("CASH");
+    setCheckoutTarget(target);
+  };
+
   const handleConfirmCheckout = async () => {
     if (!checkoutTarget) return;
+
+    // Bank transfer (VNPay) is single-order only — the backend has no
+    // combined-table VNPay endpoint. Hand off to the redirect flow.
+    if (
+      checkoutTarget.type === "ORDER" &&
+      checkoutTarget.orderId !== undefined &&
+      paymentMethod === "TRANSFER"
+    ) {
+      onVnpayOrder(checkoutTarget.orderId);
+      setCheckoutTarget(null);
+      setSelectedOrderIds([]);
+      return;
+    }
+
     setLoading(true);
     try {
       if (checkoutTarget.type === "TABLE") {
@@ -228,7 +250,7 @@ export function TableDetail({
                   <button
                     className="inline-flex h-8 items-center justify-center rounded-md bg-zinc-900 px-2.5 text-sm font-bold text-white transition-colors hover:bg-zinc-800 cursor-pointer border-none outline-none"
                     onClick={() =>
-                      setCheckoutTarget({
+                      openCheckout({
                         type: "ORDER",
                         orderId: o.id,
                         total: o.totalAmount,
@@ -263,7 +285,7 @@ export function TableDetail({
               <button
                 className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white py-2.5 text-lg font-bold text-zinc-800 transition-colors hover:bg-zinc-50 cursor-pointer outline-none"
                 onClick={() =>
-                  setCheckoutTarget({
+                  openCheckout({
                     type: "SELECTED_ORDERS",
                     orderIds: selectedOrderIds,
                     total: selectedTotal,
@@ -286,7 +308,7 @@ export function TableDetail({
               <button
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 py-2.5 text-lg font-bold text-white transition-colors hover:bg-zinc-800 cursor-pointer border-none outline-none"
                 onClick={() =>
-                  setCheckoutTarget({ type: "TABLE", total: selected.total })
+                  openCheckout({ type: "TABLE", total: selected.total })
                 }
               >
                 Thanh toán toàn bộ bàn
@@ -329,7 +351,10 @@ export function TableDetail({
                 PHƯƠNG THỨC THANH TOÁN
               </p>
               <div className="flex gap-3 justify-center max-w-xs mx-auto">
-                {(["CASH", "TRANSFER"] as const).map((m) => (
+                {(checkoutTarget.type === "ORDER"
+                  ? (["CASH", "TRANSFER"] as const)
+                  : (["CASH"] as const)
+                ).map((m) => (
                   <button
                     key={m}
                     onClick={() => setPaymentMethod(m)}
@@ -354,6 +379,11 @@ export function TableDetail({
                   </button>
                 ))}
               </div>
+              {checkoutTarget.type !== "ORDER" && (
+                <p className="mt-3 text-[11px] text-muted-foreground">
+                  Chuyển khoản chỉ áp dụng khi thanh toán từng đơn.
+                </p>
+              )}
             </div>
           </div>
 

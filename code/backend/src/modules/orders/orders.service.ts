@@ -341,19 +341,24 @@ export class OrdersService {
     return await this.vnpayService.getBankList();
   }
 
-  async createPaymentQr(orderId: number, ipAddr: string): Promise<any> {
+  async createPaymentQr(orderId: number, ipAddr: string): Promise<string> {
     const order = await this.findById(orderId);
 
     if (order.status !== OrderStatus.SERVED) {
       throw new BadRequestException('Order is not payable');
     }
 
-    const paymentUrl = this.vnpayService.generateQr({
+    // Build a VNPay redirect URL (the browser is sent to VNPay's payment page).
+    // `buildPaymentUrl` signs the URL with the merchant secret and returns a
+    // string; `vnp_ReturnUrl` is where VNPay sends the browser back afterwards.
+    const paymentUrl = this.vnpayService.buildPaymentUrl({
       vnp_Amount: order.totalAmount,
       vnp_OrderInfo: `Thanh toan don hang ${order.id}`,
       vnp_TxnRef: order.id.toString(),
       vnp_IpAddr: ipAddr,
-      vnp_ReturnUrl: this.configService.getOrThrow<string>('VNPAY_RETURN_URL') || 'http://localhost:3000/api/payments/vnpay-return',
+      vnp_ReturnUrl:
+        this.configService.get<string>('VNPAY_RETURN_URL') ??
+        'http://localhost:3000/cashier/payment-return',
     });
     return paymentUrl;
   }

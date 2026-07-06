@@ -9,9 +9,11 @@ interface Props {
   tableName: string; orders: Order[]; total: number;
   method: Method; onMethod: (m: Method) => void;
   onConfirm: () => void; onClose: () => void;
+  /** True while a VNPay redirect is in flight — disables the confirm button. */
+  processing?: boolean;
 }
 
-export function PaymentPanel({ tableName, orders, total, method, onMethod, onConfirm, onClose }: Props) {
+export function PaymentPanel({ tableName, orders, total, method, onMethod, onConfirm, onClose, processing = false }: Props) {
   return (
     <div className="flex flex-col rounded-xl border border-zinc-200 bg-zinc-50 p-4 shadow-sm">
       <h2 className="mb-3 font-bold text-zinc-900 text-xl">Thanh toán — {tableName}</h2>
@@ -73,8 +75,14 @@ export function PaymentPanel({ tableName, orders, total, method, onMethod, onCon
           </button>
         ))}
       </div>
-      <Button className="mb-2 w-full h-10 bg-zinc-900 font-bold text-white hover:bg-zinc-800 text-base" onClick={onConfirm}>Xác nhận thanh toán</Button>
-      <Button variant="outline" className="w-full h-10 border-zinc-200 text-zinc-700 hover:bg-zinc-100 text-base" onClick={onClose}>Đóng</Button>
+      <Button className="mb-2 w-full h-10 bg-zinc-900 font-bold text-white hover:bg-zinc-800 text-base" onClick={onConfirm} disabled={processing}>
+        {processing
+          ? 'Đang chuyển đến VNPay...'
+          : method === 'TRANSFER'
+            ? 'Thanh toán qua VNPay'
+            : 'Xác nhận thanh toán'}
+      </Button>
+      <Button variant="outline" className="w-full h-10 border-zinc-200 text-zinc-700 hover:bg-zinc-100 text-base" onClick={onClose} disabled={processing}>Đóng</Button>
     </div>
   );
 }
