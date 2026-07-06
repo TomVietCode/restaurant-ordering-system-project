@@ -38,7 +38,7 @@ export function ProfileForm({ initialProfile, token }: ProfileFormProps) {
   useEffect(() => {
     const action = searchParams.get('action');
     if (action === 'change-password') {
-      setChangePasswordOpen(true);
+      Promise.resolve().then(() => setChangePasswordOpen(true));
       
       const newParams = new URLSearchParams(searchParams.toString());
       newParams.delete('action');
@@ -100,10 +100,10 @@ export function ProfileForm({ initialProfile, token }: ProfileFormProps) {
 
       // Refresh Next.js server components
       router.refresh();
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       let errorMsg = 'Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại sau.';
-      const errorStr = err?.message || '';
+      const errorStr = err instanceof Error ? err.message : String(err);
 
       if (errorStr.includes('Phone number already exists') || errorStr.includes('409')) {
         errorMsg = 'Số điện thoại đã được sử dụng bởi tài khoản khác';

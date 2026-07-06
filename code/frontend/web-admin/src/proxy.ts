@@ -10,7 +10,7 @@ export default auth((req) => {
     return NextResponse.redirect(new URL('/login', nextUrl));
   }
 
-  const ownerOnly = ['/dashboard', '/menu', '/tables', '/orders', '/revenue', '/staffs'];
+  const ownerOnly = ['/dashboard', '/menu', '/tables', '/orders', '/staffs'];
   const staffOnly = ['/select-role', '/kitchen', '/cashier'];
 
   // STAFF cố vào route của OWNER → về /select-role
