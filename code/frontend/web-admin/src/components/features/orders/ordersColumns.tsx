@@ -40,10 +40,7 @@ export function getOrdersColumns({ onView }: Args): ColumnDef<Order>[] {
     {
       accessorKey: 'totalAmount',
       header: () => <div className="text-right">Tổng tiền</div>,
-      cell: ({ row }) =>
-        row.original.status === 'CANCEL'
-          ? <div className="text-right text-muted-foreground">—</div>
-          : <div className="text-right font-medium">{fmtMoney(row.original.totalAmount)}</div>,
+      cell: ({ row }) => <div className="text-right font-medium">{fmtMoney(row.original.totalAmount)}</div>,
     },
     {
       accessorKey: 'status',

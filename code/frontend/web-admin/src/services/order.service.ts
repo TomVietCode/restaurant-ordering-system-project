@@ -88,6 +88,7 @@ function mapOrder(raw: BackendOrder): Order {
     trackingCode: raw.trackingCode,
     paymentMethod: (raw.paymentMethod as PaymentMethod) ?? null,
     paidAt: raw.paidAt,
+    cancelReason: raw.cancelReason,
   };
 }
 
@@ -101,6 +102,7 @@ export interface OrdersQuery {
   status?: OrderStatus;
   search?: string;
   dateFilter?: 'all' | 'today' | 'week' | 'month';
+  tableId?: string;
 }
 
 export interface OrdersPageResult {

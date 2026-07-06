@@ -101,7 +101,13 @@ export function OrderDetailDialog({ order, loading, open, onOpenChange }: Props)
             {/* Tổng kết thanh toán — đơn đã hủy không hiển thị tổng tiền */}
             <div className="rounded-lg bg-secondary/40 p-3">
               {order.status === 'CANCEL' ? (
-                <p className="text-center text-sm text-muted-foreground">Đơn đã hủy — không tính tiền</p>
+                <div className="space-y-1.5 text-center">
+                  <p className="text-sm text-muted-foreground">Đơn đã hủy — không tính tiền</p>
+                  <p className="text-sm text-foreground">
+                    <span className="text-muted-foreground">Lý do hủy: </span>
+                    <span className="font-medium">{order.cancelReason?.trim() || 'Không có lý do'}</span>
+                  </p>
+                </div>
               ) : (
                 <div className="flex items-baseline justify-between">
                   <span className="text-sm font-medium text-foreground">Tổng tiền</span>

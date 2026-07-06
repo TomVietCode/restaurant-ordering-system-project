@@ -22,6 +22,7 @@ export interface Order {
   trackingCode: string;
   paymentMethod: PaymentMethod | null;
   paidAt: string | null; // ISO string, chỉ có giá trị khi status = PAID
+  cancelReason: string | null; // chỉ có giá trị khi status = CANCEL
 }
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {

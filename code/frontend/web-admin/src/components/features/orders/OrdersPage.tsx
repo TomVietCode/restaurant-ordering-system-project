@@ -5,7 +5,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { OrderFilters } from './OrderFilters';
 import { OrderDetailDialog } from './OrderDetailDialog';
 import { getOrdersColumns } from './ordersColumns';
-import { useOrders, ORDERS_PAGE } from './useOrders';
+import { useOrders } from './useOrders';
 
 export function OrdersPage() {
   const o = useOrders();
@@ -18,8 +18,9 @@ export function OrdersPage() {
       </div>
 
       <OrderFilters
-        search={o.search} status={o.status} dateFilter={o.dateFilter}
-        onSearch={o.onSearch} onStatusChange={o.onStatusChange} onDateChange={o.onDateChange}
+        search={o.search} status={o.status} dateFilter={o.dateFilter} tableId={o.tableId} tables={o.tables} pageSize={o.pageSize}
+        onSearch={o.onSearch} onStatusChange={o.onStatusChange} onDateChange={o.onDateChange} onTableChange={o.onTableChange}
+        onPageSizeChange={o.onPageSizeChange}
       />
 
       {o.unauthenticated ? (
@@ -28,8 +29,15 @@ export function OrdersPage() {
         </div>
       ) : (
         <>
-          <DataTable columns={columns} data={o.rows} loading={o.loading} emptyText="Không có đơn hàng nào" />
-          <Pagination page={o.cur} pageSize={ORDERS_PAGE} total={o.total} unit="đơn" onPageChange={o.onPageChange} />
+          {/*
+            Chỉ hiện "Đang tải…" (thay hẳn bảng) khi CHƯA có data nào (lần đầu vào trang).
+            Từ lần fetch thứ 2 trở đi (đổi trang/lọc), giữ nguyên bảng cũ + làm mờ nhẹ
+            thay vì chớp qua "Đang tải…" rồi lại hiện data — tránh hiệu ứng nháy.
+          */}
+          <div className={o.loading && o.rows.length > 0 ? 'opacity-60 transition-opacity' : undefined}>
+            <DataTable columns={columns} data={o.rows} loading={o.loading && o.rows.length === 0} emptyText="Không có đơn hàng nào" />
+          </div>
+          <Pagination page={o.cur} pageSize={o.pageSize} total={o.total} unit="đơn" onPageChange={o.onPageChange} />
         </>
       )}
 
