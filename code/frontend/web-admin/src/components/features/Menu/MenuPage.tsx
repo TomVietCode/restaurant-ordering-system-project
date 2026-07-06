@@ -9,7 +9,7 @@ import { ItemDialog } from './ItemDialog';
 import { ItemDetailDialog } from './ItemDetailDialog';
 import { MenuFilters } from './MenuFilters';
 import { getMenuColumns } from './menuColumns';
-import { useMenuItems, PAGE } from './useMenuItems';
+import { useMenuItems } from './useMenuItems';
 
 export function MenuPage() {
   const m = useMenuItems();
@@ -32,13 +32,14 @@ export function MenuPage() {
       </div>
 
       <MenuFilters
-        search={m.search} catId={m.catId} status={m.status} price={m.price} cats={m.cats}
+        search={m.search} catId={m.catId} status={m.status} price={m.price} pageSize={m.pageSize} cats={m.cats}
         onSearch={m.onSearch} onCatChange={m.onCatChange} onPriceChange={m.onPriceChange} onStatusChange={m.onStatusChange}
+        onPageSizeChange={m.onPageSizeChange}
       />
 
-      <DataTable columns={columns} data={m.visible} loading={m.loading} emptyText="Không có món nào" />
+      <DataTable columns={columns} data={m.visible} loading={m.loading} emptyText="Không có món nào" fixedLayout />
 
-      <Pagination page={m.cur} pageSize={PAGE} total={m.data.total} unit="món" onPageChange={m.onPageChange} />
+      <Pagination page={m.cur} pageSize={m.pageSize} total={m.data.total} unit="món" onPageChange={m.onPageChange} />
 
       <ItemDialog open={m.sheet} onOpenChange={m.setSheet} item={m.editing} categories={m.cats} onSave={m.onSave} />
 
