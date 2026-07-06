@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { categoryService, itemService } from '@/services/menu.service';
 import { useRealtime } from '@/hooks/use-realtime';
-import { selectPage } from '@/lib/paginate';
 import { toViError } from '@/lib/errors';
 import type { Category, Item } from '@/types/menu';
 
-export const PAGE = 8;
+export const PAGE_SIZES = [5, 10, 20, 50] as const;
+export const DEFAULT_PAGE_SIZE = 10;
 
 type Status = 'ALL' | 'REMAIN' | 'OUT';
 type PriceSort = '' | 'ASC' | 'DESC';
@@ -25,14 +25,22 @@ export function useMenuItems() {
   const pathname = usePathname();
   const sp       = useSearchParams();
 
-  // Toàn bộ item tải về 1 lần; mọi thao tác lọc/sắp xếp/phân trang đều client-side trên list này
-  const [master, setMaster]   = useState<Item[]>([]);
-  const [cats, setCats]       = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Trang hiện tại (đã lọc/sắp xếp/phân trang ở BACKEND) + tổng số liệu server trả về
+  const [items, setItems]           = useState<Item[]>([]);
+  const [cats, setCats]             = useState<Category[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [total, setTotal]           = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [reloadKey, setReloadKey]   = useState(0);
 
   // Bộ lọc — khởi tạo từ URL để chia sẻ/đổi tab giữ nguyên trạng thái
-  const [cur, setCur]       = useState(() => Number(sp.get('p') || 1));
-  const [search, setSearch] = useState(''); // không khôi phục từ URL — reload trang là ô tìm kiếm trống
+  const [cur, setCur]           = useState(() => Number(sp.get('p') || 1));
+  const [pageSize, setPageSize] = useState(() => {
+    const v = Number(sp.get('ps'));
+    return (PAGE_SIZES as readonly number[]).includes(v) ? v : DEFAULT_PAGE_SIZE;
+  });
+  const [search, setSearch]                   = useState(''); // không khôi phục từ URL — reload trang là ô tìm kiếm trống
+  const [searchDebounced, setSearchDebounced] = useState('');
   const [catId, setCatId]   = useState<number | undefined>(() => { const v = sp.get('cat'); return v ? Number(v) : undefined; });
   const [status, setStatus] = useState<Status>(() => { const v = sp.get('s'); return (v === 'REMAIN' || v === 'OUT') ? v : 'ALL'; });
   const [price, setPrice]   = useState<PriceSort>(() => { const v = sp.get('sort'); return (v === 'ASC' || v === 'DESC') ? v : ''; });
@@ -46,31 +54,57 @@ export function useMenuItems() {
   const [toggleLoading, setTL]          = useState(false);
   const [detailTarget, setDetailTarget] = useState<Item | null>(null);
 
+  // Debounce ô tìm kiếm 300ms trước khi gửi request lên backend
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Danh mục — tải 1 lần để đổ vào bộ lọc + dialog thêm/sửa
+  useEffect(() => {
+    if (!token) return;
+    let ok = true;
+    categoryService.getAll(token).then(c => { if (ok) setCats(c); }).catch(() => {});
+    return () => { ok = false; };
+  }, [token]);
+
+  // Tải trang món ăn hiện tại: tìm kiếm/lọc danh mục/trạng thái/sắp xếp/phân trang đều xử lý ở BACKEND.
+  // ⚠️ isRemain: BE (QueryItemsDto) chưa whitelist field này nên khi lọc Còn/Hết hàng sẽ bị 400 —
+  // toast lỗi tiếng Việt sẽ hiện cho tới khi BE bổ sung hỗ trợ.
   useEffect(() => {
     if (!token) return;
     let ok = true;
     void (async () => {
       setLoading(true);
       try {
-        const [items, categories] = await Promise.all([
-          itemService.getAllItems(token),
-          categoryService.getAll(token),
-        ]);
+        const res = await itemService.getAll({
+          page: cur, limit: pageSize,
+          search: searchDebounced || undefined,
+          categoryId: catId,
+          isRemain: status === 'ALL' ? undefined : status === 'REMAIN',
+          ...(price ? { sortBy: 'price' as const, sortOrder: price } : {}),
+        }, token);
         if (!ok) return;
-        setMaster(items);
-        setCats(categories);
-      } catch {
-        if (ok) toast.error('Không thể tải danh sách món');
+        // Nếu filter làm giảm số trang khiến trang hiện tại vượt quá → nhảy về trang cuối hợp lệ
+        if (res.totalPages > 0 && cur > res.totalPages) {
+          setCur(res.totalPages);
+        } else {
+          setItems(res.items);
+        }
+        setTotal(res.total);
+        setTotalPages(res.totalPages);
+      } catch (ex) {
+        if (ok) toast.error(toViError(ex, 'Không thể tải danh sách món'));
       } finally {
         if (ok) setLoading(false);
       }
     })();
     return () => { ok = false; };
-  }, [token]);
+  }, [token, cur, pageSize, searchDebounced, catId, status, price, reloadKey]);
 
   // Realtime: khi 1 món được bật/tắt còn hàng (kể cả từ tab/thiết bị khác hoặc do BE) → cập nhật ngay
   useRealtime<{ itemId: number; isRemain: boolean }>('menu:item-availability-changed', ({ itemId, isRemain }) => {
-    setMaster(prev => prev.map(i => i.id === itemId ? { ...i, isRemain } : i));
+    setItems(prev => prev.map(i => i.id === itemId ? { ...i, isRemain } : i));
   });
 
   // Cập nhật URL khi filter đổi. Hàm thường (không memo) nên luôn đọc `sp` mới nhất của render hiện tại.
@@ -83,34 +117,14 @@ export function useMenuItems() {
     router.replace(`${pathname}?${p.toString()}`, { scroll: false });
   }
 
-  // Lọc + sắp xếp client-side (mặc định mới nhất trước, khớp default createdAt DESC của BE)
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    let list = master;
-    if (q)              list = list.filter(i => i.name.toLowerCase().includes(q));
-    if (catId)          list = list.filter(i => i.categoryId === catId);
-    if (status !== 'ALL') list = list.filter(i => status === 'REMAIN' ? i.isRemain : !i.isRemain);
-    return list.slice().sort((a, b) =>
-      price
-        ? (price === 'ASC' ? a.price - b.price : b.price - a.price)
-        : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-  }, [master, search, catId, status, price]);
+  const reload = () => setReloadKey(k => k + 1);
 
-  const { total, totalPages, page, rows: visible } = selectPage(filtered, cur, PAGE);
-
-  const onSearch     = (v: string) => { setSearch(v); setCur(1); pushUrl({ q: undefined, p: undefined }); };
-  const onCatChange  = (v: number | undefined) => { setCatId(v); setCur(1); pushUrl({ cat: v, p: undefined }); };
-  const onPriceChange = (v: PriceSort) => { setPrice(v); setCur(1); pushUrl({ sort: v, p: undefined }); };
-  const onStatusChange = (v: Status) => { setStatus(v); setCur(1); pushUrl({ s: v, p: undefined }); };
-  const onPageChange = (n: number) => { setCur(n); pushUrl({ p: n }); };
-
-  // POST/PATCH /items chỉ trả categoryId, KHÔNG kèm object `category` → cột "Danh mục" sẽ hiện "—".
-  // Gắn lại category từ danh sách `cats` đã có để hiển thị đúng ngay, không cần tải lại toàn bộ.
-  function withCategory(it: Item): Item {
-    const cat = cats.find(c => c.id === it.categoryId);
-    return cat ? { ...it, category: cat } : it;
-  }
+  const onSearch         = (v: string) => { setSearch(v); setCur(1); };
+  const onCatChange      = (v: number | undefined) => { setCatId(v); setCur(1); pushUrl({ cat: v, p: undefined }); };
+  const onPriceChange    = (v: PriceSort) => { setPrice(v); setCur(1); pushUrl({ sort: v, p: undefined }); };
+  const onStatusChange   = (v: Status) => { setStatus(v); setCur(1); pushUrl({ s: v, p: undefined }); };
+  const onPageChange     = (n: number) => { setCur(n); pushUrl({ p: n }); };
+  const onPageSizeChange = (n: number) => { setPageSize(n); setCur(1); pushUrl({ ps: n === DEFAULT_PAGE_SIZE ? undefined : n, p: undefined }); };
 
   async function onSave(f: SaveForm, id?: number) {
     const dto = {
@@ -121,17 +135,16 @@ export function useMenuItems() {
     };
     try {
       if (id) {
-        const updated = withCategory(await itemService.update(id, dto, token));
-        setMaster(prev => prev.map(i => i.id === id ? updated : i));
+        await itemService.update(id, dto, token);
         toast.success('Đã cập nhật');
       } else {
-        const created = withCategory(await itemService.create(dto, token));
-        setMaster(prev => [created, ...prev]);
+        await itemService.create(dto, token);
         toast.success('Thêm thành công');
         // Bỏ lọc danh mục/trạng thái + về trang 1 để món mới chắc chắn hiển thị
         setCatId(undefined); setStatus('ALL'); setCur(1);
         pushUrl({ cat: undefined, s: undefined, p: undefined });
       }
+      reload(); // tải lại trang hiện tại từ server để dữ liệu (kể cả category join) luôn chính xác
     } catch (ex) {
       console.error('Save item error:', ex);
       toast.error(toViError(ex, id ? 'Không thể sửa thông tin món. Vui lòng thử lại.' : 'Không thể tạo món mới. Vui lòng thử lại.'));
@@ -148,8 +161,8 @@ export function useMenuItems() {
     setTL(true);
     try {
       const updated = await itemService.toggleAvailability(item.id, !item.isRemain, token);
-      // Cập nhật local ngay; realtime sẽ phát cùng giá trị nên idempotent
-      setMaster(prev => prev.map(i => i.id === item.id ? { ...i, isRemain: updated.isRemain } : i));
+      // Cập nhật ngay trên trang hiện tại; realtime sẽ phát cùng giá trị nên idempotent
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, isRemain: updated.isRemain } : i));
       setToggleTarget(null);
     } catch (ex) {
       toast.error(toViError(ex, 'Không thể thay đổi trạng thái món. Vui lòng thử lại.'));
@@ -163,9 +176,9 @@ export function useMenuItems() {
     setDL(true);
     try {
       await itemService.remove(delTarget.id, token);
-      setMaster(prev => prev.filter(i => i.id !== delTarget.id));
       toast.success('Đã xóa');
       setDel(null);
+      reload(); // tải lại để tổng số/số trang luôn đúng sau khi xóa
     } catch (ex) {
       toast.error(toViError(ex, 'Không thể xóa món. Vui lòng thử lại.'));
     } finally {
@@ -174,13 +187,13 @@ export function useMenuItems() {
   }
 
   return {
-    cats, loading, visible,
-    cur: page, search, catId, status, price,
+    cats, loading, visible: items,
+    cur, pageSize, search, catId, status, price,
     data: { total, totalPages },
     sheet, setSheet, editing, setEditing, delTarget, setDel, delLoading,
     toggleTarget, setToggleTarget, toggleLoading,
     detailTarget, setDetailTarget,
-    onSearch, onCatChange, onPriceChange, onStatusChange, onPageChange,
+    onSearch, onCatChange, onPriceChange, onStatusChange, onPageChange, onPageSizeChange,
     onSave, onToggleClick, confirmToggle, onDelete,
   };
 }

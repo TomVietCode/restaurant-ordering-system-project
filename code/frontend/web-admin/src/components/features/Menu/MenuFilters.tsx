@@ -3,6 +3,7 @@
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { PAGE_SIZES } from './useMenuItems';
 import type { Category } from '@/types/menu';
 
 type Status = 'ALL' | 'REMAIN' | 'OUT';
@@ -17,11 +18,13 @@ interface Props {
   catId: number | undefined;
   status: Status;
   price: PriceSort;
+  pageSize: number;
   cats: Category[];
   onSearch: (v: string) => void;
   onCatChange: (v: number | undefined) => void;
   onPriceChange: (v: PriceSort) => void;
   onStatusChange: (v: Status) => void;
+  onPageSizeChange: (v: number) => void;
 }
 
 function FilterSelect({ value, options, width, onChange }: { value: string; options: Option[]; width: string; onChange: (v: string) => void }) {
@@ -37,7 +40,7 @@ function FilterSelect({ value, options, width, onChange }: { value: string; opti
   );
 }
 
-export function MenuFilters({ search, catId, status, price, cats, onSearch, onCatChange, onPriceChange, onStatusChange }: Props) {
+export function MenuFilters({ search, catId, status, price, pageSize, cats, onSearch, onCatChange, onPriceChange, onStatusChange, onPageSizeChange }: Props) {
   return (
     <div className="flex flex-wrap gap-2">
       <div className="relative min-w-48 flex-1">
@@ -56,6 +59,10 @@ export function MenuFilters({ search, catId, status, price, cats, onSearch, onCa
       <FilterSelect width={SELECT_W} value={status}
         options={[{ value: 'ALL', label: 'Trạng thái' }, { value: 'REMAIN', label: 'Còn hàng' }, { value: 'OUT', label: 'Hết hàng' }]}
         onChange={v => onStatusChange(v as Status)} />
+
+      <FilterSelect width="w-32" value={String(pageSize)}
+        options={PAGE_SIZES.map(n => ({ value: String(n), label: `${n} / trang` }))}
+        onChange={v => onPageSizeChange(Number(v))} />
     </div>
   );
 }
