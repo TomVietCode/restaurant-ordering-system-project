@@ -15,6 +15,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { ItemsModule } from '@modules/items/item.module.js';
 import { RealtimeModule } from '@modules/realtime/realtime.module.js';
 import { OrdersModule } from '@modules/orders/orders.module.js';
+import { MailModule } from '@modules/mail/mail.module.js';
 import { ReportsModule } from '@modules/reports/reports.module.js';
 import { VnpayModule,  } from 'nestjs-vnpay';
 import { HashAlgorithm } from 'vnpay';
@@ -47,6 +48,7 @@ import { HashAlgorithm } from 'vnpay';
     ItemsModule,
     RealtimeModule,
     OrdersModule,
+    MailModule,
     ReportsModule
   ],
   controllers: [AppController],

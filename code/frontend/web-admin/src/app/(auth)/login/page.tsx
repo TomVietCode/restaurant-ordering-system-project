@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ForgotPasswordTrigger } from '@/components/features/auth/forgot-password-trigger';
 
 // Server Action — chạy trên server, gọi signIn từ @/auth.
 async function login(formData: FormData) {
@@ -56,9 +57,12 @@ export default async function LoginPage(props: {
               />
             </div>
             <div className="grid gap-1 mt-3">
-              <Label htmlFor="password" className="text-sm md:text-base font-semibold">
-                Mật khẩu
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-sm md:text-base font-semibold">
+                  Mật khẩu
+                </Label>
+                <ForgotPasswordTrigger />
+              </div>
               <Input
                 id="password"
                 name="password"

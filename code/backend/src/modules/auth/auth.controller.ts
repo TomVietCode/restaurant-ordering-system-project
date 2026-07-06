@@ -1,10 +1,15 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Res, UnauthorizedException } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { TokenResponseDto } from './dto/token-response.dto.js';
+import { OldPasswordDto, NewPasswordAndOtpDto, EmailDto } from './dto/reset-password.dtos.js';
+import { UpdateProfileDto } from './dto/update-profile.dto.js';
+import { UserResponseDto } from '@modules/users/dtos/user-dtos.js';
 import { Public, CurrentUser, Cookies } from '@common/decorators/index.js';
+import { ApiResponseDto } from '@common/dtos/api-response.dto.js';
+import { AuthGuard } from '@nestjs/passport';
 
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
@@ -133,5 +138,66 @@ export class AuthController {
     data: Record<string, unknown>;
   }> {
     return { success: true, data: user };
+  }
+
+  @Patch('profile')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update current authenticated user profile (fullName and phone only)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Profile updated successfully',
+    type: UserResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid input data',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Missing or invalid access token',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Phone number already exists',
+  })
+  async updateProfile(
+    @CurrentUser('id') currentId: number,
+    @Body() dto: UpdateProfileDto,
+  ): Promise<ApiResponseDto<UserResponseDto>> {
+    const updatedUser = await this.authService.updateProfile(currentId, dto);
+    return ApiResponseDto.success(updatedUser, 'Profile updated successfully');
+  }
+
+  @Post('password/verify-password')
+  @ApiBearerAuth('JWT-auth')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify old password of user before update password' })
+  @ApiResponse({ status: 200, description: 'Old password is correct' })
+  @ApiResponse({ status: 400, description: 'Old password is incorrect' })
+  async changePasswordRequest(@CurrentUser('id') currentId: number, @Body() dto: OldPasswordDto): Promise<ApiResponseDto<null>> {
+    await this.authService.changePasswordRequest(currentId, dto);
+    return ApiResponseDto.success(null, 'Otp was sent to your email');
+  }
+
+  @Post('password/verify-otp')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Verify otp before update password' })
+  @ApiResponse({ status: 200, description: 'otp is correct' })
+  @ApiResponse({ status: 400, description: 'otp does not exist' })
+  async changePasswordVerify(@Body() dto: NewPasswordAndOtpDto): Promise<ApiResponseDto<null>> {
+    await this.authService.changePasswordVerify(dto);
+    return ApiResponseDto.success(null, 'OTP verified successfully. Your password has been updated');
+  }
+  
+  @Post('password/forgot')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reset password' })
+  @ApiResponse({ status: 200, description: 'otp was sent to email' })
+  @ApiResponse({ status: 400, description: 'email does not exist' })
+  async forgetPassword(@Body() dto: EmailDto): Promise<ApiResponseDto<null>> {
+    await this.authService.forgetPassword(dto);
+    return ApiResponseDto.success(null, 'Otp was sent to your email');
   }
 }

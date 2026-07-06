@@ -1,20 +1,36 @@
-import { Roles, CurrentUser } from '@common/decorators';
+import { Roles, CurrentUser, Public } from '@common/decorators';
 import { Role } from '@common/enums';
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Patch, Post, Query, ParseIntPipe, NotFoundException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+  ParseIntPipe,
+  NotFoundException,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UsersService } from './users.service.js';
-import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto, ToggleActivateDto } from './dto/dtos.js';
+import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto, ToggleActivateDto } from './dtos/user-dtos.js';
 import { ApiResponseDto } from '@common/dtos/api-response.dto';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
+import { JwtAuthGuard } from '@common/guards/jwt-auth.guard.js';
 
 const ParseUserId = new ParseIntPipe({
   exceptionFactory: () => new NotFoundException('User not found'),
 });
 
+@UseGuards(JwtAuthGuard)
 @ApiTags('Users')
 @ApiBearerAuth('JWT-auth')
 @Controller('users')
-@Roles(Role.OWNER)
+// @Roles(Role.OWNER)
 export class UserController {
   constructor(private readonly userService: UsersService) {}
 
@@ -42,9 +58,8 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'User found', type: UserResponseDto })
   @ApiResponse({ status: 404, description: 'User not found' })
   async findOne(@Param('id', ParseUserId) id: number): Promise<ApiResponseDto<UserResponseDto>> {
-    const user = await this.userService.findById(id);
-    const { passwordHash, ...rest } = user;
-    return ApiResponseDto.success(rest as UserResponseDto);
+    const userResponse = await this.userService.findOne(id);
+    return ApiResponseDto.success(userResponse);
   }
 
   @Patch(':id')
@@ -64,7 +79,11 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'User updated active status successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 409, description: 'User email already exists' })
-  async toggleActivate(@Param('id', ParseUserId) id: number, @Body() dto: ToggleActivateDto, @CurrentUser('id') currentId: number): Promise<ApiResponseDto<null>> {
+  async toggleActivate(
+    @Param('id', ParseUserId) id: number,
+    @Body() dto: ToggleActivateDto,
+    @CurrentUser('id') currentId: number,
+  ): Promise<ApiResponseDto<null>> {
     await this.userService.toggleActivate(id, dto.isActive, currentId);
     return ApiResponseDto.success(null, 'User updated successfully');
   }
