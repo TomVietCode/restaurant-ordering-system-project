@@ -1,4 +1,10 @@
-// Order board — realtime, Owner & Staff (FR-06).
-export default function OrdersPage() {
-  return <h1>Bảng đơn</h1>;
+import { Suspense } from 'react';
+import { OrdersPage } from '@/components/features/orders/OrdersPage';
+
+export default function Page() {
+  return (
+    <Suspense>
+      <OrdersPage />
+    </Suspense>
+  );
 }
