@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 type Tab = "orders" | "tables";
 type Method = "CASH" | "TRANSFER";
@@ -240,9 +241,10 @@ export function CashierBoard({ initialOrders, tables, token }: Props) {
       await orderService.payOrders(token, bill.tableId, [bill.orderId], method);
       setOrders((prev) => prev.filter((o) => o.id !== bill.orderId));
       setBill(null);
+      toast.success("Thanh toán đơn hàng thành công");
     } catch (err) {
       console.error("Payment failed:", err);
-      alert("Thanh toán thất bại, vui lòng thử lại.");
+      toast.error("Thanh toán thất bại, vui lòng thử lại.");
     }
   };
 
@@ -251,8 +253,14 @@ export function CashierBoard({ initialOrders, tables, token }: Props) {
   // ──────────────────────────────────────────────────────────
 
   const handlePayTable = async (tableId: string, paymentMethod: Method) => {
-    await orderService.payTable(token, tableId, paymentMethod);
-    setOrders((prev) => prev.filter((o) => o.tableId !== tableId));
+    try {
+      await orderService.payTable(token, tableId, paymentMethod);
+      setOrders((prev) => prev.filter((o) => o.tableId !== tableId));
+      toast.success("Thanh toán toàn bộ bàn thành công");
+    } catch (err) {
+      console.error("Payment failed:", err);
+      toast.error("Thanh toán thất bại, vui lòng thử lại.");
+    }
   };
 
   const handlePayOrders = async (
@@ -260,8 +268,14 @@ export function CashierBoard({ initialOrders, tables, token }: Props) {
     orderIds: number[],
     paymentMethod: Method,
   ) => {
-    await orderService.payOrders(token, tableId, orderIds, paymentMethod);
-    setOrders((prev) => prev.filter((o) => !orderIds.includes(o.id)));
+    try {
+      await orderService.payOrders(token, tableId, orderIds, paymentMethod);
+      setOrders((prev) => prev.filter((o) => !orderIds.includes(o.id)));
+      toast.success("Thanh toán đơn hàng thành công");
+    } catch (err) {
+      console.error("Payment failed:", err);
+      toast.error("Thanh toán thất bại, vui lòng thử lại.");
+    }
   };
 
   // ──────────────────────────────────────────────────────────
