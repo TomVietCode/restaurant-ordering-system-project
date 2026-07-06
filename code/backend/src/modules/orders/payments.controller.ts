@@ -56,11 +56,11 @@ export class PaymentsController {
   @Roles(Role.STAFF, Role.OWNER)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Specific orders checkout: mark a list of specific active orders for a table as PAID' })
-  @ApiResponse({ status: 200, description: 'Get payment-url successfully' })
+  @ApiResponse({ status: 200, description: 'Get payment-qr successfully' })
   @ApiResponse({ status: 400, description: 'Order status not suitable for payment' })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  async createPayment(@Param('id') orderId: number, @Ip() ipAddr: string) {
-    const paymentUrl = await this.ordersService.createPaymentUrl(orderId, ipAddr);
+  async createPaymentQr(@Param('id') orderId: number, @Ip() ipAddr: string) {
+    const paymentUrl = await this.ordersService.createPaymentQr(orderId, ipAddr);
     return ApiResponseDto.success(paymentUrl, 'Get payment-url successfully');
   }
 
