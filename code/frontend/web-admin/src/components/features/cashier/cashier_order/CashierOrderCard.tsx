@@ -60,7 +60,7 @@ export function CashierOrderCard({
         {onPay && (
           <Button
             size="sm"
-            className="w-full bg-green-500 text-xs text-white hover:bg-green-600 py-4"
+            className="flex-1 bg-green-500 text-xs text-white hover:bg-green-600 py-4"
             onClick={onPay}
           >
             Thanh toán đơn này

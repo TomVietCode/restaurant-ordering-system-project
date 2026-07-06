@@ -1,8 +1,8 @@
 import { Injectable, Inject, BadRequestException, NotFoundException, Logger, InternalServerErrorException } from '@nestjs/common';
-import { DataSource, EntityManager, In, QueryFailedError } from 'typeorm';
+import { DataSource, EntityManager, In } from 'typeorm';
 import { generateTrackingCode } from '@common/utils/tracking-code.util.js';
 import { ORDER_REPO_TOKEN, REALTIME_SERVICE_TOKEN } from '@common/constants.js';
-import { OrderStatus, TableStatus } from '@common/enums.js';
+import { OrderStatus, PaymentMethod, TableStatus } from '@common/enums.js';
 import type { IOrderRepository, OrderQueryOptions } from './repositories/order.repository.interface.js';
 import type { IRealtimeService } from '@modules/realtime/realtime.service.interface.js';
 import { TableService } from '@modules/tables/table.service.js';
@@ -15,6 +15,9 @@ import { Order } from './entities/order.entity.js';
 import { OrderItem } from './entities/order-item.entity.js';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
 import { Table } from '@modules/tables/table.entity.js';
+import { VnpayService } from 'nestjs-vnpay';
+import { ConfigService } from '@nestjs/config';
+import { VnpayIpnResponse, VnpayReturn } from './dtos/vnpay-ipn-response.js';
 
 const STATE_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   [OrderStatus.NEW]: [OrderStatus.PREPARING, OrderStatus.CANCEL],
@@ -39,6 +42,9 @@ export class OrdersService {
     private readonly realtimeService: IRealtimeService,
 
     private readonly dataSource: DataSource,
+
+    private readonly vnpayService: VnpayService,
+    private readonly configService: ConfigService,
   ) {}
 
   //  PUBLIC CUSTOMER ENDPOINTS
@@ -93,6 +99,7 @@ export class OrdersService {
     order.orderItems = orderItems;
 
     // 4. Save in a transaction
+    let tableStatusChanged = false;
     const savedOrder = await this.dataSource.transaction(async (manager) => {
       const saved = await manager.save(Order, order);
 
@@ -100,10 +107,19 @@ export class OrdersService {
       if (table.status === TableStatus.AVAILABLE) {
         table.status = TableStatus.OCCUPIED;
         await manager.save(table);
+        tableStatusChanged = true;
       }
 
       return saved;
     });
+
+    // 5.1 Emit table status change if changed
+    if (tableStatusChanged) {
+      this.realtimeService.emit('table:status-changed', {
+        tableId: table.id,
+        status: TableStatus.OCCUPIED,
+      });
+    }
 
     // 6. Emit realtime event to staff
     this.realtimeService.emit('order:new', {
@@ -227,11 +243,7 @@ export class OrdersService {
       const saved = await manager.save(Order, activeOrders);
 
       // Free the table since all orders are now paid
-      const table = await manager.findOne(Table, { where: { id: tableId } });
-      if (table) {
-        table.status = TableStatus.AVAILABLE;
-        await manager.save(table);
-      }
+      await this.freeTableIfAllPaid(tableId, manager);
 
       return saved;
     });
@@ -293,21 +305,8 @@ export class OrdersService {
 
       const saved = await manager.save(Order, orders);
 
-      // Check if all orders for this table are now terminal inside the transaction
-      const activeCount = await manager.count(Order, {
-        where: {
-          tableId,
-          status: In([OrderStatus.NEW, OrderStatus.PREPARING, OrderStatus.SERVED]),
-        },
-      });
-
-      if (activeCount === 0) {
-        const table = await manager.findOne(Table, { where: { id: tableId } });
-        if (table) {
-          table.status = TableStatus.AVAILABLE;
-          await manager.save(table);
-        }
-      }
+      // Free the table since all orders are now paid
+      await this.freeTableIfAllPaid(tableId, manager);
 
       return saved;
     });
@@ -329,6 +328,121 @@ export class OrdersService {
   }
 
   // ────────────────────────────────────────────────────────────
+  //  PAYMENT BUSSINESS
+  // ────────────────────────────────────────────────────────────
+  async getBankList() {
+    return await this.vnpayService.getBankList();
+  }
+
+  async createPaymentQr(orderId: number, ipAddr: string): Promise<string> {
+    const order = await this.findById(orderId);
+
+    if (order.status !== OrderStatus.SERVED) {
+      throw new BadRequestException('Order is not payable');
+    }
+
+    // Build a VNPay redirect URL (the browser is sent to VNPay's payment page).
+    // `buildPaymentUrl` signs the URL with the merchant secret and returns a
+    // string; `vnp_ReturnUrl` is where VNPay sends the browser back afterwards.
+    const paymentUrl = this.vnpayService.buildPaymentUrl({
+      vnp_Amount: order.totalAmount,
+      vnp_OrderInfo: `Thanh toan don hang ${order.id}`,
+      vnp_TxnRef: order.id.toString(),
+      vnp_IpAddr: ipAddr,
+      vnp_ReturnUrl: this.configService.getOrThrow<string>('vnpay.returnUrl'),
+    });
+    return paymentUrl;
+  }
+
+  async handleVnpayIpn(query: any): Promise<VnpayIpnResponse> {
+    // const isValid = await this.vnpayService.verifyIpnCall(query);
+    // if (!isValid) {
+    //   return { RspCode: '97', Message: 'Invalid signature' };
+    // }
+    // if (!query.vnp_ResponseCode) {
+    //   return { RspCode: '99', Message: 'Missing response code' };
+    // }
+
+    const orderId = Number(query.vnp_TxnRef);
+    if (Number.isNaN(orderId)) {
+      return { RspCode: '01', Message: 'Invalid TxnRef' };
+    }
+
+    const order = await this.findById(orderId);
+
+    if (!order) {
+      return { RspCode: '01', Message: 'Order not found' };
+    }
+
+    if (Number(query.vnp_Amount) !== order.totalAmount * 100) {
+      return { RspCode: '00', Message: 'Invalid amount' };
+    }
+    if (order.status !== OrderStatus.SERVED) {
+      return { RspCode: '00', Message: 'Order status invalid' };
+    }
+
+    if (query.vnp_ResponseCode === '00' && query.vnp_TransactionStatus === '00') {
+      order.paidAt = new Date();
+      order.paymentMethod = PaymentMethod.TRANSFER;
+      order.status = OrderStatus.PAID;
+
+      const savedOrder = await this.dataSource.transaction(async (manager) => {
+        const saved = await manager.save(Order, order);
+        await this.freeTableIfAllPaid(saved.tableId, manager);
+        return saved;
+      });
+
+      // Emit status change to the order's tracking room + staff broadcast
+      const payload = {
+        trackingCode: savedOrder.trackingCode,
+        orderId: savedOrder.id,
+        status: savedOrder.status,
+      };
+      this.realtimeService.emitToRoom(`order:track:${savedOrder.trackingCode}`, 'order:status-changed', payload);
+      this.realtimeService.emit('order:status-changed', payload);
+
+      return { RspCode: '00', Message: 'Success' };
+    }
+
+    return { RspCode: '04', Message: 'Failed recorded' };
+  }
+
+  async handleVnpayReturn(query: any): Promise<VnpayReturn> {
+    const result = await this.handleVnpayIpn(query);
+    if(result.Message !== 'Success') {
+      console.log("VNPay return failed: ", result);
+      return { isSuccess: false, message: result.Message };
+    }
+
+    const isValid = await this.vnpayService.verifyReturnUrl(query);
+    if (!isValid) {
+      return { isSuccess: false, message: 'Invalid signature' };
+    }
+
+    const orderId = Number(query.vnp_TxnRef);
+
+    if (Number.isNaN(orderId)) {
+      return { isSuccess: false, message: 'Invalid transaction reference' };
+    }
+
+    const order = await this.findById(orderId);
+
+    if (!order) {
+      return { isSuccess: false, message: 'Order not found' };
+    }
+    if (Number(query.vnp_Amount) !== order.totalAmount * 100) {
+      return { isSuccess: false, message: 'Invalid amount' };
+    }
+
+    const isSuccess = query.vnp_ResponseCode === '00' && query.vnp_TransactionStatus === '00';
+
+    return {
+      isSuccess: isSuccess,
+      data: { orderId: order.id, amount: order.totalAmount },
+      message: isSuccess ? 'Payment successful' : 'Payment failed',
+    };
+  }
+  // ────────────────────────────────────────────────────────────
   //  PRIVATE HELPERS
   // ────────────────────────────────────────────────────────────
 
@@ -337,13 +451,25 @@ export class OrdersService {
    * If so, set the table as available (free).
    */
   private async freeTableIfAllPaid(tableId: string, manager: EntityManager): Promise<void> {
-    const activeCount = await this.orderRepository.countActiveOrdersByTableId(tableId);
+    const activeCount = await manager.count(Order, {
+      where: {
+        tableId,
+        status: In([OrderStatus.NEW, OrderStatus.PREPARING, OrderStatus.SERVED]),
+      },
+    });
 
     if (activeCount === 0) {
-      const table = await this.tableService.findById(tableId);
-      table.status = TableStatus.AVAILABLE;
-      await manager.save(table);
-      this.logger.log(`Table ${table.name} is now free (all orders terminal)`);
+      const table = await manager.findOne(Table, { where: { id: tableId } });
+      if (table && table.status !== TableStatus.AVAILABLE) {
+        table.status = TableStatus.AVAILABLE;
+        await manager.save(table);
+        this.logger.log(`Table ${table.name} is now free (all orders terminal)`);
+
+        this.realtimeService.emit('table:status-changed', {
+          tableId,
+          status: TableStatus.AVAILABLE,
+        });
+      }
     }
   }
 
