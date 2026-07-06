@@ -25,6 +25,7 @@ const RULES: { test: RegExp; vi: string }[] = [
   { test: /each image must be a valid url|images?_?url/i, vi: 'Đường dẫn ảnh không hợp lệ.' },
   { test: /description (cannot exceed|must be shorter)/i, vi: 'Mô tả quá dài.' },
   { test: /isremain must be/i, vi: 'Trạng thái còn hàng không hợp lệ.' },
+  { test: /isremain should not exist/i, vi: 'Lọc theo trạng thái Còn/Hết hàng hiện chưa được máy chủ hỗ trợ.' },
 
   // Lỗi máy chủ
   { test: /internal server error|API 5\d\d/i, vi: 'Máy chủ gặp sự cố. Vui lòng thử lại sau.' },

@@ -46,7 +46,7 @@ export class ReportResponseDto {
     example: '2026-01-01',
     format: 'date',
   })
-  start!: String;
+  start!: string;
 
   @ApiProperty({
     description: 'End date of the reporting period',
@@ -54,7 +54,7 @@ export class ReportResponseDto {
     type: String,
     format: 'date',
   })
-  end!: String;
+  end!: string;
 
   @ApiProperty({
     description: 'Total revenue generated during the reporting period',
@@ -135,13 +135,13 @@ export class MonthlyRevenueTrendDto {
     example: '2026-06-01',
     description: 'First day of the week',
   })
-  weekStart!: String;
+  weekStart!: string;
 
   @ApiProperty({
     example: '2026-06-08',
     description: 'Exclusive end of the week',
   })
-  weekEnd!: String;
+  weekEnd!: string;
 
   @ApiProperty({
     example: 12500000,

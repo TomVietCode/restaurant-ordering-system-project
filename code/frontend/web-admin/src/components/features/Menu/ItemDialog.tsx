@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { Pencil, Plus, TriangleAlert } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { itemService } from '@/services/menu.service';
-import { ImageUploader } from './ImageUploader';
+import { ImageUploader, type ImageUploaderHandle } from './ImageUploader';
 import type { Category, Item } from '@/types/menu';
 
 interface FormVals {
@@ -18,7 +19,6 @@ interface FormVals {
   price: number | '';
   categoryId: number;
   description: string;
-  imageUrls: string[];
   isRemain: boolean;
 }
 
@@ -32,8 +32,8 @@ interface Props {
 
 function toForm(item: Item | null): FormVals {
   return item
-    ? { name: item.name, price: item.price, categoryId: item.categoryId, description: item.description ?? '', imageUrls: item.imagesUrl ?? [], isRemain: item.isRemain }
-    : { name: '', price: '', categoryId: 0, description: '', imageUrls: [], isRemain: true };
+    ? { name: item.name, price: item.price, categoryId: item.categoryId, description: item.description ?? '', isRemain: item.isRemain }
+    : { name: '', price: '', categoryId: 0, description: '', isRemain: true };
 }
 
 function Inner({ item, categories, onOpenChange, onSave }: Omit<Props, 'open'>) {
@@ -43,8 +43,8 @@ function Inner({ item, categories, onOpenChange, onSave }: Omit<Props, 'open'>) 
   const [f, setF]                 = useState<FormVals>(toForm(item));
   const [err, setErr]             = useState<Partial<Record<keyof FormVals, string>>>({});
   const [loading, setLoading]     = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [dupWarning, setDupWarning] = useState<string | null>(null);
+  const imgRef = useRef<ImageUploaderHandle>(null);
   const submittingRef = useRef(false); // lock đồng bộ, chặn double-submit chắc chắn hơn state loading
 
   function set<K extends keyof FormVals>(k: K, v: FormVals[K]) {
@@ -80,12 +80,23 @@ function Inner({ item, categories, onOpenChange, onSave }: Omit<Props, 'open'>) 
     submittingRef.current = true;
     setLoading(true);
     try {
+      // Chỉ upload ảnh lên cloud ngay lúc bấm Lưu — trước đó chỉ là preview local
+      let imagesUrl: string[] | null;
+      try {
+        const urls = await imgRef.current?.commit() ?? [];
+        imagesUrl = urls.length ? urls : null;
+      } catch (ex) {
+        console.error('Image upload error:', ex);
+        toast.error('Tải ảnh lên thất bại, vui lòng thử lại');
+        return; // giữ dialog mở, chưa gọi onSave
+      }
+
       await onSave({
         name: f.name.trim(),
         price: Number(f.price),
         categoryId: f.categoryId,
         description: f.description.trim() || '',
-        imagesUrl: f.imageUrls.length ? f.imageUrls : null,
+        imagesUrl,
         isRemain: f.isRemain,
       }, item?.id);
       onOpenChange(false);
@@ -158,12 +169,7 @@ function Inner({ item, categories, onOpenChange, onSave }: Omit<Props, 'open'>) 
 
         {/* Ảnh + Trạng thái — 1 dòng 2 cột */}
         <div className="grid grid-cols-2 gap-3">
-          <ImageUploader
-            value={f.imageUrls}
-            onChange={urls => setF(p => ({ ...p, imageUrls: urls }))}
-            token={token}
-            onUploadingChange={setUploading}
-          />
+          <ImageUploader ref={imgRef} initialUrls={item?.imagesUrl ?? []} token={token} />
 
           {/* Trạng thái */}
           <div className="space-y-1">
@@ -188,10 +194,10 @@ function Inner({ item, categories, onOpenChange, onSave }: Omit<Props, 'open'>) 
 
         {/* Footer */}
         <div className="flex justify-end gap-2 pt-2">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading || uploading}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             Hủy bỏ
           </Button>
-          <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary-dark" disabled={loading || uploading || !isFormValid}>
+          <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary-dark" disabled={loading || !isFormValid}>
             {loading ? 'Đang lưu…' : isEdit ? 'Lưu thay đổi' : 'Thêm món'}
           </Button>
         </div>

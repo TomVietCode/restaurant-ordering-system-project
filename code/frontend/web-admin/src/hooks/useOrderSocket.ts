@@ -61,8 +61,10 @@ export function useOrderSocket(options: UseOrderSocketOptions): void {
   const onStatusChangedRef = useRef(options.onStatusChanged);
 
   // Keep refs up to date with the latest callbacks
-  onNewOrderRef.current = options.onNewOrder;
-  onStatusChangedRef.current = options.onStatusChanged;
+  useEffect(() => {
+    onNewOrderRef.current = options.onNewOrder;
+    onStatusChangedRef.current = options.onStatusChanged;
+  });
 
   useEffect(() => {
     const socket = getSocket();

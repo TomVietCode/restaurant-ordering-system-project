@@ -7,4 +7,5 @@ export interface IReportRepository extends IBaseRepository<Order> {
   getReportBetween(start: Date, end: Date): Promise<{ totalRevenue: number; totalOrders: number }>;
   getTopSellingItems(start: Date, end: Date): Promise<TopSellingItem[]>;
   getCurrentWeekRevenueTrend(start: Date, end: Date): Promise<{ date: string; revenue: number }[]>;
+  getMonthlyWeeklyTrend(firstDay: Date, lastDay: Date): Promise<{ weekStart: string; totalRevenue: number; totalOrders: number }[]>;
 }

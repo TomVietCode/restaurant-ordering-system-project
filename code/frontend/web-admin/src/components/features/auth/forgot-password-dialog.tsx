@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -24,15 +24,18 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; otp?: string; newPassword?: string; confirmPassword?: string }>({});
 
-  useEffect(() => {
-    if (!open) return;
-    setStep(1);
-    setEmail('');
-    setOtp('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setErrors({});
-  }, [open]);
+  const [prevOpen, setPrevOpen] = useState(false);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setStep(1);
+      setEmail('');
+      setOtp('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setErrors({});
+    }
+  }
 
   // Step 1: Send OTP to Email
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -52,10 +55,10 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
       await authService.forgotPassword(email.trim());
       toast.success('Mã OTP khôi phục mật khẩu đã được gửi đến email');
       setStep(2);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       let errorMsg = 'Có lỗi xảy ra khi gửi mã OTP. Vui lòng thử lại sau.';
-      const errorStr = err?.message || '';
+      const errorStr = err instanceof Error ? err.message : String(err);
 
       if (errorStr.includes('Email had not link to any user') || errorStr.includes('404')) {
         errorMsg = 'Email không liên kết với tài khoản nào trong hệ thống';
@@ -99,10 +102,10 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
       await authService.verifyOtp(otp, newPassword);
       toast.success('Khôi phục mật khẩu thành công! Bạn có thể đăng nhập bằng mật khẩu mới.');
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       let errorMsg = 'Có lỗi xảy ra khi khôi phục mật khẩu. Vui lòng thử lại sau.';
-      const errorStr = err?.message || '';
+      const errorStr = err instanceof Error ? err.message : String(err);
 
       if (errorStr.includes('OTP not correct') || errorStr.includes('OTP not corret')) {
         errorMsg = 'Mã OTP không chính xác';

@@ -55,6 +55,9 @@ export function TablesBoard() {
   const [toggling, setToggling]         = useState(false);
 
   const loadTables = useCallback(async () => {
+    // Defer state updates to the next microtask to prevent synchronous setState within the effect
+    await Promise.resolve();
+
     setLoading(true);
     setError(null);
     try {
@@ -67,7 +70,9 @@ export function TablesBoard() {
   }, [token]);
 
   useEffect(() => {
-    if (token) loadTables();
+    if (token) {
+      Promise.resolve().then(() => loadTables());
+    }
   }, [token, loadTables]);
 
   // Lắng nghe realtime khi cashier thanh toán → bàn tự đổi trạng thái
