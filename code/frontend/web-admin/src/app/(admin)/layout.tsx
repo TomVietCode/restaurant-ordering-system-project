@@ -8,9 +8,8 @@ import { SessionProvider } from 'next-auth/react';
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   const user = session?.user ?? null;
-
   return (
-    <SessionProvider>
+    <SessionProvider refetchInterval={20}>
       <SidebarProvider style={{ '--sidebar-width': '240px', '--sidebar-width-icon': '56px' } as React.CSSProperties}>
         <AppSidebar />
         <SidebarInset>

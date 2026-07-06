@@ -57,10 +57,27 @@ export class CategoriesService {
   async delete(id: number): Promise<void> {
     await this.findById(id);
 
-    const items = await this.itemRepository.findWithOptions({ where: { category: { id } } });
-    if (items.length > 0) {
-      throw new BadRequestException('Cannot delete category because items are linked to it');
+    // Retrieve both active and soft-deleted items belonging to this category.
+    const items = await this.itemRepository.findWithOptions({
+      where: { category: { id } },
+      withDeleted: true,
+    });
+
+    const activeItems = items.filter((item) => !item.deletedAt);
+    if (activeItems.length > 0) {
+      throw new BadRequestException('Cannot delete category because active items are linked to it');
     }
+
+    const softDeletedItems = items.filter((item) => !!item.deletedAt);
+    if (softDeletedItems.length > 0) {
+      // Manually set categoryId to null for all soft-deleted items.
+      // This bypasses the RESTRICT foreign key constraint at the database level.
+      for (const item of softDeletedItems) {
+        item.categoryId = null;
+      }
+      await this.itemRepository.saveMany(softDeletedItems);
+    }
+
     await this.categoryRepository.delete(id);
   }
 

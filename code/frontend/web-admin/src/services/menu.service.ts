@@ -1,170 +1,72 @@
-import { apiClient } from '@/lib/api';
+import { apiWithToken } from '@/lib/api';
 import type { Category, Item, ItemsPage, CreateCategoryDto, CreateItemDto, UpdateItemDto } from '@/types/menu';
-
-// đổi thành false khi backend sẵn sàng
-const MOCK_MODE = true;
-
-// ── Mock data ──────────────────────────────────────────────────────────────────
-
-const now = new Date().toISOString();
-
-const MOCK_CATEGORIES: Category[] = [
-  { id: 1, name: 'Cà phê',      itemCount: 1, createdAt: now, updatedAt: now },
-  { id: 2, name: 'Trà',         itemCount: 1, createdAt: now, updatedAt: now },
-  { id: 3, name: 'Đồ ăn',       itemCount: 1, createdAt: now, updatedAt: now },
-  { id: 4, name: 'Tráng miệng', itemCount: 1, createdAt: now, updatedAt: now },
-];
-
-const MOCK_ITEMS: Item[] = [
-  { id: 1, name: 'Cà phê đen',     price: 25000, imagesUrl: ['/images/yangyang.jpg'], description: 'Cà phê đậm đà', isRemain: true,  categoryId: 1, category: MOCK_CATEGORIES[0], createdAt: now, updatedAt: now, deletedAt: null },
-  { id: 2, name: 'Trà đào cam sả',  price: 35000, imagesUrl: ['/images/yangyang.jpg'], description: null,            isRemain: true,  categoryId: 2, category: MOCK_CATEGORIES[1], createdAt: now, updatedAt: now, deletedAt: null },
-  { id: 3, name: 'Cơm sườn dưa bò', price: 32000, imagesUrl: ['/images/yangyang.jpg'], description: null,            isRemain: true,  categoryId: 3, category: MOCK_CATEGORIES[2], createdAt: now, updatedAt: now, deletedAt: null },
-  { id: 4, name: 'Bánh croissant',  price: 25000, imagesUrl: ['/images/yangyang.jpg'], description: null,            isRemain: true,  categoryId: 4, category: MOCK_CATEGORIES[3], createdAt: now, updatedAt: now, deletedAt: null },
-];
-
-let mockCategories = [...MOCK_CATEGORIES];
-let mockItems      = [...MOCK_ITEMS];
-let nextCatId  = 5;
-let nextItemId = 10;
 
 interface ApiRes<T> { data: T }
 
-// ── Category Service ───────────────────────────────────────────────────────────
+export interface ItemsQuery {
+  page?: number; limit?: number; search?: string; categoryId?: number;
+  sortBy?: 'price' | 'name' | 'createdAt'; sortOrder?: 'ASC' | 'DESC';
+}
+function normalizeItem(raw: Item): Item {
+  return { ...raw, price: Number(raw.price) };
+}
 
 export const categoryService = {
-  async getAll(): Promise<Category[]> {
-    if (MOCK_MODE) {
-      return mockCategories.map(c => ({
-        ...c,
-        itemCount: mockItems.filter(i => i.categoryId === c.id).length,
-      }));
-    }
-    const res = await apiClient.get<ApiRes<Category[]>>('/categories');
+  async getAll(token?: string | null): Promise<Category[]> {
+    const res = await apiWithToken(token).get<ApiRes<Category[]>>('/categories');
     return res.data;
   },
-
-  async create(dto: CreateCategoryDto): Promise<Category> {
-    if (MOCK_MODE) {
-      if (mockCategories.some(c => c.name.toLowerCase() === dto.name.toLowerCase())) {
-        throw new Error('Tên danh mục đã tồn tại');
-      }
-      const cat: Category = { id: nextCatId++, name: dto.name, itemCount: 0, createdAt: now, updatedAt: now };
-      mockCategories = [...mockCategories, cat];
-      return cat;
-    }
-    const res = await apiClient.post<ApiRes<Category>>('/categories', dto);
+  async create(dto: CreateCategoryDto, token?: string | null): Promise<Category> {
+    const res = await apiWithToken(token).post<ApiRes<Category>>('/categories', dto);
     return res.data;
   },
-
-  async update(id: number, dto: Partial<CreateCategoryDto>): Promise<Category> {
-    if (MOCK_MODE) {
-      if (dto.name && mockCategories.some(c => c.id !== id && c.name.toLowerCase() === dto.name!.toLowerCase())) {
-        throw new Error('Tên danh mục đã tồn tại');
-      }
-      mockCategories = mockCategories.map(c => c.id === id ? { ...c, ...dto } : c);
-      return mockCategories.find(c => c.id === id)!;
-    }
-    const res = await apiClient.patch<ApiRes<Category>>(`/categories/${id}`, dto);
+  async update(id: number, dto: Partial<CreateCategoryDto>, token?: string | null): Promise<Category> {
+    const res = await apiWithToken(token).patch<ApiRes<Category>>(`/categories/${id}`, dto);
     return res.data;
   },
-
-  async remove(id: number): Promise<void> {
-    if (MOCK_MODE) {
-      const count = mockItems.filter(i => i.categoryId === id).length;
-      if (count > 0) throw new Error(`Danh mục này còn ${count} món ăn. Vui lòng chuyển hoặc xóa các món trước.`);
-      mockCategories = mockCategories.filter(c => c.id !== id);
-      return;
-    }
-    await apiClient.delete(`/categories/${id}`);
+  async remove(id: number, token?: string | null): Promise<void> {
+    await apiWithToken(token).delete(`/categories/${id}`);
   },
 };
 
-// ── Item Service ───────────────────────────────────────────────────────────────
-
-export interface ItemsQuery {
-  page?: number;
-  limit?: number;
-  search?: string;
-  categoryId?: number;
-}
-
 export const itemService = {
-  async getAll(query: ItemsQuery = {}): Promise<ItemsPage> {
-    if (MOCK_MODE) {
-      const { page = 1, limit = 10, search, categoryId } = query;
-      let filtered = mockItems;
-      if (search)     filtered = filtered.filter(i => i.name.toLowerCase().includes(search.toLowerCase()));
-      if (categoryId) filtered = filtered.filter(i => i.categoryId === categoryId);
-      const total = filtered.length;
-      const items = filtered.slice((page - 1) * limit, page * limit).map(i => ({
-        ...i,
-        category: mockCategories.find(c => c.id === i.categoryId) ?? i.category,
-      }));
-      return { items, page, limit, total, totalPages: Math.ceil(total / limit) };
-    }
-    const params = new URLSearchParams();
-    if (query.page)       params.set('page',       String(query.page));
-    if (query.limit)      params.set('limit',      String(query.limit));
-    if (query.search)     params.set('search',     query.search);
-    if (query.categoryId) params.set('categoryId', String(query.categoryId));
-    const res = await apiClient.get<ApiRes<ItemsPage>>(`/items?${params}`);
-    return res.data;
+  // Một trang item (server-side pagination) — dùng cho kiểm tra trùng tên trong ItemDialog.
+  async getAll(q: ItemsQuery = {}, token?: string | null): Promise<ItemsPage> {
+    const p = new URLSearchParams();
+    Object.entries(q).forEach(([k, v]) => { if (v !== undefined && v !== '') p.set(k, String(v)); });
+    const res = await apiWithToken(token).get<ApiRes<ItemsPage>>(`/items?${p}`);
+    return { ...res.data, items: res.data.items.map(normalizeItem) };
   },
 
-  async create(dto: CreateItemDto): Promise<Item> {
-    if (MOCK_MODE) {
-      const cat = mockCategories.find(c => c.id === dto.categoryId);
-      if (!cat) throw new Error('Danh mục không tồn tại');
-      const item: Item = {
-        id: nextItemId++,
-        name: dto.name,
-        price: dto.price,
-        imagesUrl: dto.imagesUrl ?? null,
-        description: dto.description ?? null,
-        isRemain: dto.isRemain ?? true,
-        categoryId: dto.categoryId,
-        category: cat,
-        createdAt: now, updatedAt: now, deletedAt: null,
-      };
-      mockItems = [...mockItems, item];
-      return item;
-    }
-    const res = await apiClient.post<ApiRes<Item>>('/items', dto);
-    return res.data;
+  // Toàn bộ item (duyệt hết các trang, 100 item/trang — giới hạn limit của BE).
+  // Trang /menu lọc + sắp xếp + phân trang hoàn toàn client-side trên danh sách này,
+  // vì BE không hỗ trợ lọc theo trạng thái còn/hết hàng (isRemain).
+  async getAllItems(token?: string | null): Promise<Item[]> {
+    const all: Item[] = [];
+    let page = 1;
+    let totalPages = 1;
+    do {
+      const res = await apiWithToken(token).get<ApiRes<ItemsPage>>(`/items?limit=100&page=${page}`);
+      all.push(...res.data.items.map(normalizeItem));
+      totalPages = res.data.totalPages;
+      page++;
+    } while (page <= totalPages);
+    return all;
   },
 
-  async update(id: number, dto: UpdateItemDto): Promise<Item> {
-    if (MOCK_MODE) {
-      if (dto.categoryId) {
-        const cat = mockCategories.find(c => c.id === dto.categoryId);
-        if (!cat) throw new Error('Danh mục không tồn tại');
-      }
-      mockItems = mockItems.map(i => {
-        if (i.id !== id) return i;
-        const merged = { ...i, ...dto };
-        const cat = mockCategories.find(c => c.id === merged.categoryId) ?? i.category;
-        return { ...merged, category: cat };
-      });
-      return mockItems.find(i => i.id === id)!;
-    }
-    const res = await apiClient.patch<ApiRes<Item>>(`/items/${id}`, dto);
-    return res.data;
+  async create(dto: CreateItemDto, token?: string | null): Promise<Item> {
+    const res = await apiWithToken(token).post<ApiRes<Item>>('/items', dto);
+    return normalizeItem(res.data);
   },
-
-  async toggleAvailability(id: number, isRemain: boolean): Promise<Item> {
-    if (MOCK_MODE) {
-      mockItems = mockItems.map(i => i.id === id ? { ...i, isRemain } : i);
-      return mockItems.find(i => i.id === id)!;
-    }
-    const res = await apiClient.patch<ApiRes<Item>>(`/items/${id}/availability`, { isRemain });
-    return res.data;
+  async update(id: number, dto: UpdateItemDto, token?: string | null): Promise<Item> {
+    const res = await apiWithToken(token).patch<ApiRes<Item>>(`/items/${id}`, dto);
+    return normalizeItem(res.data);
   },
-
-  async remove(id: number): Promise<void> {
-    if (MOCK_MODE) {
-      mockItems = mockItems.filter(i => i.id !== id);
-      return;
-    }
-    await apiClient.delete(`/items/${id}`);
+  async toggleAvailability(id: number, isRemain: boolean, token?: string | null): Promise<Item> {
+    const res = await apiWithToken(token).patch<ApiRes<Item>>(`/items/${id}/availability`, { isRemain });
+    return normalizeItem(res.data);
+  },
+  async remove(id: number, token?: string | null): Promise<void> {
+    await apiWithToken(token).delete(`/items/${id}`);
   },
 };
