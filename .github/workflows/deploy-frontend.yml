@@ -34,7 +34,7 @@ jobs:
             ghcr.io/tomvietcode/ioc-frontend:latest
             ghcr.io/tomvietcode/ioc-frontend:${{ github.ref_name }}
           build-args: |
-            NEXT_PUBLIC_API_URL=/api
+            NEXT_PUBLIC_API_URL=https://ioc.cuongdev.tech/api
 
       - name: Output image name
         run: |
