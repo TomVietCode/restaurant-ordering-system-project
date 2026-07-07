@@ -1,69 +1,41 @@
-name: Deploy Frontend to GitHub Pages
+name: Build and Push Frontend Docker image to GHCR
 
 on:
   push:
-    branches: ["main"]
+    tags:
+      - 'v*.*.*'
 
 permissions:
   contents: read
-  pages: write
+  packages: write
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check web-admin exists
-        id: check
-        run: |
-          if [ -d "code/frontend/web-admin" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Use Node.js
-        if: steps.check.outputs.exists == 'true'
-        uses: actions/setup-node@v4
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
         with:
-          node-version: '20'
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install dependencies
-        if: steps.check.outputs.exists == 'true'
-        run: |
-          cd code/frontend/web-admin
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
-
-      - name: Build
-        if: steps.check.outputs.exists == 'true'
-        run: |
-          cd code/frontend/web-admin
-          npm run build --if-present
-
-      - name: Check build folder
-        id: check_build
-        if: steps.check.outputs.exists == 'true'
-        run: |
-          if [ -d "code/frontend/web-admin/build" ]; then
-            echo "build=true" >> $GITHUB_OUTPUT
-          else
-            echo "build=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Deploy to GitHub Pages
-        if: steps.check_build.outputs.build == 'true'
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Build and push
+        uses: docker/build-push-action@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./code/frontend/web-admin/build
-          # If your build output is `dist`, change the path above to `./code/frontend/web-admin/dist`
+          context: ./code/frontend/web-admin
+          file: ./code/frontend/web-admin/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/tomvietcode/ioc-frontend:latest
+            ghcr.io/tomvietcode/ioc-frontend:${{ github.ref_name }}
+          build-args: |
+            NEXT_PUBLIC_API_URL=/api
 
-# Note: The workflow assumes the frontend build outputs to `build`.
-# If your project uses `dist` or another folder, update `path: build` above.
+      - name: Output image name
+        run: |
+          echo "Image pushed: ghcr.io/tomvietcode/ioc-frontend:latest"

@@ -5,3 +5,4 @@ GEMINI.md
 # Claude Code local files
 .claude/
 skills-lock.json
+.env.prod
