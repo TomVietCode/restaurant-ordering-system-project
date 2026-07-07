@@ -31,7 +31,8 @@ export default async function LoginPage(props: {
   searchParams: Promise<{ error?: string }>;
 }) {
   const searchParams = await props.searchParams;
-  const hasError = Boolean(searchParams.error);
+  const isLocked = searchParams.error === 'locked';
+  const hasError = Boolean(searchParams.error) && !isLocked;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background p-6">
@@ -76,6 +77,11 @@ export default async function LoginPage(props: {
               {hasError && (
                 <p className="text-sm md:text-base text-destructive font-medium" role="alert">
                   Email hoặc mật khẩu không đúng
+                </p>
+              )}
+              {isLocked && (
+                <p className="text-sm md:text-base text-destructive font-medium" role="alert">
+                  Tài khoản của bạn đã bị khóa.
                 </p>
               )}
             </div>

@@ -119,6 +119,9 @@ export class UserResponseDto {
 
   @ApiProperty({ description: 'Indicates if the user is active', example: true })
   isActive: boolean;
+
+  @ApiProperty({ description: 'Account creation date', example: '2026-07-01T00:00:00.000Z' })
+  createdAt: Date;
 }
 
 export class UserQueryDto {

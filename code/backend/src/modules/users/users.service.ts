@@ -33,6 +33,7 @@ export class UsersService {
       fullName: user.fullName,
       phone: user.phone || undefined,
       isActive: user.isActive,
+      createdAt: user.createdAt,
     };
   }
 
