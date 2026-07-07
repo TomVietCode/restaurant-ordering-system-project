@@ -1,6 +1,8 @@
 import { Role, type User } from '@/types/auth';
 
-export type Staff = User;
+// createdAt optional: backend UserResponseDto hiện CHƯA trả field này —
+// FE hiển thị '—' cho tới khi backend bổ sung.
+export type Staff = User & { createdAt?: string };
 
 export interface CreateStaffDto {
   fullName: string;
@@ -16,6 +18,7 @@ export interface UpdateStaffDto {
   phone?: string;
   password?: string;
   role?: Role;
+  isActive?: boolean;
 }
 
 export const ROLE_LABEL: Record<Role, string> = {

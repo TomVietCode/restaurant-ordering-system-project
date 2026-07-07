@@ -6,17 +6,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toViError } from '@/lib/errors';
 import { Role } from '@/types/auth';
 import { ROLE_LABEL } from '@/types/staff';
 import type { Staff, CreateStaffDto, UpdateStaffDto } from '@/types/staff';
 
+/** DTO của form — khi tạo, isActive không gửi lên POST /users (backend không nhận), useStaffs xử lý riêng. */
+export type StaffFormDto = (CreateStaffDto | UpdateStaffDto) & { isActive?: boolean };
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   staff: Staff | null;
-  onSave: (dto: CreateStaffDto | UpdateStaffDto, id?: number) => Promise<void>;
+  onSave: (dto: StaffFormDto, id?: number) => Promise<void>;
+  /** Email của người đang đăng nhập — không cho tự khóa tài khoản của chính mình. */
+  currentEmail?: string | null;
 }
 
 interface FieldErrors {
@@ -25,16 +31,19 @@ interface FieldErrors {
   password?: string;
 }
 
-function Inner({ staff, onOpenChange, onSave }: Omit<Props, 'open'>) {
+function Inner({ staff, onOpenChange, onSave, currentEmail }: Omit<Props, 'open'>) {
   const [fullName, setFullName] = useState(staff?.fullName ?? '');
   const [email, setEmail]       = useState(staff?.email ?? '');
   const [phone, setPhone]       = useState(staff?.phone ?? '');
   const [password, setPassword] = useState('');
   const [role, setRole]         = useState<Role>(staff?.role ?? Role.STAFF);
+  // Tạo mới → mặc định đang hoạt động
+  const [isActive, setIsActive] = useState(staff?.isActive ?? true);
   const [errors, setErrors]     = useState<FieldErrors>({});
   const [loading, setLoading]   = useState(false);
 
   const isEdit = !!staff;
+  const isSelf = isEdit && !!currentEmail && staff.email === currentEmail;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,11 +56,11 @@ function Inner({ staff, onOpenChange, onSave }: Omit<Props, 'open'>) {
 
     setLoading(true);
     try {
-      const base = { fullName: fullName.trim(), email: email.trim(), phone: phone.trim() || undefined, role };
+      const base = { fullName: fullName.trim(), email: email.trim(), phone: phone.trim() || undefined, role, isActive };
       if (isEdit) {
         await onSave({ ...base, ...(password ? { password } : {}) }, staff.id);
       } else {
-        await onSave({ ...base, password } as CreateStaffDto);
+        await onSave({ ...base, password });
       }
       onOpenChange(false);
     } catch (err) {
@@ -121,6 +130,20 @@ function Inner({ staff, onOpenChange, onSave }: Omit<Props, 'open'>) {
             ))}
           </RadioGroup>
         </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="staff-active">Trạng thái tài khoản</Label>
+          <div className="flex items-center gap-3">
+            <Switch
+              id="staff-active" checked={isActive} disabled={isSelf}
+              onCheckedChange={v => setIsActive(!!v)}
+            />
+            <span className="text-sm text-muted-foreground">
+              {isActive ? 'Đang hoạt động' : 'Đã khóa'}
+            </span>
+          </div>
+          {isSelf && <p className="text-xs text-muted-foreground">Bạn không thể tự khóa tài khoản của chính mình.</p>}
+        </div>
       </form>
 
       <DialogFooter>
@@ -133,10 +156,10 @@ function Inner({ staff, onOpenChange, onSave }: Omit<Props, 'open'>) {
   );
 }
 
-export function StaffFormDialog({ open, onOpenChange, staff, onSave }: Props) {
+export function StaffFormDialog({ open, onOpenChange, staff, onSave, currentEmail }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {open && <Inner key={staff?.id ?? 'new'} staff={staff} onOpenChange={onOpenChange} onSave={onSave} />}
+      {open && <Inner key={staff?.id ?? 'new'} staff={staff} onOpenChange={onOpenChange} onSave={onSave} currentEmail={currentEmail} />}
     </Dialog>
   );
 }

@@ -16,6 +16,7 @@ export function StaffsPage() {
     onEdit: staff => { s.setEditTarget(staff); s.setFormOpen(true); },
     onToggle: s.setToggleTarget,
     onDelete: s.setDelTarget,
+    currentEmail: s.currentEmail,
   });
 
   return (
@@ -38,7 +39,7 @@ export function StaffsPage() {
       </div>
       <Pagination page={s.cur} pageSize={s.pageSize || DEFAULT_PAGE_SIZE} total={s.total} unit="nhân viên" onPageChange={s.onPageChange} />
 
-      <StaffFormDialog open={s.formOpen} onOpenChange={s.setFormOpen} staff={s.editTarget} onSave={s.handleSave} />
+      <StaffFormDialog open={s.formOpen} onOpenChange={s.setFormOpen} staff={s.editTarget} onSave={s.handleSave} currentEmail={s.currentEmail} />
 
       <ConfirmDialog
         open={!!s.toggleTarget}

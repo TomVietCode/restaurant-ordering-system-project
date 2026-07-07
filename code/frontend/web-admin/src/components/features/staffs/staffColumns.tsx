@@ -7,9 +7,17 @@ interface Args {
   onEdit: (s: Staff) => void;
   onToggle: (s: Staff) => void;
   onDelete: (s: Staff) => void;
+  /** Email của người đang đăng nhập — không cho tự khóa tài khoản của chính mình. */
+  currentEmail?: string | null;
 }
 
-export function getStaffColumns({ onEdit, onToggle, onDelete }: Args): ColumnDef<Staff>[] {
+function formatDate(iso?: string) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('vi-VN');
+}
+
+export function getStaffColumns({ onEdit, onToggle, onDelete, currentEmail }: Args): ColumnDef<Staff>[] {
   return [
     {
       accessorKey: 'fullName',
@@ -25,6 +33,11 @@ export function getStaffColumns({ onEdit, onToggle, onDelete }: Args): ColumnDef
       accessorKey: 'phone',
       header: 'Số điện thoại',
       cell: ({ row }) => <span className="text-muted-foreground">{row.original.phone ?? '—'}</span>,
+    },
+    {
+      accessorKey: 'createdAt',
+      header: 'Ngày tạo',
+      cell: ({ row }) => <span className="text-muted-foreground">{formatDate(row.original.createdAt)}</span>,
     },
     {
       accessorKey: 'role',
@@ -44,7 +57,7 @@ export function getStaffColumns({ onEdit, onToggle, onDelete }: Args): ColumnDef
         const active = row.original.isActive;
         return (
           <div className="flex justify-center">
-            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${active ? 'bg-status-served text-status-served-foreground' : 'bg-status-cancel text-status-cancel-foreground'}`}>
+            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${active ? 'bg-status-paid text-status-paid-foreground' : 'bg-status-cancel text-status-cancel-foreground'}`}>
               {active ? 'Đang hoạt động' : 'Đã khóa'}
             </span>
           </div>
@@ -56,11 +69,13 @@ export function getStaffColumns({ onEdit, onToggle, onDelete }: Args): ColumnDef
       header: () => <div className="text-right">Thao tác</div>,
       cell: ({ row }) => {
         const s = row.original;
+        const isSelf = !!currentEmail && s.email === currentEmail;
         return (
           <div className="flex justify-end gap-1">
             <Button size="icon" variant="ghost" className="size-8 text-muted-foreground hover:text-foreground"
-              onClick={() => onToggle(s)} title={s.isActive ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}>
-              {s.isActive ? <Lock className="size-4" /> : <Unlock className="size-4" />}
+              onClick={() => onToggle(s)} disabled={isSelf}
+              title={isSelf ? 'Không thể khóa tài khoản của chính mình' : s.isActive ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}>
+              {s.isActive ? <Unlock className="size-4" /> : <Lock className="size-4" />}
             </Button>
             <Button size="icon" variant="ghost" className="size-8 text-muted-foreground hover:text-foreground"
               onClick={() => onEdit(s)} title="Sửa">
