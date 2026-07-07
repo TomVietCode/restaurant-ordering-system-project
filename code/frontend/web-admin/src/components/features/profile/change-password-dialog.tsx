@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { signOut } from 'next-auth/react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -26,16 +26,18 @@ export function ChangePasswordDialog({ open, onOpenChange, token }: ChangePasswo
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ oldPassword?: string; otp?: string; newPassword?: string; confirmPassword?: string }>({});
 
-  // Reset state when opening/closing
-  useEffect(() => {
-    if (!open) return;
-    setStep(1);
-    setOldPassword('');
-    setOtp('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setErrors({});
-  }, [open]);
+  const [prevOpen, setPrevOpen] = useState(false);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setStep(1);
+      setOldPassword('');
+      setOtp('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setErrors({});
+    }
+  }
 
   // Step 1: Verify Current Password
   const handleVerifyPassword = async (e: React.FormEvent) => {
@@ -55,10 +57,10 @@ export function ChangePasswordDialog({ open, onOpenChange, token }: ChangePasswo
       await authService.verifyPassword(token, oldPassword);
       toast.success('Mã OTP đã được gửi đến email của bạn');
       setStep(2);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       let errorMsg = 'Có lỗi xảy ra khi xác thực mật khẩu. Vui lòng thử lại sau.';
-      const errorStr = err?.message || '';
+      const errorStr = err instanceof Error ? err.message : String(err);
 
       if (errorStr.includes('Old password invalid')) {
         errorMsg = 'Mật khẩu hiện tại không chính xác';
@@ -106,10 +108,10 @@ export function ChangePasswordDialog({ open, onOpenChange, token }: ChangePasswo
       setTimeout(() => {
         signOut({ callbackUrl: '/login' });
       }, 1500);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
       let errorMsg = 'Có lỗi xảy ra khi cập nhật mật khẩu. Vui lòng thử lại sau.';
-      const errorStr = err?.message || '';
+      const errorStr = err instanceof Error ? err.message : String(err);
 
       if (errorStr.includes('OTP not correct') || errorStr.includes('OTP not corret')) {
         errorMsg = 'Mã OTP không chính xác';

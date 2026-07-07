@@ -52,8 +52,7 @@ export function AppHeader({
   const router = useRouter();
   const tab = searchParams.get('tab') ?? 'orders';
 
-  const baseTitle = pageTitles[pathname] ?? 'Trang quản lý';
-  const title = pathname === '/dashboard' ? `${baseTitle} — Hôm nay` : baseTitle;
+  const title = pageTitles[pathname] ?? 'Trang quản lý';
   const initial = user?.name?.charAt(0)?.toUpperCase() ?? 'A';
   
   const derivedBackHref = backHref ?? (['/kitchen', '/cashier'].includes(pathname) ? '/select-role' : undefined);

@@ -19,6 +19,8 @@ import { TableService } from '@modules/tables/table.service.js';
 import { ItemsService } from '@modules/items/item.service.js';
 import type { IOrderRepository } from './repositories/order.repository.interface.js';
 import type { IRealtimeService } from '@modules/realtime/realtime.service.interface.js';
+import { VnpayService } from 'nestjs-vnpay';
+import { ConfigService } from '@nestjs/config';
 
 // ────────────────────────────────────────────────────────────
 //  Test Helpers: create mock objects
@@ -73,6 +75,8 @@ describe('OrdersService', () => {
   let realtimeService: jest.Mocked<IRealtimeService>;
   let dataSource: jest.Mocked<DataSource>;
   let mockManager: jest.Mocked<EntityManager>;
+  let vnpayService: jest.Mocked<VnpayService>;
+  let configService: jest.Mocked<ConfigService>;
 
   beforeEach(async () => {
     // Create mock EntityManager used inside transaction callbacks
@@ -121,6 +125,17 @@ describe('OrdersService', () => {
       transaction: jest.fn().mockImplementation((cb) => cb(mockManager)),
     } as unknown as jest.Mocked<DataSource>;
 
+    vnpayService = {
+      getBankList: jest.fn(),
+      buildPaymentUrl: jest.fn(),
+      verifyIpnCall: jest.fn(),
+      verifyReturnUrl: jest.fn(),
+    } as unknown as jest.Mocked<VnpayService>;
+
+    configService = {
+      getOrThrow: jest.fn(),
+    } as unknown as jest.Mocked<ConfigService>;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OrdersService,
@@ -129,6 +144,8 @@ describe('OrdersService', () => {
         { provide: ItemsService, useValue: itemsService },
         { provide: REALTIME_SERVICE_TOKEN, useValue: realtimeService },
         { provide: DataSource, useValue: dataSource },
+        { provide: VnpayService, useValue: vnpayService },
+        { provide: ConfigService, useValue: configService },
       ],
     }).compile();
 
@@ -343,8 +360,8 @@ describe('OrdersService', () => {
       const table = makeTable({ status: TableStatus.OCCUPIED });
 
       orderRepo.findById.mockResolvedValue(order);
-      orderRepo.countActiveOrdersByTableId.mockResolvedValue(0);
-      tableService.findById.mockResolvedValue(table);
+      mockManager.count.mockResolvedValue(0);
+      mockManager.findOne.mockResolvedValue(table);
       mockManager.save.mockImplementation((_entity, data) =>
         Promise.resolve(data ?? _entity),
       );
@@ -446,8 +463,8 @@ describe('OrdersService', () => {
       const table = makeTable({ status: TableStatus.OCCUPIED });
 
       orderRepo.findById.mockResolvedValue(order);
-      orderRepo.countActiveOrdersByTableId.mockResolvedValue(0);
-      tableService.findById.mockResolvedValue(table);
+      mockManager.count.mockResolvedValue(0);
+      mockManager.findOne.mockResolvedValue(table);
       mockManager.save.mockImplementation((_entity, data) =>
         Promise.resolve(data ?? _entity),
       );
@@ -467,8 +484,8 @@ describe('OrdersService', () => {
 
       orderRepo.findById.mockResolvedValue(order);
       // There is still 1 other active order
-      orderRepo.countActiveOrdersByTableId.mockResolvedValue(1);
-      tableService.findById.mockResolvedValue(table);
+      mockManager.count.mockResolvedValue(1);
+      mockManager.findOne.mockResolvedValue(table);
       mockManager.save.mockImplementation((_entity, data) =>
         Promise.resolve(data ?? _entity),
       );
@@ -498,6 +515,7 @@ describe('OrdersService', () => {
       tableService.findById.mockResolvedValue(table);
       orderRepo.findActiveOrdersByTableId.mockResolvedValue(orders);
       mockManager.findOne.mockResolvedValue(table);
+      mockManager.count.mockResolvedValue(0);
       mockManager.save.mockImplementation((_entity, data) =>
         Promise.resolve(data ?? _entity),
       );
@@ -690,6 +708,84 @@ describe('OrdersService', () => {
       orderRepo.findById.mockResolvedValue(null);
 
       await expect(service.findById(999)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────
+  //  handleVnpayIpn
+  // ──────────────────────────────────────────────────────────
+
+  describe('handleVnpayIpn', () => {
+    it('should process successful payment, free table, and emit events', async () => {
+      const order = makeOrder({ id: 100, status: OrderStatus.SERVED, totalAmount: 50000 });
+      const table = makeTable({ status: TableStatus.OCCUPIED });
+
+      orderRepo.findById.mockResolvedValue(order);
+      mockManager.findOne.mockResolvedValue(table);
+      mockManager.count.mockResolvedValue(0); // table is free after this
+      mockManager.save.mockImplementation((_entity, data) =>
+        Promise.resolve(data ?? _entity),
+      );
+
+      const query = {
+        vnp_TxnRef: '100',
+        vnp_Amount: '5000000', // 50000 * 100
+        vnp_ResponseCode: '00',
+        vnp_TransactionStatus: '00',
+      };
+
+      const result = await service.handleVnpayIpn(query);
+
+      expect(result).toEqual({ RspCode: '00', Message: 'Success' });
+      expect(order.status).toBe(OrderStatus.PAID);
+      expect(order.paymentMethod).toBe(PaymentMethod.TRANSFER);
+      expect(table.status).toBe(TableStatus.AVAILABLE);
+
+      expect(realtimeService.emitToRoom).toHaveBeenCalledWith(
+        `order:track:${order.trackingCode}`,
+        'order:status-changed',
+        expect.objectContaining({ orderId: 100, status: OrderStatus.PAID }),
+      );
+      expect(realtimeService.emit).toHaveBeenCalledWith(
+        'order:status-changed',
+        expect.objectContaining({ orderId: 100 }),
+      );
+      expect(realtimeService.emit).toHaveBeenCalledWith(
+        'table:status-changed',
+        expect.objectContaining({ tableId: table.id, status: TableStatus.AVAILABLE }),
+      );
+    });
+
+    it('should reject invalid amount', async () => {
+      const order = makeOrder({ id: 100, status: OrderStatus.SERVED, totalAmount: 50000 });
+      orderRepo.findById.mockResolvedValue(order);
+
+      const query = {
+        vnp_TxnRef: '100',
+        vnp_Amount: '4000000', // wrong amount
+        vnp_ResponseCode: '00',
+        vnp_TransactionStatus: '00',
+      };
+
+      const result = await service.handleVnpayIpn(query);
+      expect(result.RspCode).toBe('00');
+      expect(result.Message).toBe('Invalid amount');
+    });
+
+    it('should reject non-served status', async () => {
+      const order = makeOrder({ id: 100, status: OrderStatus.PREPARING, totalAmount: 50000 });
+      orderRepo.findById.mockResolvedValue(order);
+
+      const query = {
+        vnp_TxnRef: '100',
+        vnp_Amount: '5000000',
+        vnp_ResponseCode: '00',
+        vnp_TransactionStatus: '00',
+      };
+
+      const result = await service.handleVnpayIpn(query);
+      expect(result.RspCode).toBe('00');
+      expect(result.Message).toBe('Order status invalid');
     });
   });
 });

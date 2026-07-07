@@ -56,6 +56,18 @@ interface PaginatedRes {
 /** Backend envelope for non-paginated success responses. */
 interface ApiRes<T> { success: boolean; data: T }
 
+/**
+ * Result of verifying a VNPay return callback (`GET /payments/vnpay-return`).
+ *
+ * The backend validates the VNPay signature, marks the order PAID on success,
+ * and echoes back the order id + amount.
+ */
+export interface VnpayReturnResult {
+  success: boolean;
+  message: string;
+  data?: { orderId: number; amount: number };
+}
+
 // ──────────────────────────────────────────────────────────────
 // Mapper: backend → frontend
 // ──────────────────────────────────────────────────────────────
@@ -233,5 +245,40 @@ export const orderService = {
       orderIds,
       paymentMethod,
     });
+  },
+
+  /**
+   * Create a VNPay payment for a SINGLE order (bank-transfer flow).
+   *
+   * Calls: `POST /payments/:id/pay` → signed VNPay payment-page URL (string).
+   * The backend requires the order to be in `SERVED` status. The caller then
+   * redirects the browser to this URL; VNPay sends the user back to the
+   * `vnp_ReturnUrl` (our `/cashier/payment-return` page) once finished.
+   *
+   * ⚠️ Backend supports per-order VNPay only — there is no combined-table
+   * VNPay endpoint, so this is used for single-order checkout exclusively.
+   */
+  async createVnpayPaymentUrl(
+    token: string | null | undefined,
+    orderId: number,
+  ): Promise<string> {
+    const res = await apiWithToken(token).post<ApiRes<string>>(
+      `/payments/${orderId}/pay`,
+    );
+    return res.data;
+  },
+
+  /**
+   * Verify a VNPay return callback against the backend.
+   *
+   * Called from the `/cashier/payment-return` page with the raw VNPay query
+   * string. The backend (`GET /payments/vnpay-return`) validates the signature,
+   * marks the order PAID on success, and returns the result. Public endpoint —
+   * no token required.
+   *
+   * @param query Raw query string from the return URL (without the leading `?`).
+   */
+  async verifyVnpayReturn(query: string): Promise<VnpayReturnResult> {
+    return apiClient.get<VnpayReturnResult>(`/payments/vnpay-return?${query}`);
   },
 };

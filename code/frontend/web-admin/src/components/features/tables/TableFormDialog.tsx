@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -30,14 +30,19 @@ export function TableFormDialog({ open, onOpenChange, table, existingNames, onDo
   const [nameError, setNameError]   = useState('');
   const [loading, setLoading]       = useState(false);
 
-  // Reset form mỗi khi dialog mở
-  useEffect(() => {
-    if (!open) return;
-    setName(table?.name ?? '');
-    setCapacity(table?.capacity != null ? String(table.capacity) : '');
-    setIsAvailable(table ? table.status === 'AVAILABLE' : true);
-    setNameError('');
-  }, [open, table]);
+  const [prevTable, setPrevTable] = useState<Table | null>(null);
+  const [prevOpen, setPrevOpen] = useState(false);
+
+  if (open !== prevOpen || table !== prevTable) {
+    setPrevOpen(open);
+    setPrevTable(table);
+    if (open) {
+      setName(table?.name ?? '');
+      setCapacity(table?.capacity != null ? String(table.capacity) : '');
+      setIsAvailable(table ? table.status === 'AVAILABLE' : true);
+      setNameError('');
+    }
+  }
 
   const isValid = name.trim() !== '' && Number(capacity) >= 1;
 
