@@ -86,6 +86,7 @@ type TrendMode = 'week' | 'month';
 
 interface RevenueChartProps {
   dateStart: string;
+  token: string | null;
 }
 
 export function RevenueChart({ dateStart }: RevenueChartProps) {
