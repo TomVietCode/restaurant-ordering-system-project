@@ -30,7 +30,9 @@ async function seed() {
     database: process.env.DB_NAME,
     entities: [User, Table], // Include Table entity in the data source config
     synchronize: false,
-    ...(process.env.NODE_ENV === 'production' && { ssl: { rejectUnauthorized: false } }),
+    ...((process.env.NODE_ENV === 'production' || process.env.DB_SSL === 'true') && {
+      ssl: { rejectUnauthorized: false },
+    }),
   });
 
   await dataSource.initialize();

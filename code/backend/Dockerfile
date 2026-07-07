@@ -1,5 +1,5 @@
 # Stage 1: Install all dependencies (including development dependencies)
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -8,7 +8,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 # Stage 2: Build the NestJS application
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
@@ -17,14 +17,14 @@ COPY . .
 RUN npm run build
 
 # Stage 3: Install production-only dependencies
-FROM node:20-alpine AS prod-deps
+FROM node:22-alpine AS prod-deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 # --omit=dev ensures devDependencies are skipped, reducing image size
 RUN npm ci --omit=dev
 
 # Stage 4: Production runner
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
