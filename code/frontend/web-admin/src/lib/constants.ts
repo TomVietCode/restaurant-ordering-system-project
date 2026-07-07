@@ -12,7 +12,6 @@ export const ROUTES = {
   menu: '/menu',
   tables: '/tables',
   orders: '/orders',
-  revenue: '/revenue',
   staff: '/staffs',
   kitchen: '/kitchen',
   cashier: '/cashier',

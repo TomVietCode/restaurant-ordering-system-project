@@ -37,7 +37,14 @@ export function MenuPage() {
         onPageSizeChange={m.onPageSizeChange}
       />
 
-      <DataTable columns={columns} data={m.visible} loading={m.loading} emptyText="Không có món nào" fixedLayout />
+      {/*
+        Chỉ hiện "Đang tải…" (thay hẳn bảng) khi CHƯA có data nào (lần đầu vào trang).
+        Từ lần fetch thứ 2 trở đi (đổi trang/lọc), giữ nguyên bảng cũ + làm mờ nhẹ
+        thay vì chớp qua "Đang tải…" rồi lại hiện data — tránh hiệu ứng nháy.
+      */}
+      <div className={m.loading && m.visible.length > 0 ? 'opacity-60 transition-opacity' : undefined}>
+        <DataTable columns={columns} data={m.visible} loading={m.loading && m.visible.length === 0} emptyText="Không có món nào" fixedLayout />
+      </div>
 
       <Pagination page={m.cur} pageSize={m.pageSize} total={m.data.total} unit="món" onPageChange={m.onPageChange} />
 

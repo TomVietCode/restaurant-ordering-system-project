@@ -2,7 +2,9 @@
 
 import { useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toViError } from "@/lib/errors";
 import type { Order, OrderStatus } from "@/types/order";
 import type { Table } from "@/types/table";
 import { orderService } from "@/services/order.service";
@@ -20,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 type Tab = "orders" | "tables";
 type Method = "CASH" | "TRANSFER";
@@ -80,6 +83,12 @@ export function CashierBoard({ initialOrders, tables, token }: Props) {
   const [bill, setBill] = useState<Bill | null>(null);
   const [method, setMethod] = useState<Method>("CASH");
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+
+  // Set while creating a VNPay payment URL + redirecting to the gateway.
+  // Holds the order id being processed (also blocks duplicate submissions).
+  const [redirectingOrderId, setRedirectingOrderId] = useState<number | null>(
+    null,
+  );
 
   // Cancel confirmation dialog state
   const [cancelTarget, setCancelTarget] = useState<CancelTarget | null>(null);
@@ -187,19 +196,55 @@ export function CashierBoard({ initialOrders, tables, token }: Props) {
     setMethod("CASH");
   };
 
+  // ──────────────────────────────────────────────────────────
+  // Payment — VNPay bank transfer (redirect, single order)
+  // ──────────────────────────────────────────────────────────
+
+  /**
+   * Start a VNPay bank transfer for a single order:
+   * request a signed payment URL from the backend, then redirect the browser
+   * to VNPay. After payment, VNPay returns the user to `/cashier/payment-return`.
+   *
+   * Guarded by `redirectingOrderId` so a second click can't create a duplicate
+   * payment while the request is in flight.
+   */
+  const startVnpay = useCallback(
+    async (orderId: number) => {
+      setRedirectingOrderId((cur) => cur ?? orderId);
+      try {
+        const url = await orderService.createVnpayPaymentUrl(token, orderId);
+        window.location.href = url; // full-page redirect to the VNPay gateway
+      } catch (err) {
+        console.error("Failed to start VNPay payment:", err);
+        setRedirectingOrderId(null);
+        alert(toViError(err, "Không thể khởi tạo thanh toán chuyển khoản."));
+      }
+    },
+    [token],
+  );
+
   /**
    * Confirm payment for the single order shown in the payment panel.
-   * Uses `payOrders` (split checkout) with a single-element array.
+   *
+   * - CASH → mark PAID immediately via `payOrders` (single-element array).
+   * - TRANSFER → redirect to the VNPay payment page.
    */
   const pay = async () => {
     if (!bill) return;
+
+    if (method === "TRANSFER") {
+      await startVnpay(bill.orderId);
+      return;
+    }
+
     try {
       await orderService.payOrders(token, bill.tableId, [bill.orderId], method);
       setOrders((prev) => prev.filter((o) => o.id !== bill.orderId));
       setBill(null);
+      toast.success("Thanh toán đơn hàng thành công");
     } catch (err) {
       console.error("Payment failed:", err);
-      alert("Thanh toán thất bại, vui lòng thử lại.");
+      toast.error("Thanh toán thất bại, vui lòng thử lại.");
     }
   };
 
@@ -208,8 +253,14 @@ export function CashierBoard({ initialOrders, tables, token }: Props) {
   // ──────────────────────────────────────────────────────────
 
   const handlePayTable = async (tableId: string, paymentMethod: Method) => {
-    await orderService.payTable(token, tableId, paymentMethod);
-    setOrders((prev) => prev.filter((o) => o.tableId !== tableId));
+    try {
+      await orderService.payTable(token, tableId, paymentMethod);
+      setOrders((prev) => prev.filter((o) => o.tableId !== tableId));
+      toast.success("Thanh toán toàn bộ bàn thành công");
+    } catch (err) {
+      console.error("Payment failed:", err);
+      toast.error("Thanh toán thất bại, vui lòng thử lại.");
+    }
   };
 
   const handlePayOrders = async (
@@ -217,8 +268,14 @@ export function CashierBoard({ initialOrders, tables, token }: Props) {
     orderIds: number[],
     paymentMethod: Method,
   ) => {
-    await orderService.payOrders(token, tableId, orderIds, paymentMethod);
-    setOrders((prev) => prev.filter((o) => !orderIds.includes(o.id)));
+    try {
+      await orderService.payOrders(token, tableId, orderIds, paymentMethod);
+      setOrders((prev) => prev.filter((o) => !orderIds.includes(o.id)));
+      toast.success("Thanh toán đơn hàng thành công");
+    } catch (err) {
+      console.error("Payment failed:", err);
+      toast.error("Thanh toán thất bại, vui lòng thử lại.");
+    }
   };
 
   // ──────────────────────────────────────────────────────────
@@ -295,7 +352,7 @@ export function CashierBoard({ initialOrders, tables, token }: Props) {
                   : undefined
               }
               onCancel={
-                c.status !== "SERVED" ? (id) => requestCancel(id) : undefined
+                c.status !== "PAID" ? (id) => requestCancel(id) : undefined
               }
             />
           ))}
@@ -308,6 +365,7 @@ export function CashierBoard({ initialOrders, tables, token }: Props) {
               onMethod={setMethod}
               onConfirm={pay}
               onClose={() => setBill(null)}
+              processing={redirectingOrderId !== null}
             />
           )}
         </div>
@@ -321,7 +379,18 @@ export function CashierBoard({ initialOrders, tables, token }: Props) {
           onSelectTable={setSelectedTableId}
           onPayTable={handlePayTable}
           onPayOrders={handlePayOrders}
+          onVnpayOrder={startVnpay}
         />
+      )}
+
+      {/* ── Redirecting to VNPay: full-screen loading overlay ── */}
+      {redirectingOrderId !== null && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/80 backdrop-blur-sm">
+          <Loader2 className="size-8 animate-spin text-zinc-700" />
+          <p className="text-sm font-medium text-muted-foreground">
+            Đang chuyển đến cổng thanh toán VNPay...
+          </p>
+        </div>
       )}
 
       {/* ── Cancel Order Confirmation Dialog ── */}

@@ -26,16 +26,18 @@ interface Props {
   onSelectTable: (id: string) => void;
   onPayTable: (tableId: string, paymentMethod: 'CASH' | 'TRANSFER') => Promise<void>;
   onPayOrders: (tableId: string, orderIds: number[], paymentMethod: 'CASH' | 'TRANSFER') => Promise<void>;
+  /** Start a VNPay bank-transfer redirect for a single order. */
+  onVnpayOrder: (orderId: number) => void;
 }
 
-export function TablePanel({ tables, orders, selectedTableId, onSelectTable, onPayTable, onPayOrders }: Props) {
+export function TablePanel({ tables, orders, selectedTableId, onSelectTable, onPayTable, onPayOrders, onVnpayOrder }: Props) {
   const rows = enrich(tables, orders);
   const selected = rows.find(r => r.id === selectedTableId) ?? null;
 
   return (
     <div className="flex flex-1 overflow-hidden rounded-xl border border-border">
       <TableList rows={rows} selectedId={selectedTableId} onSelect={onSelectTable} />
-      <TableDetail key={selected?.id ?? 'none'} selected={selected} onPayTable={onPayTable} onPayOrders={onPayOrders} />
+      <TableDetail key={selected?.id ?? 'none'} selected={selected} onPayTable={onPayTable} onPayOrders={onPayOrders} onVnpayOrder={onVnpayOrder} />
     </div>
   );
 }

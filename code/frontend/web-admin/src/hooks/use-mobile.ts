@@ -9,11 +9,12 @@ export function useIsMobile() {
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
     const onChange = () => setIsMobile(mql.matches)
     mql.addEventListener("change", onChange)
-    // Dùng mql.matches thay vì setState trong effect
+    // Defer the initial setState to a microtask to avoid synchronous setState in effect
     const initial = mql.matches
-    if (initial !== isMobile) setIsMobile(initial)
+    Promise.resolve().then(() => {
+      setIsMobile(initial)
+    })
     return () => mql.removeEventListener("change", onChange)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return !!isMobile

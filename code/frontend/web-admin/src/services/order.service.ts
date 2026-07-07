@@ -1,5 +1,5 @@
 import { apiWithToken } from '@/lib/api';
-import type { Order, OrderItem, OrderStatus } from '@/types/order';
+import type { Order, OrderItem, OrderStatus, PaymentMethod } from '@/types/order';
 
 // ──────────────────────────────────────────────────────────────
 // Backend response types
@@ -56,6 +56,18 @@ interface PaginatedRes {
 /** Backend envelope for non-paginated success responses. */
 interface ApiRes<T> { success: boolean; data: T }
 
+/**
+ * Result of verifying a VNPay return callback (`GET /payments/vnpay-return`).
+ *
+ * The backend validates the VNPay signature, marks the order PAID on success,
+ * and echoes back the order id + amount.
+ */
+export interface VnpayReturnResult {
+  success: boolean;
+  message: string;
+  data?: { orderId: number; amount: number };
+}
+
 // ──────────────────────────────────────────────────────────────
 // Mapper: backend → frontend
 // ──────────────────────────────────────────────────────────────
@@ -86,12 +98,32 @@ function mapOrder(raw: BackendOrder): Order {
     totalAmount: Number(raw.totalAmount),
     createdAt: raw.createdAt,
     trackingCode: raw.trackingCode,
+    paymentMethod: (raw.paymentMethod as PaymentMethod) ?? null,
+    paidAt: raw.paidAt,
+    cancelReason: raw.cancelReason,
   };
 }
 
 // ──────────────────────────────────────────────────────────────
 // Service
 // ──────────────────────────────────────────────────────────────
+
+export interface OrdersQuery {
+  page?: number;
+  limit?: number;
+  status?: OrderStatus;
+  search?: string;
+  dateFilter?: 'all' | 'today' | 'week' | 'month';
+  tableId?: string;
+}
+
+export interface OrdersPageResult {
+  items: Order[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
 
 export const orderService = {
   /**
@@ -125,6 +157,18 @@ export const orderService = {
     return res.data.items
       .filter((o) => ['NEW', 'PREPARING', 'SERVED'].includes(o.status))
       .map(mapOrder);
+  },
+
+  /**
+   * Fetch một trang đơn hàng cho bảng lịch sử đơn (Owner, `(admin)/orders`).
+   * Lọc/tìm kiếm/phân trang đều SERVER-SIDE (khác getCashierOrders/getKitchenOrders
+   * vốn fetch-all-rồi-lọc-client vì chỉ cần orders đang hoạt động).
+   */
+  async getOrdersPage(q: OrdersQuery, token?: string | null): Promise<OrdersPageResult> {
+    const p = new URLSearchParams();
+    Object.entries(q).forEach(([k, v]) => { if (v !== undefined && v !== '') p.set(k, String(v)); });
+    const res = await apiWithToken(token).get<PaginatedRes>(`/orders?${p}`);
+    return { ...res.data, items: res.data.items.map(mapOrder) };
   },
 
   /**
@@ -201,5 +245,40 @@ export const orderService = {
       orderIds,
       paymentMethod,
     });
+  },
+
+  /**
+   * Create a VNPay payment for a SINGLE order (bank-transfer flow).
+   *
+   * Calls: `POST /payments/:id/pay` → signed VNPay payment-page URL (string).
+   * The backend requires the order to be in `SERVED` status. The caller then
+   * redirects the browser to this URL; VNPay sends the user back to the
+   * `vnp_ReturnUrl` (our `/cashier/payment-return` page) once finished.
+   *
+   * ⚠️ Backend supports per-order VNPay only — there is no combined-table
+   * VNPay endpoint, so this is used for single-order checkout exclusively.
+   */
+  async createVnpayPaymentUrl(
+    token: string | null | undefined,
+    orderId: number,
+  ): Promise<string> {
+    const res = await apiWithToken(token).post<ApiRes<string>>(
+      `/payments/${orderId}/pay`,
+    );
+    return res.data;
+  },
+
+  /**
+   * Verify a VNPay return callback against the backend.
+   *
+   * Called from the `/cashier/payment-return` page with the raw VNPay query
+   * string. The backend (`GET /payments/vnpay-return`) validates the signature,
+   * marks the order PAID on success, and returns the result. Public endpoint —
+   * no token required.
+   *
+   * @param query Raw query string from the return URL (without the leading `?`).
+   */
+  async verifyVnpayReturn(query: string): Promise<VnpayReturnResult> {
+    return apiClient.get<VnpayReturnResult>(`/payments/vnpay-return?${query}`);
   },
 };

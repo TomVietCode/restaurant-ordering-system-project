@@ -73,32 +73,36 @@ export class ReportsService {
     const firstDay = new Date(year, month - 1, 1);
     const lastDay = new Date(year, month, 0);
 
-    const result: MonthlyRevenueTrendDto[] = [];
-
-    // Mở rộng tuần đầu chứa ngày đầu tháng
+    // Expand to full weeks covering the month boundaries
     const start = new Date(firstDay);
     const firstDayOfWeek = start.getDay();
     const diffToMonday = firstDayOfWeek === 0 ? -6 : 1 - firstDayOfWeek;
     start.setDate(start.getDate() + diffToMonday);
 
-    // Mở rộng tuần cuối chứa ngày cuối tháng
     const end = new Date(lastDay);
     const lastDayOfWeek = end.getDay();
     const diffToSunday = lastDayOfWeek === 0 ? 0 : 7 - lastDayOfWeek;
     end.setDate(end.getDate() + diffToSunday);
 
-    let currentStart = new Date(start);
+    // Single query — aggregates all weeks at once
+    const rows = await this.reportRepository.getMonthlyWeeklyTrend(start, end);
+    const revenueMap = new Map(rows.map((r) => [r.weekStart, r]));
+
+    const result: MonthlyRevenueTrendDto[] = [];
+    const currentStart = new Date(start);
+
     while (currentStart <= end) {
       const currentEnd = new Date(currentStart);
       currentEnd.setDate(currentEnd.getDate() + 6);
 
-      const report = await this.reportRepository.getReportBetween(currentStart, currentEnd);
-      
+      const key = formatDate(currentStart);
+      const row = revenueMap.get(key);
+
       result.push({
         weekStart: formatDate(currentStart),
         weekEnd: formatDate(currentEnd),
-        totalRevenue: report.totalRevenue,
-        totalOrders: report.totalOrders,
+        totalRevenue: Number(row?.totalRevenue ?? 0),
+        totalOrders: Number(row?.totalOrders ?? 0),
       });
 
       currentStart.setDate(currentStart.getDate() + 7);
