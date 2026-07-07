@@ -41,5 +41,5 @@ EXPOSE 3000
 
 ENV PORT=3000
 
-# Bootstrap NestJS from the compiled JavaScript main file
-CMD ["node", "dist/main.js"]
+# Run database seed first, then start the main NestJS application
+CMD ["sh", "-c", "node dist/config/seed.js && node dist/main.js"]
