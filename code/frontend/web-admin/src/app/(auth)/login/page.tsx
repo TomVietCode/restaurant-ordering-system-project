@@ -81,7 +81,7 @@ export default async function LoginPage(props: {
               )}
               {isLocked && (
                 <p className="text-sm md:text-base text-destructive font-medium" role="alert">
-                  Tài khoản của bạn đã bị khóa. Vui lòng liên hệ chủ quán.
+                  Tài khoản của bạn đã bị khóa.
                 </p>
               )}
             </div>

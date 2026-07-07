@@ -101,7 +101,7 @@ function Inner({ staff, onOpenChange, onSave, currentEmail }: Omit<Props, 'open'
           <Label htmlFor="staff-phone">Số điện thoại</Label>
           <Input
             id="staff-phone" value={phone} maxLength={20}
-            placeholder="Không bắt buộc"
+            placeholder="0987654321"
             onChange={e => setPhone(e.target.value)}
           />
         </div>
@@ -112,7 +112,7 @@ function Inner({ staff, onOpenChange, onSave, currentEmail }: Omit<Props, 'open'
           </Label>
           <Input
             id="staff-password" type="password" value={password} maxLength={100}
-            placeholder={isEdit ? 'Để trống nếu không đổi mật khẩu' : 'Tối thiểu 6 ký tự'}
+            placeholder='******'
             aria-invalid={!!errors.password}
             onChange={e => { setPassword(e.target.value); setErrors(p => ({ ...p, password: undefined })); }}
           />
