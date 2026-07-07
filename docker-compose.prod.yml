@@ -43,6 +43,7 @@ services:
       PORT: 3000
       NODE_ENV: production
       AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_TRUST_HOST: "true" # Solves the UntrustedHost error for NextAuth behind Nginx
       # NEXT_PUBLIC_API_URL is baked as /api at build-time in GitHub Actions.
       # Routing to backend (port 3002) is handled by reverse proxy (Nginx/Caddy) via the /api path.
     restart: always
