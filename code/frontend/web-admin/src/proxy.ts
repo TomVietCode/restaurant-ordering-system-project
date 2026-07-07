@@ -11,17 +11,13 @@ export default auth((req) => {
   }
 
   const ownerOnly = ['/dashboard', '/menu', '/tables', '/orders', '/revenue', '/staffs'];
-  const staffOnly = ['/select-role', '/kitchen', '/cashier'];
 
   // STAFF cố vào route của OWNER → về /select-role
   if (role === 'STAFF' && ownerOnly.some((p) => nextUrl.pathname.startsWith(p))) {
     return NextResponse.redirect(new URL('/select-role', nextUrl));
   }
 
-  // OWNER cố vào route của STAFF → về /dashboard
-  if (role === 'OWNER' && staffOnly.some((p) => nextUrl.pathname.startsWith(p))) {
-    return NextResponse.redirect(new URL('/dashboard', nextUrl));
-  }
+  // OWNER được phép vào route của STAFF (xem màn hình nhân viên)
 });
 
 export const config = {

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { signOut } from 'next-auth/react';
-import { User, LogOut, ChevronLeft, Key } from 'lucide-react';
+import { User, LogOut, ChevronLeft, Key, Monitor, LayoutDashboard } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import {
   DropdownMenu,
@@ -57,6 +57,9 @@ export function AppHeader({
   const initial = user?.name?.charAt(0)?.toUpperCase() ?? 'A';
   
   const derivedBackHref = backHref ?? (['/kitchen', '/cashier'].includes(pathname) ? '/select-role' : undefined);
+
+  const isStaffPage = ['/kitchen', '/cashier', '/select-role'].includes(pathname);
+  const isOwner = user?.role === 'OWNER';
 
   return (
     <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center justify-between border-b bg-primary-foreground px-4">
@@ -118,6 +121,21 @@ export function AppHeader({
               </p>
             )}
           </div>
+          {isOwner && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="cursor-pointer gap-2"
+                onClick={() => router.push(isStaffPage ? '/dashboard' : '/select-role')}
+              >
+                {isStaffPage ? (
+                  <><LayoutDashboard className="size-4" />Vào màn hình quản trị</>
+                ) : (
+                  <><Monitor className="size-4" />Vào màn hình nhân viên</>
+                )}
+              </DropdownMenuItem>
+            </>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem className="cursor-pointer gap-2" onClick={() => router.push('/profile')}>
             <User className="size-4" />
