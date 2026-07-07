@@ -6,37 +6,66 @@ import 'package:fe_flutter/presentation/blocs/menu/menu_bloc.dart';
 import 'package:fe_flutter/presentation/blocs/menu/menu_event.dart';
 import 'package:fe_flutter/presentation/blocs/menu/menu_state.dart';
 import 'package:fe_flutter/data/models/category.dart';
+import 'package:fe_flutter/data/models/product.dart';
 
 class MockMenuRepository extends Mock implements MenuRepository {}
 
 void main() {
   group('MenuBloc', () {
-    late MenuRepository mockRepository;
-    late MenuBloc menuBloc;
+    late MockMenuRepository mockRepository;
 
     setUp(() {
       mockRepository = MockMenuRepository();
-      menuBloc = MenuBloc(repository: mockRepository);
-    });
-
-    tearDown(() {
-      menuBloc.close();
     });
 
     test('initial state is MenuInitial', () {
+      final menuBloc = MenuBloc(repository: mockRepository);
       expect(menuBloc.state, MenuInitial());
+      menuBloc.close();
     });
 
     blocTest<MenuBloc, MenuState>(
       'emits [MenuLoading, MenuLoaded] when LoadMenu is added successfully',
       build: () {
-        when(() => mockRepository.getCategories()).thenAnswer((_) async => <Category>[]);
-        return menuBloc;
+        const categories = [
+          Category(id: 1, name: 'Coffee', description: 'Hot drinks'),
+        ];
+        const products = [
+          Product(
+            id: 101,
+            name: 'Black Coffee',
+            categoryId: 1,
+            price: 29000,
+            isRemain: true,
+          ),
+        ];
+
+        when(
+          () => mockRepository.getCategories(),
+        ).thenAnswer((_) async => categories);
+        when(
+          () => mockRepository.getProducts(),
+        ).thenAnswer((_) async => products);
+
+        return MenuBloc(repository: mockRepository);
       },
       act: (bloc) => bloc.add(LoadMenu()),
       expect: () => [
         MenuLoading(),
-        isA<MenuLoaded>(),
+        const MenuLoaded(
+          categories: [
+            Category(id: 1, name: 'Coffee', description: 'Hot drinks'),
+          ],
+          products: [
+            Product(
+              id: 101,
+              name: 'Black Coffee',
+              categoryId: 1,
+              price: 29000,
+              isRemain: true,
+            ),
+          ],
+        ),
       ],
     );
   });

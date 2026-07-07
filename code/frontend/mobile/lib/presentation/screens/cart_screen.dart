@@ -10,6 +10,7 @@ import '../blocs/order/order_bloc.dart';
 import '../blocs/order/order_event.dart';
 import '../blocs/order/order_state.dart';
 import '../blocs/session/session_cubit.dart';
+import '../widgets/app_logo.dart';
 import '../widgets/food_image.dart';
 import '../../../core/utils/currency_formatter.dart';
 
@@ -53,22 +54,7 @@ class CartScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: const Color(0xFFF7F7F7),
         appBar: AppBar(
-          leading: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Container(
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Image.asset(
-                'assets/images/logo.png',
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) =>
-                    const Icon(Icons.restaurant, color: Colors.orange),
-              ),
-            ),
-          ),
+          leading: const AppLogo(),
           title: const Text(
             'Giỏ hàng',
             style: TextStyle(fontWeight: FontWeight.bold),
@@ -91,44 +77,47 @@ class CartScreen extends StatelessWidget {
             return Column(
               children: [
                 Expanded(
-                  child: SingleChildScrollView(
+                  child: ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        ...cartState.items.map(
-                          (item) => _buildCartItem(context, item),
-                        ),
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: OutlinedButton.icon(
-                            onPressed: onOrderSuccess,
-                            icon: const Icon(
-                              Icons.add_circle_outline,
+                    itemCount: cartState.items.length + 2,
+                    itemBuilder: (context, index) {
+                      if (index < cartState.items.length) {
+                        return _buildCartItem(context, cartState.items[index]);
+                      }
+
+                      if (index == cartState.items.length) {
+                        return const SizedBox(height: 16);
+                      }
+
+                      return SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: OutlinedButton.icon(
+                          onPressed: onOrderSuccess,
+                          icon: const Icon(
+                            Icons.add_circle_outline,
+                            color: Color(0xFF9A442D),
+                          ),
+                          label: const Text(
+                            'Thêm món khác',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
                               color: Color(0xFF9A442D),
                             ),
-                            label: const Text(
-                              'Thêm món khác',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF9A442D),
-                              ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(
+                              color: Color(0xFF9A442D),
+                              width: 1.5,
                             ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(
-                                color: Color(0xFF9A442D),
-                                width: 1.5,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
                 ),
                 _CheckoutPanel(

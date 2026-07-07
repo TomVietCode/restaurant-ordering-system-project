@@ -10,30 +10,31 @@ class MockOrderRepository extends Mock implements OrderRepository {}
 
 void main() {
   group('OrderBloc', () {
-    late OrderRepository mockRepository;
-    late OrderBloc orderBloc;
+    late MockOrderRepository mockRepository;
 
     setUp(() {
       mockRepository = MockOrderRepository();
-      when(() => mockRepository.orderUpdatesStream).thenAnswer((_) => const Stream.empty());
-      orderBloc = OrderBloc(repository: mockRepository);
     });
 
-    tearDown(() {
+    OrderBloc buildBloc() {
+      when(
+        () => mockRepository.orderUpdatesStream,
+      ).thenAnswer((_) => const Stream.empty());
+      return OrderBloc(repository: mockRepository);
+    }
+
+    test('initial state is OrderState with empty items', () {
+      final orderBloc = buildBloc();
+      expect(orderBloc.state.items.isEmpty, true);
       orderBloc.close();
     });
 
-    test('initial state is OrderState with empty items', () {
-      expect(orderBloc.state.items.isEmpty, true);
-    });
-
     blocTest<OrderBloc, OrderState>(
-      'emits clear state when ClearOrder is added',
-      build: () => orderBloc,
+      'clears the tracked order state when ClearOrder is added',
+      build: buildBloc,
+      seed: () => const OrderState(orderId: '42', trackingCode: 'TRK-42'),
       act: (bloc) => bloc.add(ClearOrder()),
-      expect: () => [
-        const OrderState(),
-      ],
+      expect: () => [const OrderState()],
     );
   });
 }

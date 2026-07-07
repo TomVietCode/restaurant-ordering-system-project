@@ -41,7 +41,13 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
 
       if (isCurrentTracking || isCurrentOrder) {
         if (status != null) {
-          add(ApplyTrackedOrderStatus(status, trackingCode: trackingCode, orderId: orderId));
+          add(
+            ApplyTrackedOrderStatus(
+              status,
+              trackingCode: trackingCode,
+              orderId: orderId,
+            ),
+          );
         }
         add(RefreshTrackedOrder());
       }
@@ -115,7 +121,16 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     Emitter<OrderState> emit,
   ) {
     final status = _toUiOrderStatus(api.OrderStatus.fromString(event.status));
-    emit(state.copyWith(items: _itemsWithStatus(status, orderId: event.orderId, orderCode: event.trackingCode), clearError: true));
+    emit(
+      state.copyWith(
+        items: _itemsWithStatus(
+          status,
+          orderId: event.orderId,
+          orderCode: event.trackingCode,
+        ),
+        clearError: true,
+      ),
+    );
   }
 
   void _onClearOrder(ClearOrder event, Emitter<OrderState> emit) {
@@ -236,17 +251,25 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     String? orderId,
     String? orderCode,
   }) {
-    final targetOrderId = orderId?.isNotEmpty == true ? orderId! : state.orderId;
-    final targetOrderCode = orderCode?.isNotEmpty == true ? orderCode! : state.orderCode;
+    final targetOrderId = orderId?.isNotEmpty == true
+        ? orderId!
+        : state.orderId;
+    final targetOrderCode = orderCode?.isNotEmpty == true
+        ? orderCode!
+        : state.orderCode;
 
     return state.items.map((item) {
-      final matchesOrderId = targetOrderId.isNotEmpty && item.id.startsWith('${targetOrderId}_');
-      final matchesOrderCode = targetOrderCode.isNotEmpty && item.orderCode == targetOrderCode;
+      final matchesOrderId =
+          targetOrderId.isNotEmpty && item.id.startsWith('${targetOrderId}_');
+      final matchesOrderCode =
+          targetOrderCode.isNotEmpty && item.orderCode == targetOrderCode;
 
       if (matchesOrderId || matchesOrderCode) {
         return item.copyWith(
           status: status,
-          orderCode: targetOrderCode.isNotEmpty ? targetOrderCode : item.orderCode,
+          orderCode: targetOrderCode.isNotEmpty
+              ? targetOrderCode
+              : item.orderCode,
         );
       }
       return item;

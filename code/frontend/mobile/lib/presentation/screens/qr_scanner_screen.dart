@@ -6,8 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image/image.dart' as img;
-import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+
 import '../../core/utils/table_mapper.dart';
 import '../blocs/session/session_cubit.dart';
 
@@ -23,11 +24,13 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}',
   );
 
-  bool _isScanned = false;
-  DateTime? _lastInvalidMessageAt;
   final MobileScannerController _controller = MobileScannerController(
     formats: const [BarcodeFormat.qrCode],
   );
+
+  bool _isScanned = false;
+  bool _isPickingImage = false;
+  DateTime? _lastInvalidMessageAt;
 
   @override
   void dispose() {
@@ -36,23 +39,35 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   }
 
   Future<void> _scanFromGallery() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      final BarcodeCapture? capture = await _analyzeQrImage(image.path);
+    if (_isPickingImage || _isScanned) return;
+
+    setState(() => _isPickingImage = true);
+
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(source: ImageSource.gallery);
+      if (image == null) return;
+
+      final capture = await _analyzeQrImage(image.path);
+      if (!mounted) return;
+
       if (capture != null && capture.barcodes.isNotEmpty) {
         _onDetect(capture);
-      } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không tìm thấy mã QR trong ảnh.')),
-        );
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không tìm thấy mã QR trong ảnh.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isPickingImage = false);
       }
     }
   }
 
   Future<BarcodeCapture?> _analyzeQrImage(String imagePath) async {
-    final BarcodeCapture? originalCapture = await _controller.analyzeImage(
+    final originalCapture = await _controller.analyzeImage(
       imagePath,
       formats: const [BarcodeFormat.qrCode],
     );
@@ -63,10 +78,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     final paddedImagePath = await _createQrImageWithQuietZone(imagePath);
     if (paddedImagePath == null) return originalCapture;
 
-    return _controller.analyzeImage(
-      paddedImagePath,
-      formats: const [BarcodeFormat.qrCode],
-    );
+    try {
+      return await _controller.analyzeImage(
+        paddedImagePath,
+        formats: const [BarcodeFormat.qrCode],
+      );
+    } finally {
+      unawaited(_deleteTempFile(paddedImagePath));
+    }
   }
 
   Future<String?> _createQrImageWithQuietZone(String imagePath) async {
@@ -96,11 +115,19 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     }
   }
 
+  Future<void> _deleteTempFile(String path) async {
+    try {
+      await File(path).delete();
+    } catch (_) {
+      // Best-effort cleanup for temporary QR images.
+    }
+  }
+
   void _onDetect(BarcodeCapture capture) {
     if (_isScanned) return;
 
     for (final barcode in capture.barcodes) {
-      final String? tableId = _extractTableId(barcode.rawValue);
+      final tableId = _extractTableId(barcode.rawValue);
       if (tableId != null) {
         _openTable(tableId);
         return;
@@ -122,12 +149,65 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     unawaited(_controller.stop());
     if (!mounted) return;
 
-    // Load tên bàn từ API public trước khi chuyển màn hình
-    await TableMapper.loadTableName(tableId);
+    final table = await TableMapper.loadTable(tableId);
 
     if (!mounted) return;
+
+    if (table == null) {
+      await _showMissingTableDialog();
+      _resetScanner();
+      return;
+    }
+
+    if (table.isClosed) {
+      await _showClosedTableDialog(table.name);
+      _resetScanner();
+      return;
+    }
+
     context.read<SessionCubit>().setTableId(tableId);
     context.go('/main');
+  }
+
+  void _resetScanner() {
+    _isScanned = false;
+    unawaited(_controller.start());
+  }
+
+  Future<void> _showClosedTableDialog(String tableName) {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Bàn đang đóng'),
+        content: Text(
+          '$tableName hiện đang đóng. Vui lòng chọn bàn khác hoặc liên hệ nhân viên.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Đã hiểu'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showMissingTableDialog() {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Bàn không tồn tại'),
+        content: const Text(
+          'Không tìm thấy bàn này trong hệ thống. Vui lòng kiểm tra lại mã QR hoặc liên hệ nhân viên.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Đã hiểu'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showInvalidQrMessage() {
@@ -157,22 +237,14 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         children: [
           FloatingActionButton.extended(
             heroTag: 'gallery',
-            onPressed: _scanFromGallery,
-            icon: const Icon(Icons.image),
-            label: const Text('Chọn ảnh QR'),
-          ),
-          const SizedBox(height: 16),
-          FloatingActionButton.extended(
-            heroTag: 'skip',
-            onPressed: () {
-              // Bỏ qua phần cứng Camera để test trên Emulator
-              context.read<SessionCubit>().setTableId(
-                'da27133a-b8f9-45d1-9f21-4cba52e3d884',
-              );
-              context.go('/main');
-            },
-            icon: const Icon(Icons.skip_next),
-            label: const Text('Skip (Dành cho Emulator)'),
+            onPressed: _isPickingImage ? null : _scanFromGallery,
+            icon: _isPickingImage
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.image),
+            label: Text(_isPickingImage ? 'Đang quét...' : 'Chọn ảnh QR'),
           ),
         ],
       ),

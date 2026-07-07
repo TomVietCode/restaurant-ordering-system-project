@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart' show debugPrint;
 
 import '../../core/network/dio_client.dart';
-import '../datasources/mock_data.dart';
 import '../models/category.dart';
 import '../models/product.dart';
 
@@ -21,11 +20,12 @@ class MenuRepository {
             .map((json) => Category.fromJson(_categoryJson(json)))
             .toList();
       }
+
+      throw const FormatException('Invalid categories response');
     } catch (e) {
       debugPrint('Error fetching categories: $e');
+      throw Exception('Không thể tải danh mục. Vui lòng thử lại.');
     }
-
-    return mockCategories;
   }
 
   Future<List<Product>> getProducts() async {
@@ -44,11 +44,12 @@ class MenuRepository {
             .map((json) => Product.fromJson(_productJson(json)))
             .toList();
       }
+
+      throw const FormatException('Invalid products response');
     } catch (e) {
       debugPrint('Error fetching products: $e');
+      throw Exception('Không thể tải menu. Vui lòng thử lại.');
     }
-
-    return mockProducts;
   }
 
   Map<String, dynamic> _categoryJson(dynamic json) {

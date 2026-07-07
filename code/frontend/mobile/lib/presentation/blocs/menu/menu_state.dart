@@ -9,7 +9,9 @@ abstract class MenuState extends Equatable {
 }
 
 class MenuInitial extends MenuState {}
+
 class MenuLoading extends MenuState {}
+
 class MenuLoaded extends MenuState {
   final List<Category> categories;
   final List<Product> products;
@@ -19,6 +21,7 @@ class MenuLoaded extends MenuState {
   @override
   List<Object?> get props => [categories, products];
 }
+
 class MenuError extends MenuState {
   final String message;
   const MenuError(this.message);

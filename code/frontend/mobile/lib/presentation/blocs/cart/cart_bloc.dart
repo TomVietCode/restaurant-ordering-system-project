@@ -12,42 +12,75 @@ class CartBloc extends Bloc<CartEvent, CartState> {
   }
 
   void _onAddProduct(AddProductToCart event, Emitter<CartState> emit) {
-    final List<CartItem> updatedItems = List.from(state.items);
-    final index = updatedItems.indexWhere((item) => item.product.id == event.product.id && item.notes == event.notes);
+    if (event.quantity <= 0) return;
 
+    final updatedItems = List<CartItem>.from(state.items);
+    final index = _indexOfItem(updatedItems, event.product.id, event.notes);
     if (index >= 0) {
-      updatedItems[index] = updatedItems[index].copyWith(quantity: updatedItems[index].quantity + event.quantity);
+      final currentItem = updatedItems[index];
+      updatedItems[index] = currentItem.copyWith(
+        quantity: currentItem.quantity + event.quantity,
+      );
     } else {
-      updatedItems.add(CartItem(product: event.product, quantity: event.quantity, notes: event.notes));
+      updatedItems.add(
+        CartItem(
+          product: event.product,
+          quantity: event.quantity,
+          notes: event.notes,
+        ),
+      );
     }
 
-    emit(state.copyWith(items: updatedItems, totalAmount: _calculateTotal(updatedItems)));
+    _emitItems(emit, updatedItems);
   }
 
-  void _onUpdateQuantity(UpdateCartItemQuantity event, Emitter<CartState> emit) {
-    final List<CartItem> updatedItems = List.from(state.items);
-    final index = updatedItems.indexWhere((item) => item.product.id == event.product.id && item.notes == event.notes);
+  void _onUpdateQuantity(
+    UpdateCartItemQuantity event,
+    Emitter<CartState> emit,
+  ) {
+    final updatedItems = List<CartItem>.from(state.items);
+    final index = _indexOfItem(updatedItems, event.product.id, event.notes);
+    if (index < 0) return;
 
-    if (index >= 0) {
-      if (event.newQuantity > 0) {
-        updatedItems[index] = updatedItems[index].copyWith(quantity: event.newQuantity);
-      } else {
-        updatedItems.removeAt(index);
-      }
-      emit(state.copyWith(items: updatedItems, totalAmount: _calculateTotal(updatedItems)));
+    if (event.newQuantity > 0) {
+      updatedItems[index] = updatedItems[index].copyWith(
+        quantity: event.newQuantity,
+      );
+    } else {
+      updatedItems.removeAt(index);
     }
+
+    _emitItems(emit, updatedItems);
   }
 
   void _onRemoveProduct(RemoveProductFromCart event, Emitter<CartState> emit) {
-    final updatedItems = state.items.where((item) => !(item.product.id == event.productId && item.notes == event.notes)).toList();
-    emit(state.copyWith(items: updatedItems, totalAmount: _calculateTotal(updatedItems)));
+    final updatedItems = state.items
+        .where(
+          (item) =>
+              item.product.id != event.productId || item.notes != event.notes,
+        )
+        .toList();
+    _emitItems(emit, updatedItems);
   }
 
   void _onClearCart(ClearCart event, Emitter<CartState> emit) {
     emit(const CartState());
   }
 
+  int _indexOfItem(List<CartItem> items, int productId, String? notes) {
+    return items.indexWhere(
+      (item) => item.product.id == productId && item.notes == notes,
+    );
+  }
+
+  void _emitItems(Emitter<CartState> emit, List<CartItem> items) {
+    emit(state.copyWith(items: items, totalAmount: _calculateTotal(items)));
+  }
+
   double _calculateTotal(List<CartItem> items) {
-    return items.fold(0, (sum, item) => sum + (item.product.price * item.quantity));
+    return items.fold(
+      0,
+      (sum, item) => sum + (item.product.price * item.quantity),
+    );
   }
 }

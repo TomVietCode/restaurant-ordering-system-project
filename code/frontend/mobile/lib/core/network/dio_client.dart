@@ -25,7 +25,7 @@ class DioClient {
       InterceptorsWrapper(
         onRequest: (options, handler) {
           // Bổ sung Token hoặc Header đặc biệt vào đây
-          return handler.next(options); 
+          return handler.next(options);
         },
         onResponse: (response, handler) {
           return handler.next(response);

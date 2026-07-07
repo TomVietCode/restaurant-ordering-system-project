@@ -11,7 +11,11 @@ class AddProductToCart extends CartEvent {
   final Product product;
   final int quantity;
   final String? notes;
-  const AddProductToCart({required this.product, required this.quantity, this.notes});
+  const AddProductToCart({
+    required this.product,
+    required this.quantity,
+    this.notes,
+  });
   @override
   List<Object?> get props => [product, quantity, notes];
 }
@@ -20,7 +24,11 @@ class UpdateCartItemQuantity extends CartEvent {
   final Product product;
   final String? notes;
   final int newQuantity;
-  const UpdateCartItemQuantity({required this.product, this.notes, required this.newQuantity});
+  const UpdateCartItemQuantity({
+    required this.product,
+    this.notes,
+    required this.newQuantity,
+  });
   @override
   List<Object?> get props => [product, notes, newQuantity];
 }

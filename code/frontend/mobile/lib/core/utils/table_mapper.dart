@@ -1,35 +1,64 @@
+import 'package:flutter/foundation.dart';
+
 import '../network/dio_client.dart';
 
+class TableInfo {
+  final String id;
+  final String name;
+  final String status;
+
+  const TableInfo({required this.id, required this.name, required this.status});
+
+  bool get isClosed => status.toUpperCase() == 'CLOSED';
+}
+
 class TableMapper {
-  static final Map<String, String> _cache = {};
+  static final Map<String, String> _nameCache = {};
+  static final Map<String, TableInfo> _tableCache = {};
 
-  /// Lấy tên bàn từ UUID, gọi API GET /api/tables/{id} (public, không cần auth)
+  /// Loads and caches the display name for a table UUID.
   static Future<String> loadTableName(String uuid) async {
-    final key = uuid.toLowerCase();
-
-    // Trả về từ cache nếu đã load trước đó
-    if (_cache.containsKey(key)) return _cache[key]!;
-
-    try {
-      final response = await DioClient().dio.get('/tables/$key');
-      final data = response.data;
-      // Hỗ trợ cả { data: { name: ... } } và { name: ... }
-      final tableData = data is Map && data.containsKey('data') ? data['data'] : data;
-      final name = (tableData['name'] ?? '').toString();
-      if (name.isNotEmpty) {
-        _cache[key] = name;
-        return name;
-      }
-    } catch (e) {
-      print('TableMapper: Failed to load table $uuid: $e');
-    }
+    final table = await loadTable(uuid);
+    if (table != null) return table.name;
 
     return 'Bàn $uuid';
   }
 
-  /// Lấy tên bàn đồng bộ (từ cache), dùng trong Widget build()
+  /// Loads and caches public table metadata for QR/customer flows.
+  static Future<TableInfo?> loadTable(String uuid) async {
+    final key = uuid.toLowerCase();
+
+    if (_tableCache.containsKey(key)) return _tableCache[key]!;
+
+    try {
+      final response = await DioClient().dio.get('/tables/$key');
+      final data = response.data;
+      final tableData = data is Map && data.containsKey('data')
+          ? data['data']
+          : data;
+
+      if (tableData is! Map) return null;
+
+      final id = (tableData['id'] ?? key).toString();
+      final name = (tableData['name'] ?? '').toString();
+      final status = (tableData['status'] ?? '').toString();
+
+      if (name.isNotEmpty) {
+        final table = TableInfo(id: id, name: name, status: status);
+        _nameCache[key] = name;
+        _tableCache[key] = table;
+        return table;
+      }
+    } catch (error) {
+      debugPrint('TableMapper: failed to load table $uuid: $error');
+    }
+
+    return null;
+  }
+
+  /// Returns the cached display name for use in synchronous widget builds.
   static String getTableName(String? uuid) {
     if (uuid == null) return 'Chưa chọn bàn';
-    return _cache[uuid.toLowerCase()] ?? 'Đang tải...';
+    return _nameCache[uuid.toLowerCase()] ?? 'Đang tải...';
   }
 }
