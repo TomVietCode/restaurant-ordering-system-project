@@ -52,3 +52,7 @@ services:
       # Routing to backend (port 3002) is handled by reverse proxy (Nginx/Caddy) via the /api path.
     restart: always
 
+networks:
+  tido_net:
+    external: true
+    name: tido_tido_net
