@@ -1,7 +1,12 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api';
+// Ở phía Server (Node.js), sử dụng BACKEND_INTERNAL_URL để gọi trực tiếp container Backend qua mạng nội bộ Docker.
+// Ở phía Client (Browser), sử dụng NEXT_PUBLIC_API_URL (đường dẫn tương đối như /api).
+const API =
+  typeof window === 'undefined'
+    ? (process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api')
+    : (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api');
 
 // Đọc claim `exp` (giây) từ JWT, không cần thư viện ngoài.
 function decodeExpiry(jwt: string): number {

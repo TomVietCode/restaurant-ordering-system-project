@@ -29,7 +29,7 @@ async function seed() {
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
     entities: [User, Table], // Include Table entity in the data source config
-    synchronize: process.env.DB_SSL === 'true' ? false : true,
+    synchronize: true,
     ...(process.env.DB_SSL === 'true' && { ssl: { rejectUnauthorized: false } }),
   });
 

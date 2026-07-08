@@ -105,6 +105,16 @@ jobs:
           # --- SEED DEFAULT ADMIN CONFIG ---
           SEED_ADMIN_EMAIL=${{ secrets.SEED_ADMIN_EMAIL }}
           SEED_ADMIN_PASSWORD=${{ secrets.SEED_ADMIN_PASSWORD }}
+
+          # --- EMAIL CONFIG ---
+          MAIL_HOST=${{ secrets.MAIL_HOST }}
+          MAIL_PORT=${{ secrets.MAIL_PORT }}
+          MAIL_USER=${{ secrets.MAIL_USER }}
+          MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+
+          # --- FRONTEND AUTH CONFIG ---
+          AUTH_SECRET=${{ secrets.AUTH_SECRET }}
+          AUTH_TRUST_HOST=${{ secrets.AUTH_TRUST_HOST }}
           EOF
 
       - name: Copy files to VPS via SCP
