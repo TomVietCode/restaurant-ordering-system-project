@@ -41,6 +41,7 @@ class MenuRepository {
 
       if (products is List) {
         return products
+            .where(_hasCategory)
             .map((json) => Product.fromJson(_productJson(json)))
             .toList();
       }
@@ -59,6 +60,11 @@ class MenuRepository {
       'name': map['name'],
       'description': map['description'],
     };
+  }
+
+  bool _hasCategory(dynamic json) {
+    final map = Map<String, dynamic>.from(json as Map);
+    return map['categoryId'] is num;
   }
 
   Map<String, dynamic> _productJson(dynamic json) {
