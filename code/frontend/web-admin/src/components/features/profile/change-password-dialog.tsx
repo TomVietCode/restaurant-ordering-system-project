@@ -105,8 +105,9 @@ export function ChangePasswordDialog({ open, onOpenChange, token }: ChangePasswo
       toast.success('Đổi mật khẩu thành công. Hệ thống sẽ đăng xuất tài khoản.');
       
       // Auto logout and redirect to login page
-      setTimeout(() => {
-        signOut({ callbackUrl: '/login' });
+      setTimeout(async () => {
+        await signOut({ redirect: false });
+        window.location.href = '/login';
       }, 1500);
     } catch (err) {
       console.error(err);

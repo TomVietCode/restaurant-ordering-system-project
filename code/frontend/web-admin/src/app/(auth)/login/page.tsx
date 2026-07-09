@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ForgotPasswordTrigger } from '@/components/features/auth/forgot-password-trigger';
+import { SubmitButton } from '@/components/features/auth/submit-button';
 
 // Server Action — chạy trên server, gọi signIn từ @/auth.
 async function login(formData: FormData) {
@@ -85,9 +86,7 @@ export default async function LoginPage(props: {
                 </p>
               )}
             </div>
-            <Button type="submit" size="lg" className="w-full h-12 text-base font-semibold">
-              Đăng nhập
-            </Button>
+            <SubmitButton />
           </form>
         </CardContent>
       </Card>

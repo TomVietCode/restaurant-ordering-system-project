@@ -8,16 +8,16 @@ import { MailService } from './mail.service';
   imports: [
     MailerModule.forRoot({
       transport: {
-        host: 'smtp.gmail.com', 
-        port: 587,
+        host: process.env.MAIL_HOST , 
+        port: parseInt(process.env.MAIL_PORT, 10),
         secure: false,
         auth: {
-          user: process.env.MAIL_USER || 'duongvantra2004@gmail.com',
-          pass: process.env.MAIL_PASS || 'nxmxbxpjahmdlfab',
+          user: process.env.MAIL_USER,
+          pass: process.env.MAIL_PASS,
         },
       },
       defaults: {
-        from: `"Restaurant Ordering" <${process.env.MAIL_USER}>`,
+        from: `"IOC Restaurant" <${process.env.MAIL_USER}>`,
       },
     }),
   ],

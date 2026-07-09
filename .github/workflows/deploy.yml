@@ -110,7 +110,7 @@ jobs:
           MAIL_HOST=${{ secrets.MAIL_HOST }}
           MAIL_PORT=${{ secrets.MAIL_PORT }}
           MAIL_USER=${{ secrets.MAIL_USER }}
-          MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
+          MAIL_PASS=${{ secrets.MAIL_PASS }}
 
           # --- FRONTEND AUTH CONFIG ---
           AUTH_SECRET=${{ secrets.AUTH_SECRET }}

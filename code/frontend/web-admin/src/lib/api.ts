@@ -65,7 +65,9 @@ async function request<T>(path: string, options: Options = {}): Promise<T> {
     // (accessToken được auto-refresh nên 401 giữa phiên gần như chắc chắn là bị khóa/thu hồi.)
     if (res.status === 401 && typeof window !== 'undefined') {
       const { signOut } = await import('next-auth/react');
-      void signOut({ callbackUrl: '/login?error=locked' });
+      void signOut({ redirect: false }).then(() => {
+        window.location.href = '/login?error=locked';
+      });
     }
     throw new ApiError(message, res.status);
   }
