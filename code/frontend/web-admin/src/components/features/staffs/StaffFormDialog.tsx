@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ApiError } from '@/lib/api';
 import { toViError } from '@/lib/errors';
 import { Role } from '@/types/auth';
 import { ROLE_LABEL } from '@/types/staff';
@@ -28,6 +29,7 @@ interface Props {
 interface FieldErrors {
   fullName?: string;
   email?: string;
+  phone?: string;
   password?: string;
 }
 
@@ -64,6 +66,17 @@ function Inner({ staff, onOpenChange, onSave, currentEmail }: Omit<Props, 'open'
       }
       onOpenChange(false);
     } catch (err) {
+      // Lỗi trùng email/SĐT → hiện inline ngay dưới ô nhập thay vì toast
+      if (err instanceof ApiError) {
+        switch (err.errorCode) {
+          case 'EMAIL_ALREADY_EXISTS':
+            setErrors(p => ({ ...p, email: 'Email đã được sử dụng.' }));
+            return;
+          case 'PHONE_ALREADY_EXISTS':
+            setErrors(p => ({ ...p, phone: 'Số điện thoại đã được sử dụng.' }));
+            return;
+        }
+      }
       toast.error(toViError(err, 'Không thể lưu thông tin nhân viên. Vui lòng thử lại.'));
     } finally {
       setLoading(false);
@@ -101,9 +114,10 @@ function Inner({ staff, onOpenChange, onSave, currentEmail }: Omit<Props, 'open'
           <Label htmlFor="staff-phone">Số điện thoại</Label>
           <Input
             id="staff-phone" value={phone} maxLength={20}
-            placeholder="0987654321"
-            onChange={e => setPhone(e.target.value)}
+            placeholder="0987654321" aria-invalid={!!errors.phone}
+            onChange={e => { setPhone(e.target.value); setErrors(p => ({ ...p, phone: undefined })); }}
           />
+          {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
         </div>
 
         <div className="space-y-1.5">

@@ -19,6 +19,7 @@ import { ResetPasswordToken } from './entities/reset-password-token.entity.js';
 import { InjectionToken } from '@nestjs/common';
 import { parseDurationToSeconds } from '@common/helpers/date.js';
 import { RESET_PASSWORD_TOKEN_REPOSITORY_TOKEN } from '@common/constants.js';
+import { ErrorCode } from '@common/error-codes.js';
 import { generateOtp } from '@common/helpers/generate.js';
 
 export const REFRESH_TOKEN_REPOSITORY_TOKEN: InjectionToken<IRefreshTokenRepository> = Symbol('IRefreshTokenRepository');
@@ -51,25 +52,40 @@ export class AuthService {
     const storedToken = await this.refreshTokenRepository.findByUserId(payload.sub);
 
     if (!storedToken) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException({
+        message: 'Invalid refresh token',
+        errorCode: ErrorCode.REFRESH_TOKEN_INVALID,
+      });
     }
 
     if (storedToken.revokedAt) {
-      throw new UnauthorizedException('Refresh token has been revoked');
+      throw new UnauthorizedException({
+        message: 'Refresh token has been revoked',
+        errorCode: ErrorCode.REFRESH_TOKEN_REVOKED,
+      });
     }
 
     if (new Date() > storedToken.expiredAt) {
-      throw new UnauthorizedException('Refresh token has expired');
+      throw new UnauthorizedException({
+        message: 'Refresh token has expired',
+        errorCode: ErrorCode.REFRESH_TOKEN_EXPIRED,
+      });
     }
 
     const isTokenValid = await bcrypt.compare(refreshToken, storedToken.tokenHash);
     if (!isTokenValid) {
-      throw new UnauthorizedException('Invalid refresh token');
+      throw new UnauthorizedException({
+        message: 'Invalid refresh token',
+        errorCode: ErrorCode.REFRESH_TOKEN_INVALID,
+      });
     }
 
     const user = await this.usersService.findById(payload.sub);
     if (!user || !user.isActive) {
-      throw new UnauthorizedException('User account is no longer active');
+      throw new UnauthorizedException({
+        message: 'User account is no longer active',
+        errorCode: ErrorCode.ACCOUNT_INACTIVE,
+      });
     }
 
     return this.generateAndPersistTokens(user);
@@ -95,18 +111,27 @@ export class AuthService {
 
     // User not found
     if (!user) {
-      throw new UnauthorizedException('Email or password is incorrect');
+      throw new UnauthorizedException({
+        message: 'Email or password is incorrect',
+        errorCode: ErrorCode.INVALID_CREDENTIALS,
+      });
     }
 
     // Account deactivated
     if (!user.isActive) {
-      throw new UnauthorizedException('Email or password is incorrect');
+      throw new UnauthorizedException({
+        message: 'Email or password is incorrect',
+        errorCode: ErrorCode.INVALID_CREDENTIALS,
+      });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Email or password is incorrect');
+      throw new UnauthorizedException({
+        message: 'Email or password is incorrect',
+        errorCode: ErrorCode.INVALID_CREDENTIALS,
+      });
     }
 
     return user;
@@ -169,7 +194,10 @@ export class AuthService {
         secret: this.configService.get<string>('jwt.refreshSecret'),
       });
     } catch {
-      throw new UnauthorizedException('Invalid or expired refresh token');
+      throw new UnauthorizedException({
+        message: 'Invalid or expired refresh token',
+        errorCode: ErrorCode.REFRESH_TOKEN_INVALID,
+      });
     }
   }
 
@@ -195,7 +223,10 @@ export class AuthService {
 
     const user = await this.usersService.findByEmail(email);
     if (!user) {
-      throw new NotFoundException('Email had not link to any user');
+      throw new NotFoundException({
+        message: 'Email had not link to any user',
+        errorCode: ErrorCode.EMAIL_NOT_FOUND,
+      });
     }
     const otp = generateOtp();
 
@@ -212,7 +243,10 @@ export class AuthService {
     const user = await this.usersService.findById(currentId);
     const isValid = await bcrypt.compare(dto.oldPassword, user.passwordHash);
     if (!isValid) {
-      throw new BadRequestException('Old password invalid');
+      throw new BadRequestException({
+        message: 'Old password invalid',
+        errorCode: ErrorCode.OLD_PASSWORD_INVALID,
+      });
     }
 
     await this.createAndSendOtp(user.email);
@@ -228,14 +262,23 @@ export class AuthService {
 
     const token = await this.resetPasswordTokenRepository.findByOtp(otp);
     if (!token) {
-      throw new BadRequestException('OTP not corret');
+      throw new BadRequestException({
+        message: 'OTP not corret',
+        errorCode: ErrorCode.OTP_INVALID,
+      });
     }
     if (token.expiredAt < new Date()) {
-      throw new BadRequestException('OTP has expired');
+      throw new BadRequestException({
+        message: 'OTP has expired',
+        errorCode: ErrorCode.OTP_EXPIRED,
+      });
     }
     const user = await this.usersService.findByEmail(token.email);
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException({
+        message: 'User not found',
+        errorCode: ErrorCode.USER_NOT_FOUND,
+      });
     }
     await this.usersService.updatePassword(user, newPassword);
     await this.logout(user.id);

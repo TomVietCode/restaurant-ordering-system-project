@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <AppHeader user={user} />
           <main className="flex-1 overflow-y-auto p-6">{children}</main>
         </SidebarInset>
-        <Toaster position="bottom-right" />
+        <Toaster position="top-center" />
       </SidebarProvider>
     </SessionProvider>
   );

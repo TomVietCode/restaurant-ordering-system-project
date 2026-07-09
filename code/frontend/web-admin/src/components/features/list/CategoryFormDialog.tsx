@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ApiError } from '@/lib/api';
 import { toViError } from '@/lib/errors';
 import type { Category, CreateCategoryDto } from '@/types/category';
 
@@ -34,6 +35,11 @@ function Inner({ category, onOpenChange, onSave }: Omit<Props, 'open'>) {
       await onSave({ name: name.trim(), description: description.trim() || undefined }, category?.id);
       onOpenChange(false);
     } catch (err) {
+      // Tên danh mục trùng → hiện inline dưới ô tên thay vì toast
+      if (err instanceof ApiError && err.errorCode === 'CATEGORY_NAME_ALREADY_EXISTS') {
+        setNameError('Tên danh mục đã tồn tại. Vui lòng chọn tên khác.');
+        return;
+      }
       toast.error(toViError(err, 'Không thể lưu danh mục. Vui lòng thử lại.'));
     } finally {
       setLoading(false);

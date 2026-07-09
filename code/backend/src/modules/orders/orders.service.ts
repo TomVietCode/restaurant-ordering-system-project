@@ -3,6 +3,7 @@ import { DataSource, EntityManager, In } from 'typeorm';
 import { generateTrackingCode } from '@common/utils/tracking-code.util.js';
 import { ORDER_REPO_TOKEN, REALTIME_SERVICE_TOKEN } from '@common/constants.js';
 import { OrderStatus, PaymentMethod, TableStatus } from '@common/enums.js';
+import { ErrorCode } from '@common/error-codes.js';
 import type { IOrderRepository, OrderQueryOptions } from './repositories/order.repository.interface.js';
 import type { IRealtimeService } from '@modules/realtime/realtime.service.interface.js';
 import { TableService } from '@modules/tables/table.service.js';
@@ -53,7 +54,10 @@ export class OrdersService {
     // 1. Validate table
     const table = await this.tableService.findById(dto.tableId);
     if (table.status === TableStatus.CLOSED) {
-      throw new BadRequestException('Table is currently closed');
+      throw new BadRequestException({
+        message: 'Table is currently closed',
+        errorCode: ErrorCode.TABLE_CLOSED,
+      });
     }
 
     // 2. Validate items and snapshot prices
@@ -67,17 +71,26 @@ export class OrdersService {
     for (const orderItemDto of dto.items) {
       const item = itemsMap.get(orderItemDto.itemId);
       if (!item) {
-        throw new NotFoundException(`Item with ID ${orderItemDto.itemId} not found`);
+        throw new NotFoundException({
+          message: `Item with ID ${orderItemDto.itemId} not found`,
+          errorCode: ErrorCode.ITEM_NOT_FOUND,
+        });
       }
 
       // Check soft-delete
       if (item.deletedAt !== null) {
-        throw new BadRequestException(`Item "${item.name}" has been removed from the menu.`);
+        throw new BadRequestException({
+          message: `Item "${item.name}" has been removed from the menu.`,
+          errorCode: ErrorCode.ITEM_NOT_FOUND,
+        });
       }
 
       // Check stock availability
       if (!item.isRemain) {
-        throw new BadRequestException(`Item "${item.name}" is out of stock. Please remove it from your cart.`);
+        throw new BadRequestException({
+          message: `Item "${item.name}" is out of stock. Please remove it from your cart.`,
+          errorCode: ErrorCode.ITEM_OUT_OF_STOCK,
+        });
       }
 
       const oi = new OrderItem();
@@ -140,7 +153,10 @@ export class OrdersService {
   async trackOrder(trackingCode: string): Promise<Order> {
     const order = await this.orderRepository.findByTrackingCode(trackingCode);
     if (!order) {
-      throw new NotFoundException('Order not found');
+      throw new NotFoundException({
+        message: 'Order not found',
+        errorCode: ErrorCode.ORDER_NOT_FOUND,
+      });
     }
     return order;
   }
@@ -163,7 +179,10 @@ export class OrdersService {
   async findById(id: number): Promise<Order> {
     const order = await this.orderRepository.findById(id);
     if (!order) {
-      throw new NotFoundException('Order not found');
+      throw new NotFoundException({
+        message: 'Order not found',
+        errorCode: ErrorCode.ORDER_NOT_FOUND,
+      });
     }
     return order;
   }
@@ -174,13 +193,19 @@ export class OrdersService {
     // Validate state transition
     const allowedNextStatuses = STATE_TRANSITIONS[order.status];
     if (!allowedNextStatuses.includes(dto.status)) {
-      throw new BadRequestException(`Cannot transition from ${order.status} to ${dto.status}`);
+      throw new BadRequestException({
+        message: `Cannot transition from ${order.status} to ${dto.status}`,
+        errorCode: ErrorCode.INVALID_ORDER_STATUS_TRANSITION,
+      });
     }
 
     // Handle PAID-specific logic
     if (dto.status === OrderStatus.PAID) {
       if (!dto.paymentMethod) {
-        throw new BadRequestException('Payment method is required');
+        throw new BadRequestException({
+          message: 'Payment method is required',
+          errorCode: ErrorCode.VALIDATION_ERROR,
+        });
       }
       order.paymentMethod = dto.paymentMethod;
       order.paidAt = new Date();
@@ -229,7 +254,10 @@ export class OrdersService {
     const activeOrders = await this.orderRepository.findActiveOrdersByTableId(tableId);
 
     if (activeOrders.length === 0) {
-      throw new BadRequestException('No active orders found for this table');
+      throw new BadRequestException({
+        message: 'No active orders found for this table',
+        errorCode: ErrorCode.ORDER_NOT_FOUND,
+      });
     }
 
     const now = new Date();
@@ -279,20 +307,29 @@ export class OrdersService {
 
     // Validate all requested orders were found
     if (orders.length !== orderIds.length) {
-      throw new NotFoundException('One or more orders not found');
+      throw new NotFoundException({
+        message: 'One or more orders not found',
+        errorCode: ErrorCode.ORDER_NOT_FOUND,
+      });
     }
 
     // Validate orders belong to the specified table
     const invalidTableOrder = orders.find((o) => o.tableId !== tableId);
     if (invalidTableOrder) {
-      throw new BadRequestException(`Order #${invalidTableOrder.id} does not belong to table ${tableId}`);
+      throw new BadRequestException({
+        message: `Order #${invalidTableOrder.id} does not belong to table ${tableId}`,
+        errorCode: ErrorCode.VALIDATION_ERROR,
+      });
     }
 
     // Validate all orders are currently active (not PAID or CANCEL)
     const nonActiveOrders = orders.filter((o) => o.status === OrderStatus.PAID || o.status === OrderStatus.CANCEL);
     if (nonActiveOrders.length > 0) {
       const nonActiveIds = nonActiveOrders.map((o) => o.id).join(', ');
-      throw new BadRequestException(`Order(s) with ID(s) ${nonActiveIds} are already paid or cancelled`);
+      throw new BadRequestException({
+        message: `Order(s) with ID(s) ${nonActiveIds} are already paid or cancelled`,
+        errorCode: ErrorCode.INVALID_ORDER_STATUS_TRANSITION,
+      });
     }
 
     const now = new Date();
@@ -338,7 +375,10 @@ export class OrdersService {
     const order = await this.findById(orderId);
 
     if (order.status !== OrderStatus.SERVED) {
-      throw new BadRequestException('Order is not payable');
+      throw new BadRequestException({
+        message: 'Order is not payable',
+        errorCode: ErrorCode.INVALID_ORDER_STATUS_TRANSITION,
+      });
     }
 
     // Build a VNPay redirect URL (the browser is sent to VNPay's payment page).
@@ -488,6 +528,9 @@ export class OrdersService {
       return trackingCode;
     }
 
-    throw new InternalServerErrorException('Unable to generate unique tracking code after 5 attempts.');
+    throw new InternalServerErrorException({
+      message: 'Unable to generate unique tracking code after 5 attempts.',
+      errorCode: ErrorCode.INTERNAL_SERVER_ERROR,
+    });
   }
 }

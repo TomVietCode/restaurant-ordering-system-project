@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ApiError } from '@/lib/api';
+import { toViError } from '@/lib/errors';
 import { cn } from '@/lib/utils';
 import { tableService } from '@/services/table.service';
 import type { Table } from '@/types/table';
@@ -79,7 +81,12 @@ export function TableFormDialog({ open, onOpenChange, table, existingNames, onDo
       onOpenChange(false);
       onDone(saved);
     } catch (err) {
-      toast.error('Không kết nối được server, vui lòng thử lại');
+      // Tên bàn trùng → hiện inline dưới ô tên thay vì toast
+      if (err instanceof ApiError && err.errorCode === 'TABLE_NAME_ALREADY_EXISTS') {
+        setNameError('Tên bàn đã tồn tại. Vui lòng chọn tên khác.');
+        return;
+      }
+      toast.error(toViError(err, 'Không kết nối được server, vui lòng thử lại'));
     } finally {
       setLoading(false);
     }

@@ -16,7 +16,7 @@ export default async function StaffLayout({
       <main className="flex-1 overflow-hidden">
         {children}
       </main>
-      <Toaster position="top-right" />
+      <Toaster position="top-center" />
     </div>
   );
 }

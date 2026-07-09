@@ -3,6 +3,7 @@ import { Category } from './entities/category.entity.js';
 import type { ICategoryRepository } from './repositories/category.repository.interface.js';
 import  type { IItemRepository } from '@modules/items/repositories/item.repo.interface.js';
 import { ITEM_REPOSITORY_TOKEN } from '@common/constants.js';
+import { ErrorCode } from '@common/error-codes.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { UpdateCategoryDto } from './dto/update-category.dto.js';
 
@@ -38,7 +39,10 @@ export class CategoriesService {
   async findById(id: number): Promise<Category> {
     const category = await this.categoryRepository.findById(id);
     if (!category) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException({
+        message: 'Category not found',
+        errorCode: ErrorCode.CATEGORY_NOT_FOUND,
+      });
     }
     return category;
   }
@@ -65,7 +69,10 @@ export class CategoriesService {
 
     const activeItems = items.filter((item) => !item.deletedAt);
     if (activeItems.length > 0) {
-      throw new BadRequestException('Cannot delete category because active items are linked to it');
+      throw new BadRequestException({
+        message: 'Cannot delete category because active items are linked to it',
+        errorCode: ErrorCode.CATEGORY_HAS_ITEMS,
+      });
     }
 
     const softDeletedItems = items.filter((item) => !!item.deletedAt);
@@ -83,7 +90,10 @@ export class CategoriesService {
 
   async existsByName(name: string): Promise<void> {
     if(await this.categoryRepository.findByName(name)) {
-      throw new ConflictException('Category name already exists');
+      throw new ConflictException({
+        message: 'Category name already exists',
+        errorCode: ErrorCode.CATEGORY_NAME_ALREADY_EXISTS,
+      });
     }
   }
 }

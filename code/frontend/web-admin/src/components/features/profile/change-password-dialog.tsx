@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Key, Mail, Lock, ShieldCheck, Loader2 } from 'lucide-react';
 import { authService } from '@/services/auth.service';
+import { ApiError } from '@/lib/api';
+import { toViError } from '@/lib/errors';
 
 interface ChangePasswordDialogProps {
   open: boolean;
@@ -59,12 +61,18 @@ export function ChangePasswordDialog({ open, onOpenChange, token }: ChangePasswo
       setStep(2);
     } catch (err) {
       console.error(err);
-      let errorMsg = 'Có lỗi xảy ra khi xác thực mật khẩu. Vui lòng thử lại sau.';
-      const errorStr = err instanceof Error ? err.message : String(err);
-
-      if (errorStr.includes('Old password invalid')) {
-        errorMsg = 'Mật khẩu hiện tại không chính xác';
+      // Lỗi có errorCode → hiện inline dưới ô mật khẩu, không cần toast
+      if (err instanceof ApiError && err.errorCode === 'OLD_PASSWORD_INVALID') {
+        setErrors({ oldPassword: 'Mật khẩu hiện tại không chính xác' });
+        return;
       }
+      // Fallback theo message tiếng Anh (legacy — phản hồi chưa có errorCode)
+      const errorStr = err instanceof Error ? err.message : String(err);
+      if (errorStr.includes('Old password invalid')) {
+        setErrors({ oldPassword: 'Mật khẩu hiện tại không chính xác' });
+        return;
+      }
+      const errorMsg = toViError(err, 'Có lỗi xảy ra khi xác thực mật khẩu. Vui lòng thử lại sau.');
       setErrors({ oldPassword: errorMsg });
       toast.error(errorMsg);
     } finally {
@@ -111,20 +119,30 @@ export function ChangePasswordDialog({ open, onOpenChange, token }: ChangePasswo
       }, 1500);
     } catch (err) {
       console.error(err);
-      let errorMsg = 'Có lỗi xảy ra khi cập nhật mật khẩu. Vui lòng thử lại sau.';
+      // Lỗi có errorCode → hiện inline dưới đúng ô nhập gây lỗi
+      if (err instanceof ApiError) {
+        switch (err.errorCode) {
+          case 'OTP_INVALID':
+            setErrors({ otp: 'Mã OTP không chính xác' });
+            return;
+          case 'OTP_EXPIRED':
+            setErrors({ otp: 'Mã OTP đã hết hạn' });
+            return;
+          case 'SAME_PASSWORD':
+            setErrors({ newPassword: 'Mật khẩu mới không được trùng với mật khẩu cũ' });
+            return;
+        }
+      }
+      // Fallback theo message tiếng Anh (legacy — phản hồi chưa có errorCode)
       const errorStr = err instanceof Error ? err.message : String(err);
-
       if (errorStr.includes('OTP not correct') || errorStr.includes('OTP not corret')) {
-        errorMsg = 'Mã OTP không chính xác';
-        setErrors({ otp: errorMsg });
+        setErrors({ otp: 'Mã OTP không chính xác' });
       } else if (errorStr.includes('OTP has expired')) {
-        errorMsg = 'Mã OTP đã hết hạn';
-        setErrors({ otp: errorMsg });
+        setErrors({ otp: 'Mã OTP đã hết hạn' });
       } else if (errorStr.includes('New password and old password can not be the same')) {
-        errorMsg = 'Mật khẩu mới không được trùng với mật khẩu cũ';
-        setErrors({ newPassword: errorMsg });
+        setErrors({ newPassword: 'Mật khẩu mới không được trùng với mật khẩu cũ' });
       } else {
-        toast.error(errorMsg);
+        toast.error(toViError(err, 'Có lỗi xảy ra khi cập nhật mật khẩu. Vui lòng thử lại sau.'));
       }
     } finally {
       setLoading(false);

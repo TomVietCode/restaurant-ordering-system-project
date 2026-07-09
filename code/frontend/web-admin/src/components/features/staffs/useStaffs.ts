@@ -75,7 +75,7 @@ export function useStaffs() {
     if (id) {
       // PATCH /users/:id nhận thẳng isActive
       await staffService.update(id, dto as UpdateStaffDto, token);
-      toast.success('Cập nhật nhân viên thành công');
+      toast.success('Cập nhật tài khoản thành công');
     } else {
       // POST /users không nhận isActive → tạo xong (mặc định hoạt động),
       // nếu form chọn "Đã khóa" thì gọi tiếp toggle-activate.

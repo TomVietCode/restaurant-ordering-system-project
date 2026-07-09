@@ -29,4 +29,11 @@ export default () => ({
     secureSecret: process.env.VNPAY_SECURE_SECRET,
     returnUrl: process.env.VNPAY_RETURN_URL,
   },
+  mail: {
+    host: process.env.MAIL_HOST,
+    port: parseInt(process.env.MAIL_PORT as string, 10),
+    user: process.env.MAIL_USER,
+    password: process.env.MAIL_PASSWORD,
+    from: process.env.MAIL_FROM,
+  },
 });

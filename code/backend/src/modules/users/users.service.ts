@@ -4,6 +4,7 @@ import type { IUserRepository } from './repositories/user.repository.interface.j
 import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto } from './dtos/user-dtos.js';
 import * as bcrypt from 'bcryptjs';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
+import { ErrorCode } from '@common/error-codes.js';
 
 /**
  * Dependency injection token for UserRepository.
@@ -54,7 +55,10 @@ export class UsersService {
   async findById(id: number): Promise<User> {
     const user = await this.userRepository.findById(id);
     if (!user) {
-      throw new NotFoundException('User not found');
+      throw new NotFoundException({
+        message: 'User not found',
+        errorCode: ErrorCode.USER_NOT_FOUND,
+      });
     }
     return user;
   }
@@ -73,11 +77,17 @@ export class UsersService {
    */
   async create(dto: CreateUserDto): Promise<UserResponseDto> {
     if (await this.findByEmail(dto.email)) {
-      throw new ConflictException('Email already exists');
+      throw new ConflictException({
+        message: 'Email already exists',
+        errorCode: ErrorCode.EMAIL_ALREADY_EXISTS,
+      });
     }
 
     if (dto.phone && (await this.userRepository.findByPhone(dto.phone))) {
-      throw new ConflictException('Phone number already exists');
+      throw new ConflictException({
+        message: 'Phone number already exists',
+        errorCode: ErrorCode.PHONE_ALREADY_EXISTS,
+      });
     }
 
     const user = Object.assign(new User(), dto);
@@ -112,14 +122,20 @@ export class UsersService {
     if (dto.email && dto.email !== user.email) {
       const existing = await this.userRepository.findByEmail(dto.email);
       if (existing) {
-        throw new ConflictException('Email already exists');
+        throw new ConflictException({
+          message: 'Email already exists',
+          errorCode: ErrorCode.EMAIL_ALREADY_EXISTS,
+        });
       }
     }
 
     if (dto.phone && dto.phone !== user.phone) {
       const existing = await this.userRepository.findByPhone(dto.phone);
       if (existing) {
-        throw new ConflictException('Phone number already exists');
+        throw new ConflictException({
+          message: 'Phone number already exists',
+          errorCode: ErrorCode.PHONE_ALREADY_EXISTS,
+        });
       }
     }
 
@@ -142,7 +158,10 @@ export class UsersService {
     
     if (isActive === false) {
       if (user.id === currentId) {
-        throw new BadRequestException('You cannot deactivate your own account');
+        throw new BadRequestException({
+          message: 'You cannot deactivate your own account',
+          errorCode: ErrorCode.CANNOT_DEACTIVATE_SELF,
+        });
       }
     }
     
@@ -156,7 +175,10 @@ export class UsersService {
   async remove(id: number): Promise<void> {
     const user = await this.findById(id);
     if (user.isActive === true) {
-      throw new BadRequestException('Cannot delete an active user');
+      throw new BadRequestException({
+        message: 'Cannot delete an active user',
+        errorCode: ErrorCode.CANNOT_DELETE_ACTIVE_USER,
+      });
     }
     await this.userRepository.delete(id);
   }
@@ -167,7 +189,10 @@ export class UsersService {
   async updatePassword(user: User, newPassword: string): Promise<void> {
     const isSame = await bcrypt.compare(newPassword, user.passwordHash);
     if (isSame) {
-      throw new BadRequestException('New password and old password cannot be the same');
+      throw new BadRequestException({
+        message: 'New password and old password cannot be the same',
+        errorCode: ErrorCode.SAME_PASSWORD,
+      });
     }
 
     user.passwordHash = await bcrypt.hash(newPassword, 10);

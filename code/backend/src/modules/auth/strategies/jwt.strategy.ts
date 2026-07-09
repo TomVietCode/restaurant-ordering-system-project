@@ -4,6 +4,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { UsersService } from '@modules/users/users.service.js';
 import { IJwtPayload } from '@modules/auth/interfaces/jwt-payload.interface.js';
+import { ErrorCode } from '@common/error-codes.js';
 
 /**
  * Passport JWT strategy for access token validation.
@@ -39,11 +40,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const user = await this.usersService.findById(payload.sub);
 
     if (!user) {
-      throw new UnauthorizedException('User not found');
+      throw new UnauthorizedException({
+        message: 'User not found',
+        errorCode: ErrorCode.USER_NOT_FOUND,
+      });
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException('Account has been deactivated');
+      throw new UnauthorizedException({
+        message: 'Account has been deactivated',
+        errorCode: ErrorCode.ACCOUNT_INACTIVE,
+      });
     }
 
     const { passwordHash, ...userWithoutPassword } = user;
