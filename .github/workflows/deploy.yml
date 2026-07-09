@@ -99,9 +99,6 @@ jobs:
           VNPAY_SECURE_SECRET=${{ secrets.VNPAY_SECURE_SECRET }}
           VNPAY_RETURN_URL=${{ secrets.VNPAY_RETURN_URL }}
 
-          # --- FRONTEND AUTH CONFIG ---
-          AUTH_SECRET=${{ secrets.AUTH_SECRET }}
-
           # --- SEED DEFAULT ADMIN CONFIG ---
           SEED_ADMIN_EMAIL=${{ secrets.SEED_ADMIN_EMAIL }}
           SEED_ADMIN_PASSWORD=${{ secrets.SEED_ADMIN_PASSWORD }}
