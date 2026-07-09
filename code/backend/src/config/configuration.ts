@@ -29,4 +29,9 @@ export default () => ({
     secureSecret: process.env.VNPAY_SECURE_SECRET,
     returnUrl: process.env.VNPAY_RETURN_URL,
   },
+  mail: {
+    apiKey: process.env.BREVO_API_KEY ?? process.env.MAIL_API_KEY ?? process.env.MAIL_KEY,
+    from: process.env.MAIL_FROM,
+    fromName: process.env.MAIL_FROM_NAME,
+  },
 });
