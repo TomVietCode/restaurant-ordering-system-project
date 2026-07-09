@@ -1,8 +1,11 @@
 import { Role } from '@/types/auth';
 
-/** Backend API base URL (NestJS, includes the `/api` prefix). */
+// Ở phía Server (Node.js), sử dụng BACKEND_INTERNAL_URL để gọi trực tiếp container Backend qua mạng nội bộ Docker.
+// Ở phía Client (Browser), sử dụng NEXT_PUBLIC_API_URL (đường dẫn tương đối như /api).
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api';
+  typeof window === 'undefined'
+    ? (process.env.BACKEND_INTERNAL_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api')
+    : (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api');
 
 /** Web Admin route paths. */
 export const ROUTES = {

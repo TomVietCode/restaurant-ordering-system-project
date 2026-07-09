@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
 import { HttpExceptionFilter } from '@common/filters/http-exception.filter.js';
+import { getCorsOrigins } from '@common/utils/cors.util.js';
 
 
 async function bootstrap() {
@@ -15,7 +16,7 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors({
-    origin: process.env.CORS_ORIGIN ?? 'http://localhost:3001',
+    origin: getCorsOrigins(process.env.CORS_ORIGIN),
     credentials: true,
   });
 

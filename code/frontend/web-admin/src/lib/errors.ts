@@ -7,14 +7,19 @@ const RULES: { test: RegExp; vi: string }[] = [
   { test: /forbidden|not allowed|do not have permission|insufficient/i, vi: 'Bạn không có quyền thực hiện thao tác này.' },
 
   // Trùng tên
+  { test: /email already exists|duplicate.*email/i, vi: 'Email đã được sử dụng. Vui lòng chọn email khác.' },
+  { test: /phone already exists|duplicate.*phone/i, vi: 'Số điện thoại đã được sử dụng. Vui lòng chọn số khác.' },
   { test: /already exists/i, vi: 'Tên đã tồn tại! Vui lòng chọn tên khác.' },
 
   // Ràng buộc xóa
   { test: /items are linked|foreign key constraint|cannot delete category/i, vi: 'Không thể xóa: vẫn còn món ăn thuộc danh mục này. Hãy chuyển hoặc xóa các món trước.' },
+  { test: /cannot delete an active user/i, vi: 'Không thể xóa: hãy khóa tài khoản này trước khi xóa.' },
+  { test: /cannot deactivate your own account/i, vi: 'Bạn không thể tự khóa tài khoản của chính mình.' },
 
   // Không tìm thấy
   { test: /item not found/i, vi: 'Món ăn không tồn tại hoặc đã bị xóa.' },
   { test: /category not found/i, vi: 'Danh mục không tồn tại hoặc đã bị xóa.' },
+  { test: /user not found/i, vi: 'Nhân viên không tồn tại hoặc đã bị xóa.' },
   { test: /not found/i, vi: 'Không tìm thấy dữ liệu yêu cầu.' },
 
   // Lỗi kiểm tra dữ liệu (class-validator)

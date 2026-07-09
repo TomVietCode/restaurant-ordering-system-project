@@ -1,24 +1,45 @@
-FROM node:20-alpine as builder
+# Stage 1: Install all dependencies (including development dependencies)
+FROM node:22-alpine AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# copy dependencies first for caching
-COPY package*.json ./
+# Copy dependency definition files to cache the installation layer
+COPY package.json package-lock.json ./
 RUN npm ci
 
-# copy source and build
-COPY . .
-RUN npm run build --if-present
-
-FROM node:20-alpine
+# Stage 2: Build the NestJS application
+FROM node:22-alpine AS builder
 WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+
+# Compile TS code to JS (generates the /dist folder)
+RUN npm run build
+
+# Stage 3: Install production-only dependencies
+FROM node:22-alpine AS prod-deps
+WORKDIR /app
+COPY package.json package-lock.json ./
+# --omit=dev ensures devDependencies are skipped, reducing image size
+RUN npm ci --omit=dev
+
+# Stage 4: Production runner
+FROM node:22-alpine AS runner
+WORKDIR /app
+
 ENV NODE_ENV=production
 
-# install production deps
-COPY package*.json ./
-RUN npm ci --production
+# Use the pre-existing non-root 'node' user provided by node-alpine for security
+USER node
 
-# copy built files
-COPY --from=builder /app/dist ./dist
+# Copy only production dependencies and compiled files
+COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/dist ./dist
+COPY --from=builder --chown=node:node /app/package.json ./package.json
 
 EXPOSE 3000
-CMD ["node", "dist/main.js"]
+
+ENV PORT=3000
+
+# Run database seed first, then start the main NestJS application
+CMD ["sh", "-c", "node dist/config/seed.js && node dist/main.js"]

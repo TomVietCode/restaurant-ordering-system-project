@@ -1,4 +1,4 @@
-import { apiWithToken } from '@/lib/api';
+import { apiClient, apiWithToken } from '@/lib/api';
 import type { Order, OrderItem, OrderStatus, PaymentMethod } from '@/types/order';
 
 // ──────────────────────────────────────────────────────────────

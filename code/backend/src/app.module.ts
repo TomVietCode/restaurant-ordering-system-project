@@ -17,8 +17,7 @@ import { RealtimeModule } from '@modules/realtime/realtime.module.js';
 import { OrdersModule } from '@modules/orders/orders.module.js';
 import { MailModule } from '@modules/mail/mail.module.js';
 import { ReportsModule } from '@modules/reports/reports.module.js';
-import { VnpayModule,  } from 'nestjs-vnpay';
-import { HashAlgorithm } from 'vnpay';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -37,8 +36,8 @@ import { HashAlgorithm } from 'vnpay';
         password: configService.get('database.password'),
         database: configService.get('database.database'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: configService.get('nodeEnv') !== 'production',
-        ...(configService.get('nodeEnv') === 'production' && { ssl: { rejectUnauthorized: false } })
+        synchronize: configService.get('database.ssl'),
+        ...((configService.get('database.ssl')) && { ssl: { rejectUnauthorized: false } })
       }),
     }),
     AuthModule,

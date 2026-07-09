@@ -323,8 +323,10 @@ function Simulator() {
                       <Select 
                         value={selectedTableId} 
                         onValueChange={(val) => {
-                          setSelectedTableId(val);
-                          toast.success(`Đã chọn bàn: ${tables.find(t => t.id === val)?.name || val}`);
+                          setSelectedTableId(val ?? '');
+                          if (val) {
+                            toast.success(`Đã chọn bàn: ${tables.find(t => t.id === val)?.name || val}`);
+                          }
                         }}
                       >
                         <SelectTrigger className="bg-slate-950 border-slate-800 text-slate-100 h-10 w-full">
