@@ -17,7 +17,7 @@ import { MailService } from './mail.service';
         },
       },
       defaults: {
-        from: `"IOC Restaurant" <${process.env.MAIL_USER}>`,
+        from: `"IOC Restaurant" <${process.env.MAIL_FROM}>`,
       },
     }),
   ],
