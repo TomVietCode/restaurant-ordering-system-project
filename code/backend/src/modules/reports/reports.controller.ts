@@ -4,7 +4,6 @@ import { Controller, Get, Query } from '@nestjs/common';
 import { ApiResponseDto } from '@common/dtos/api-response.dto';
 import {
   MonthlyRevenueTrendDto,
-  MonthlyTrendQueryDto,
   DateRangeQueryDto,
   ReportResponseDto,
   RevenueTrendItemDto,
@@ -37,16 +36,16 @@ export class ReportsController {
   }
 
   @Get('revenue/trend/week')
-  @ApiOperation({ summary: 'Get trend revenue during this week' })
+  @ApiOperation({ summary: 'Get daily revenue trend for the 7 days ending on the anchor date' })
   async getCurrentWeekRevenueTrend(@Query() query: DateQueryDto): Promise<ApiResponseDto<RevenueTrendItemDto[]>> {
     const ReportDto = await this.reportsService.getCurrentWeekRevenueTrend(query);
-    return ApiResponseDto.success(ReportDto, 'Get trend revenue during this week success');
+    return ApiResponseDto.success(ReportDto, 'Get daily revenue trend success');
   }
 
   @Get('revenue/trend/month')
-  @ApiOperation({ summary: 'Get trend revenue in month' })
-  async getMonthRevenueTrend(@Query() query: MonthlyTrendQueryDto): Promise<ApiResponseDto<MonthlyRevenueTrendDto[]>> {
+  @ApiOperation({ summary: 'Get weekly revenue trend across a date range' })
+  async getMonthRevenueTrend(@Query() query: DateRangeQueryDto): Promise<ApiResponseDto<MonthlyRevenueTrendDto[]>> {
     const ReportDto = await this.reportsService.getMonthRevenueTrend(query);
-    return ApiResponseDto.success(ReportDto, 'Get trend revenue in month success');
+    return ApiResponseDto.success(ReportDto, 'Get weekly revenue trend success');
   }
 }

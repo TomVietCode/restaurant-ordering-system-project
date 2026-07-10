@@ -1,11 +1,11 @@
-import { formatDate, getStartOfToday, getStartOfTomorrow } from '@common/helpers/date';
+import { formatDate, getStartOfToday } from '@common/helpers/date';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDate, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { IsDate, IsOptional } from 'class-validator';
 
-export class DateQueryDto{
+export class DateQueryDto {
   @ApiProperty({
-    description: 'Start date of the reporting period',
+    description: 'Anchor day for the daily trend; the API returns the 7 days ending on this date (inclusive).',
     example: formatDate(getStartOfToday()),
     required: false,
     format: 'date',
@@ -13,12 +13,12 @@ export class DateQueryDto{
   @IsOptional()
   @Type(() => Date)
   @IsDate()
-  start: Date = getStartOfToday();
+  anchor: Date = getStartOfToday();
 }
 
 export class DateRangeQueryDto {
   @ApiProperty({
-    description: 'Start date of the reporting period',
+    description: 'Start date of the reporting period (inclusive).',
     example: '2026-01-01',
     required: false,
     format: 'date',
@@ -29,15 +29,15 @@ export class DateRangeQueryDto {
   start: Date = getStartOfToday();
 
   @ApiPropertyOptional({
-    description: 'End date of the reporting period.',
+    description: 'End date of the reporting period (inclusive — the whole day is counted).',
     example: '2026-08-30',
     required: false,
     format: 'date',
   })
   @Type(() => Date)
-  @IsDate({ message: 'from must be a valid date (YYYY-MM-DD)' })
+  @IsDate({ message: 'end must be a valid date (YYYY-MM-DD)' })
   @IsOptional()
-  end: Date = getStartOfTomorrow();
+  end: Date = getStartOfToday();
 }
 
 export class ReportResponseDto {
@@ -111,23 +111,6 @@ export class RevenueTrendItemDto {
     example: 12500000,
   })
   revenue!: number;
-}
-
-export class MonthlyTrendQueryDto {
-  @ApiPropertyOptional({ example: getStartOfToday().getFullYear(), default: getStartOfToday().getFullYear() })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(2000)
-  year: number = getStartOfToday().getFullYear();
-
-  @ApiPropertyOptional({ example: getStartOfToday().getMonth() + 1, default: getStartOfToday().getMonth() + 1 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(12)
-  month: number = getStartOfToday().getMonth() + 1;
 }
 
 export class MonthlyRevenueTrendDto {

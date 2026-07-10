@@ -32,6 +32,31 @@ export function getStartOfTomorrow(): Date {
   return date;
 }
 
+/** Return a new Date at 00:00:00.000 of the given day (immutable). */
+export function startOfDay(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/** Return a new Date shifted by `days` days (immutable; may be negative). */
+export function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
+}
+
+/**
+ * Return the Monday (00:00) of the ISO week containing `date`.
+ * Matches Postgres `date_trunc('week', ...)`, which also anchors weeks on Monday.
+ */
+export function startOfWeekMonday(date: Date): Date {
+  const d = startOfDay(date);
+  const day = d.getDay(); // 0 = Sunday .. 6 = Saturday
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  return addDays(d, diffToMonday);
+}
+
 export function formatDate(date: Date, pattern = 'yyyy-MM-dd'): string {
   return format(date, pattern);
 }

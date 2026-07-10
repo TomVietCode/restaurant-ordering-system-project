@@ -8,9 +8,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-/** Helper: format a Date to "YYYY-MM-DD" string */
+/**
+ * Format a Date to a "YYYY-MM-DD" string using its **local** calendar parts.
+ * Using `toISOString()` here would convert to UTC first, so in Vietnam (+7) an
+ * early-morning "today" could shift back to yesterday's date. Local parts keep
+ * the value aligned with what the user sees on their clock.
+ */
 function fmt(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /** Each preset computes a { start, end } date range on the fly. */
