@@ -25,6 +25,8 @@ function fmt(d: Date): string {
 interface Preset {
   label: string;
   value: string;
+  /** Lowercase phrase describing the period, used to build section titles like "Top món bán chạy {titleSuffix}". */
+  titleSuffix: string;
   getRange: () => { start: string; end: string };
 }
 
@@ -32,6 +34,7 @@ const PRESETS: Preset[] = [
   {
     label: 'Hôm nay',
     value: 'today',
+    titleSuffix: 'hôm nay',
     getRange: () => {
       const now = new Date();
       return { start: fmt(now), end: fmt(now) };
@@ -40,6 +43,7 @@ const PRESETS: Preset[] = [
   {
     label: '7 ngày qua',
     value: '7d',
+    titleSuffix: '7 ngày qua',
     getRange: () => {
       const end = new Date();
       const start = new Date();
@@ -50,6 +54,7 @@ const PRESETS: Preset[] = [
   {
     label: '30 ngày qua',
     value: '30d',
+    titleSuffix: '30 ngày qua',
     getRange: () => {
       const end = new Date();
       const start = new Date();
@@ -60,6 +65,7 @@ const PRESETS: Preset[] = [
   {
     label: 'Tháng này',
     value: 'this-month',
+    titleSuffix: 'tháng này',
     getRange: () => {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -69,6 +75,7 @@ const PRESETS: Preset[] = [
   {
     label: 'Tháng trước',
     value: 'last-month',
+    titleSuffix: 'tháng trước',
     getRange: () => {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);

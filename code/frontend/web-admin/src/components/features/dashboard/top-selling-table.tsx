@@ -20,17 +20,18 @@ function formatVND(n: number): string {
 interface TopSellingTableProps {
   items: TopSellingItem[];
   loading: boolean;
+  title: string;
 }
 
 /**
  * A ranked table of the top 10 best-selling items.
  * Uses a compact, scrollable layout that fits beside the chart.
  */
-export function TopSellingTable({ items, loading }: TopSellingTableProps) {
+export function TopSellingTable({ items, loading, title }: TopSellingTableProps) {
   return (
     <Card className="flex flex-col h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">Top món bán chạy</CardTitle>
+        <CardTitle className="text-base font-semibold">{title}</CardTitle>
       </CardHeader>
 
       <CardContent className="flex-1 overflow-auto pt-0 min-h-0">

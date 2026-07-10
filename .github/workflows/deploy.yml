@@ -108,7 +108,7 @@ jobs:
           MAIL_PORT=${{ secrets.MAIL_PORT }}
           MAIL_FROM=${{ secrets.MAIL_FROM }}
           MAIL_USER=${{ secrets.MAIL_USER }}
-          MAIL_PASS=${{ secrets.MAIL_PASS }}
+          MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}
 
           # --- FRONTEND AUTH CONFIG ---
           AUTH_SECRET=${{ secrets.AUTH_SECRET }}

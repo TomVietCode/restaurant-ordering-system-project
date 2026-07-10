@@ -13,7 +13,7 @@ export class MailService {
         <h2>Xác thực OTP</h2>
         <p>Mã OTP của bạn là:</p>
         <h1>${otp}</h1>
-        <p>Mã OTP này sẽ hết hạn sau 1 phút.</p>
+        <p>Mã OTP này sẽ hết hạn sau 5 phút.</p>
       `,
     });
     

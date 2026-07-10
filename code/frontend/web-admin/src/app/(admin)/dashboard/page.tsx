@@ -109,7 +109,11 @@ export default function DashboardPage() {
         </div>
         {/* Top sellers table takes 2/5 */}
         <div className="lg:col-span-2 lg:h-full lg:flex lg:flex-col">
-          <TopSellingTable items={topItems} loading={topLoading} />
+          <TopSellingTable
+            items={topItems}
+            loading={topLoading}
+            title={`Top món bán chạy ${PRESETS.find((p) => p.value === preset)?.titleSuffix ?? ''}`}
+          />
         </div>
       </div>
     </div>
