@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Patch, Post, Res, UnauthorizedException } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { AuthService } from './auth.service.js';
@@ -10,7 +10,6 @@ import { UserResponseDto } from '@modules/users/dtos/user-dtos.js';
 import { Public, CurrentUser, Cookies } from '@common/decorators/index.js';
 import { ApiResponseDto } from '@common/dtos/api-response.dto.js';
 import { ErrorCode } from '@common/error-codes.js';
-import { AuthGuard } from '@nestjs/passport';
 
 const REFRESH_COOKIE_OPTIONS = {
   httpOnly: true,
@@ -137,7 +136,7 @@ export class AuthController {
     status: 401,
     description: 'Missing or invalid access token',
   })
-  async getProfile(@CurrentUser() user: Record<string, unknown>): Promise<{
+  getProfile(@CurrentUser() user: Record<string, unknown>): Promise<{
     success: boolean;
     data: Record<string, unknown>;
   }> {

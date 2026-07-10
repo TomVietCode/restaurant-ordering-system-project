@@ -1,5 +1,5 @@
-import { Controller, Post, Param, Body, HttpCode, HttpStatus, ParseUUIDPipe, NotFoundException, Get, Req, Ip, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Controller, Post, Param, Body, HttpCode, HttpStatus, ParseUUIDPipe, NotFoundException, Get, Ip } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBearerAuth } from '@nestjs/swagger';
 import { Public, Roles } from '@common/decorators/index.js';
 import { Role } from '@common/enums.js';
 import { ApiResponseDto } from '@common/dtos/api-response.dto.js';

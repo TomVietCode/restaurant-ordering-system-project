@@ -9,7 +9,7 @@ import { HttpExceptionFilter } from '@common/filters/http-exception.filter.js';
 import { getCorsOrigins } from '@common/utils/cors.util.js';
 
 
-async function bootstrap() {
+(async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.use(cookieParser());
@@ -61,6 +61,6 @@ async function bootstrap() {
   SwaggerModule.setup('/api/docs', app, documentFactory);
 
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
-}
-
-bootstrap();
+})().catch((error) => {
+  console.error('Error starting application:', error);
+});

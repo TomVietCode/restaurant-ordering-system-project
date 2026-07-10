@@ -53,7 +53,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       });
     }
 
-    const { passwordHash, ...userWithoutPassword } = user;
+    const { passwordHash: _passwordHash, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 }

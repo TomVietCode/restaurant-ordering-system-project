@@ -22,7 +22,7 @@ describe('CategoriesService', () => {
       saveMany: jest.fn(),
       exists: jest.fn(),
       softDelete: jest.fn(),
-    } as unknown as jest.Mocked<ICategoryRepository>;
+    };
 
     itemRepoMock = {
       findByName: jest.fn(),
@@ -36,7 +36,7 @@ describe('CategoriesService', () => {
       delete: jest.fn(),
       softDelete: jest.fn(),
       exists: jest.fn(),
-    } as unknown as jest.Mocked<IItemRepository>;
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
