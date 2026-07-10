@@ -126,9 +126,10 @@ export function TablesBoard() {
     );
   }
 
+  // Newest tables first — mirrors the backend ordering and stays fixed.
   const visibleTables = (filter === 'ALL' ? tables : tables.filter(t => t.status === filter))
     .slice()
-    .sort((a, b) => a.name.localeCompare(b.name, 'vi', { numeric: true }));
+    .sort((a, b) => +new Date(b.createdAt ?? 0) - +new Date(a.createdAt ?? 0));
 
   if (loading) {
     return (

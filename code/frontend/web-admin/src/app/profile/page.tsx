@@ -41,7 +41,7 @@ export default async function ProfilePage() {
               <ProfileForm initialProfile={profile} token={token} />
             </main>
           </SidebarInset>
-          <Toaster position="bottom-right" />
+          <Toaster position="top-center" />
         </SidebarProvider>
       </SessionProvider>
     );
@@ -55,7 +55,7 @@ export default async function ProfilePage() {
         <main className="flex-1 overflow-y-auto p-6">
           <ProfileForm initialProfile={profile} token={token} />
         </main>
-        <Toaster position="bottom-right" />
+        <Toaster position="top-center" />
       </div>
     </SessionProvider>
   );

@@ -2,20 +2,9 @@ import { Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ColumnDef } from '@/components/ui/data-table';
 import { ORDER_STATUS_LABEL, ORDER_STATUS_CLASS, type Order } from '@/types/order';
+import { formatVnDateTime } from '@/lib/datetime';
 
 const fmtMoney = (n: number) => new Intl.NumberFormat('vi-VN').format(n) + ' đ';
-
-// "HH:mm | dd/MM/yyyy" — tách giờ và ngày bằng "|" cho dễ đọc, tránh nhầm lẫn.
-const TZ = 'Asia/Ho_Chi_Minh';
-const fmtDateTime = (d: Date) =>
-  `${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: TZ })} | ${d.toLocaleDateString('vi-VN', { timeZone: TZ })}`;
-
-// ⚠️ Backend trả `Order.createdAt` BỊ LỆCH -7h so với UTC thật (cùng lỗi timezone
-// tầng server/driver Postgres đã gặp ở `Item.createdAt`, không được phép sửa BE).
-// `paidAt` KHÔNG bị lỗi này — chỉ bù giờ cho createdAt.
-const SERVER_TZ_SHIFT_MS = 7 * 60 * 60 * 1000;
-const fmtCreatedAt = (s: string) =>
-  fmtDateTime(new Date(new Date(s).getTime() + SERVER_TZ_SHIFT_MS));
 
 interface Args {
   onView: (order: Order) => void;
@@ -59,7 +48,7 @@ export function getOrdersColumns({ onView }: Args): ColumnDef<Order>[] {
     {
       accessorKey: 'createdAt',
       header: 'Thời gian đặt',
-      cell: ({ row }) => <span className="text-sm text-muted-foreground">{fmtCreatedAt(row.original.createdAt)}</span>,
+      cell: ({ row }) => <span className="text-sm text-muted-foreground">{formatVnDateTime(row.original.createdAt)}</span>,
     },
     {
       id: 'actions',

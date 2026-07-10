@@ -12,7 +12,8 @@ export interface Row extends Table {
 }
 
 function enrich(tables: Table[], orders: Order[]): Row[] {
-  return tables.map(t => {
+  // Closed tables are excluded from the cashier board entirely.
+  return tables.filter(t => t.status !== 'CLOSED').map(t => {
     const active = orders.filter(o => o.tableId === t.id);
     const tblStatus: TblStatus = !active.length ? 'EMPTY' : active.some(o => o.status === 'SERVED') ? 'WAITPAY' : 'SERVING';
     return { ...t, tblStatus, active, total: active.reduce((s, o) => s + o.totalAmount, 0) };

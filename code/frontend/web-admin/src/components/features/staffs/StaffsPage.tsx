@@ -35,7 +35,13 @@ export function StaffsPage() {
       />
 
       <div className={s.loading && s.rows.length > 0 ? 'opacity-60 transition-opacity' : undefined}>
-        <DataTable columns={columns} data={s.rows} loading={s.loading && s.rows.length === 0} emptyText="Chưa có nhân viên nào" />
+        <DataTable
+          columns={columns}
+          data={s.rows}
+          loading={s.loading && s.rows.length === 0}
+          emptyText="Chưa có nhân viên nào"
+          rowClassName={staff => (s.currentEmail && staff.email === s.currentEmail ? 'bg-primary-light/90 hover:bg-primary-light' : undefined)}
+        />
       </div>
       <Pagination page={s.cur} pageSize={s.pageSize || DEFAULT_PAGE_SIZE} total={s.total} unit="nhân viên" onPageChange={s.onPageChange} />
 

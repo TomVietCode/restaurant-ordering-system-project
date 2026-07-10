@@ -38,10 +38,11 @@ export class TableService {
   }
 
   async findAll(status?: TableStatus): Promise<Table[]> {
-    if (status) {
-      return this.tableRepository.findWithOptions({ where: { status } });
-    }
-    return this.tableRepository.findAll();
+    // Newest tables first — this ordering is fixed and does not change.
+    return this.tableRepository.findWithOptions({
+      where: status ? { status } : {},
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findById(id: string): Promise<Table> {

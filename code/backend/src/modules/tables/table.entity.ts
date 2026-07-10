@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { TableStatus } from '@common/enums.js';
 
 @Entity('tables')
@@ -11,12 +11,18 @@ export class Table {
 
   @Column({ type: 'int', nullable: false })
   capacity: number;
-  
+
   @Column({
     type: 'enum',
     enum: TableStatus,
     default: TableStatus.AVAILABLE,
   })
   status: TableStatus;
+
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
+  updatedAt: Date;
 }
 

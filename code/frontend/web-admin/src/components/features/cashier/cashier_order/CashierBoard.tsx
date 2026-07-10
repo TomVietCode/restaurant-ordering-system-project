@@ -62,9 +62,9 @@ const COLS = [
   {
     label: "ĐÃ PHỤC VỤ",
     status: "SERVED" as OrderStatus,
-    bg: "bg-status-served border-status-served-foreground/20",
-    countBg: "bg-status-served-dot",
-    border: "border-status-served-dot",
+    bg: "bg-status-paid border-status-paid-foreground/20",
+    countBg: "bg-status-paid-dot",
+    border: "border-status-paid-dot",
   },
 ];
 

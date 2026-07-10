@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ChevronLeft, ChevronRight, ImageIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { Item } from '@/types/menu';
+import { formatVnDateTime } from '@/lib/datetime';
 
 interface Props {
   item: Item | null;
@@ -13,13 +14,7 @@ interface Props {
 
 const fmtPrice = (p: number) => new Intl.NumberFormat('vi-VN').format(p) + ' đ';
 
-// ⚠️ Backend trả createdAt/updatedAt BỊ LỆCH -7h so với UTC thật (lỗi timezone tầng
-// server/driver Postgres với cột `timestamp`, không được phép sửa BE). Đã đo: thời điểm
-// thật 16:22Z nhưng API trả 09:22Z. Bù lại 7h để ra đúng mốc UTC thật, rồi format theo
-// giờ VN (+7). Khi nào BE sửa đúng timezone thì bỏ phần `+ SERVER_TZ_SHIFT_MS`.
-const SERVER_TZ_SHIFT_MS = 7 * 60 * 60 * 1000;
-const fmtDate = (s: string) =>
-  new Date(new Date(s).getTime() + SERVER_TZ_SHIFT_MS).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+const fmtDate = (s: string) => formatVnDateTime(s);
 
 function ImageCarousel({ images, alt }: { images: string[]; alt: string }) {
   const [idx, setIdx] = useState(0);

@@ -11,7 +11,8 @@ export const PAGE_SIZES = [5, 10, 20, 50] as const;
 export const DEFAULT_PAGE_SIZE = 10;
 
 type Status = 'ALL' | 'REMAIN' | 'OUT';
-type PriceSort = '' | 'ASC' | 'DESC';
+export type SortBy = 'createdAt' | 'price' | 'name';
+export type SortOrder = 'ASC' | 'DESC';
 
 interface SaveForm {
   name: string; price: number; categoryId: number;
@@ -43,7 +44,8 @@ export function useMenuItems() {
   const [searchDebounced, setSearchDebounced] = useState('');
   const [catId, setCatId]   = useState<number | undefined>(() => { const v = sp.get('cat'); return v ? Number(v) : undefined; });
   const [status, setStatus] = useState<Status>(() => { const v = sp.get('s'); return (v === 'REMAIN' || v === 'OUT') ? v : 'ALL'; });
-  const [price, setPrice]   = useState<PriceSort>(() => { const v = sp.get('sort'); return (v === 'ASC' || v === 'DESC') ? v : ''; });
+  const [sortBy, setSortBy]       = useState<SortBy>(() => { const v = sp.get('sort'); return (v === 'price' || v === 'name' || v === 'createdAt') ? v : 'createdAt'; });
+  const [sortOrder, setSortOrder] = useState<SortOrder>(() => (sp.get('dir') === 'ASC' ? 'ASC' : 'DESC'));
 
   // Dialog / trạng thái thao tác
   const [sheet, setSheet]               = useState(false);
@@ -82,7 +84,7 @@ export function useMenuItems() {
           search: searchDebounced || undefined,
           categoryId: catId,
           isRemain: status === 'ALL' ? undefined : status === 'REMAIN',
-          ...(price ? { sortBy: 'price' as const, sortOrder: price } : {}),
+          sortBy, sortOrder,
         }, token);
         if (!ok) return;
         // Nếu filter làm giảm số trang khiến trang hiện tại vượt quá → nhảy về trang cuối hợp lệ
@@ -100,7 +102,7 @@ export function useMenuItems() {
       }
     })();
     return () => { ok = false; };
-  }, [token, cur, pageSize, searchDebounced, catId, status, price, reloadKey]);
+  }, [token, cur, pageSize, searchDebounced, catId, status, sortBy, sortOrder, reloadKey]);
 
   // Realtime: khi 1 món được bật/tắt còn hàng (kể cả từ tab/thiết bị khác hoặc do BE) → cập nhật ngay
   useRealtime<{ itemId: number; isRemain: boolean }>('menu:item-availability-changed', ({ itemId, isRemain }) => {
@@ -121,7 +123,11 @@ export function useMenuItems() {
 
   const onSearch         = (v: string) => { setSearch(v); setCur(1); };
   const onCatChange      = (v: number | undefined) => { setCatId(v); setCur(1); pushUrl({ cat: v, p: undefined }); };
-  const onPriceChange    = (v: PriceSort) => { setPrice(v); setCur(1); pushUrl({ sort: v, p: undefined }); };
+  const onSortChange     = (by: SortBy, order: SortOrder) => {
+    setSortBy(by); setSortOrder(order); setCur(1);
+    // Mặc định (createdAt / DESC) → bỏ khỏi URL cho gọn.
+    pushUrl({ sort: by === 'createdAt' ? undefined : by, dir: order === 'DESC' ? undefined : order, p: undefined });
+  };
   const onStatusChange   = (v: Status) => { setStatus(v); setCur(1); pushUrl({ s: v, p: undefined }); };
   const onPageChange     = (n: number) => { setCur(n); pushUrl({ p: n }); };
   const onPageSizeChange = (n: number) => { setPageSize(n); setCur(1); pushUrl({ ps: n === DEFAULT_PAGE_SIZE ? undefined : n, p: undefined }); };
@@ -188,12 +194,12 @@ export function useMenuItems() {
 
   return {
     cats, loading, visible: items,
-    cur, pageSize, search, catId, status, price,
+    cur, pageSize, search, catId, status, sortBy, sortOrder,
     data: { total, totalPages },
     sheet, setSheet, editing, setEditing, delTarget, setDel, delLoading,
     toggleTarget, setToggleTarget, toggleLoading,
     detailTarget, setDetailTarget,
-    onSearch, onCatChange, onPriceChange, onStatusChange, onPageChange, onPageSizeChange,
+    onSearch, onCatChange, onSortChange, onStatusChange, onPageChange, onPageSizeChange,
     onSave, onToggleClick, confirmToggle, onDelete,
   };
 }

@@ -3,26 +3,36 @@
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
-import { PAGE_SIZES } from './useMenuItems';
+import { PAGE_SIZES, type SortBy, type SortOrder } from './useMenuItems';
 import type { Category } from '@/types/menu';
 
 type Status = 'ALL' | 'REMAIN' | 'OUT';
-type PriceSort = '' | 'ASC' | 'DESC';
 type Option = { value: string; label: string };
 
-// Width chung cho cả 3 dropdown — đủ rộng để không cắt nhãn dài nhất ("Xắp xếp theo giá").
+// Width chung cho các dropdown — đủ rộng để không cắt nhãn dài nhất.
 const SELECT_W = 'w-48';
+
+// Các lựa chọn sắp xếp: mỗi giá trị là "field:order" khớp với backend.
+const SORT_OPTIONS: Option[] = [
+  { value: 'createdAt:DESC', label: 'Mới nhất' },
+  { value: 'createdAt:ASC', label: 'Cũ nhất' },
+  { value: 'price:ASC', label: 'Giá tăng dần' },
+  { value: 'price:DESC', label: 'Giá giảm dần' },
+  { value: 'name:ASC', label: 'Tên A → Z' },
+  { value: 'name:DESC', label: 'Tên Z → A' },
+];
 
 interface Props {
   search: string;
   catId: number | undefined;
   status: Status;
-  price: PriceSort;
+  sortBy: SortBy;
+  sortOrder: SortOrder;
   pageSize: number;
   cats: Category[];
   onSearch: (v: string) => void;
   onCatChange: (v: number | undefined) => void;
-  onPriceChange: (v: PriceSort) => void;
+  onSortChange: (by: SortBy, order: SortOrder) => void;
   onStatusChange: (v: Status) => void;
   onPageSizeChange: (v: number) => void;
 }
@@ -40,7 +50,7 @@ function FilterSelect({ value, options, width, onChange }: { value: string; opti
   );
 }
 
-export function MenuFilters({ search, catId, status, price, pageSize, cats, onSearch, onCatChange, onPriceChange, onStatusChange, onPageSizeChange }: Props) {
+export function MenuFilters({ search, catId, status, sortBy, sortOrder, pageSize, cats, onSearch, onCatChange, onSortChange, onStatusChange, onPageSizeChange }: Props) {
   return (
     <div className="flex flex-wrap gap-2">
       <div className="relative min-w-48 flex-1">
@@ -52,9 +62,9 @@ export function MenuFilters({ search, catId, status, price, pageSize, cats, onSe
         options={[{ value: 'ALL', label: 'Tất cả danh mục' }, ...cats.map(c => ({ value: String(c.id), label: c.name }))]}
         onChange={v => onCatChange(v === 'ALL' ? undefined : Number(v))} />
 
-      <FilterSelect width={SELECT_W} value={price || 'ALL'}
-        options={[{ value: 'ALL', label: 'Xắp xếp theo giá' }, { value: 'ASC', label: 'Giá tăng dần' }, { value: 'DESC', label: 'Giá giảm dần' }]}
-        onChange={v => onPriceChange(v === 'ALL' ? '' : (v as 'ASC' | 'DESC'))} />
+      <FilterSelect width={SELECT_W} value={`${sortBy}:${sortOrder}`}
+        options={SORT_OPTIONS}
+        onChange={v => { const [by, order] = v.split(':'); onSortChange(by as SortBy, order as SortOrder); }} />
 
       <FilterSelect width={SELECT_W} value={status}
         options={[{ value: 'ALL', label: 'Trạng thái' }, { value: 'REMAIN', label: 'Còn hàng' }, { value: 'OUT', label: 'Hết hàng' }]}

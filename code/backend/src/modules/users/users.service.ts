@@ -1,6 +1,8 @@
 import { Injectable, Inject, InjectionToken, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { User } from './entities/user.entity.js';
 import type { IUserRepository } from './repositories/user.repository.interface.js';
+import type { IRefreshTokenRepository } from '@modules/auth/repositories/refresh-token.repository.interface.js';
+import { REFRESH_TOKEN_REPOSITORY_TOKEN } from '@modules/auth/auth.service.js';
 import { CreateUserDto, UpdateUserDto, UserResponseDto, UserQueryDto } from './dtos/user-dtos.js';
 import * as bcrypt from 'bcryptjs';
 import { PaginationDto } from '@common/dtos/pagination.dto.js';
@@ -20,6 +22,9 @@ export class UsersService {
   constructor(
     @Inject(USER_REPOSITORY_TOKEN)
     private readonly userRepository: IUserRepository,
+
+    @Inject(REFRESH_TOKEN_REPOSITORY_TOKEN)
+    private readonly refreshTokenRepository: IRefreshTokenRepository,
   ) {}
 
   /**
@@ -115,9 +120,23 @@ export class UsersService {
 
   /**
    * Updates user information and returns a safe response DTO.
+   *
+   * @param currentId - id of the authenticated user performing the update.
+   *   Used to prevent a user from changing their own role.
    */
-  async update(id: number, dto: UpdateUserDto): Promise<UserResponseDto> {
+  async update(id: number, dto: UpdateUserDto, currentId?: number): Promise<UserResponseDto> {
     const user = await this.findById(id);
+
+    // A role change is requested only when the new role differs from the current one.
+    const isRoleChanged = dto.role !== undefined && dto.role !== user.role;
+
+    // Users must not be able to change their own role.
+    if (isRoleChanged && currentId !== undefined && user.id === currentId) {
+      throw new BadRequestException({
+        message: 'You cannot change your own role',
+        errorCode: ErrorCode.CANNOT_CHANGE_OWN_ROLE,
+      });
+    }
 
     if (dto.email && dto.email !== user.email) {
       const existing = await this.userRepository.findByEmail(dto.email);
@@ -145,8 +164,15 @@ export class UsersService {
     if (password) {
       user.passwordHash = await bcrypt.hash(password, 10);
     }
-    
+
     const updatedUser = await this.userRepository.save(user);
+
+    // When an account's role changes, revoke its active session so the user is
+    // forced to log in again (mirrors the behaviour when an account is locked).
+    if (isRoleChanged) {
+      await this.refreshTokenRepository.revokeByUserId(updatedUser.id);
+    }
+
     return this.mapToResponseDto(updatedUser);
   }
 

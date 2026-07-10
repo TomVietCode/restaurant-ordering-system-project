@@ -68,8 +68,12 @@ export class UserController {
   @ApiResponse({ status: 200, description: 'User updated successfully', type: UserResponseDto })
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 409, description: 'User email already exists' })
-  async update(@Param('id', ParseUserId) id: number, @Body() dto: UpdateUserDto): Promise<ApiResponseDto<UserResponseDto>> {
-    const userResponse = await this.userService.update(id, dto);
+  async update(
+    @Param('id', ParseUserId) id: number,
+    @Body() dto: UpdateUserDto,
+    @CurrentUser('id') currentId: number,
+  ): Promise<ApiResponseDto<UserResponseDto>> {
+    const userResponse = await this.userService.update(id, dto, currentId);
     return ApiResponseDto.success(userResponse, 'User updated successfully');
   }
 

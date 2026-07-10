@@ -135,14 +135,15 @@ function Inner({ staff, onOpenChange, onSave, currentEmail }: Omit<Props, 'open'
 
         <div className="space-y-1.5">
           <Label>Vai trò</Label>
-          <RadioGroup value={role} onValueChange={v => setRole(v as Role)} className="flex gap-6">
+          <RadioGroup value={role} onValueChange={v => setRole(v as Role)} disabled={isSelf} className="flex gap-6">
             {(Object.values(Role) as Role[]).map(r => (
               <label key={r} className="flex items-center gap-2 text-sm text-foreground">
-                <RadioGroupItem value={r} />
+                <RadioGroupItem value={r} disabled={isSelf} />
                 {ROLE_LABEL[r]}
               </label>
             ))}
           </RadioGroup>
+          {isSelf && <p className="text-xs text-muted-foreground">Bạn không thể tự thay đổi vai trò của chính mình.</p>}
         </div>
 
         <div className="space-y-1.5">

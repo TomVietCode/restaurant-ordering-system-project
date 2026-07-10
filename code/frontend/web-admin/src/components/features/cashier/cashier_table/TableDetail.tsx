@@ -24,7 +24,7 @@ const ORDER_LABEL: Record<OrderStatus, string> = {
 const ORDER_BADGE: Record<OrderStatus, string> = {
   NEW: "bg-status-new text-status-new-foreground",
   PREPARING: "bg-status-preparing text-status-preparing-foreground",
-  SERVED: "bg-status-served text-status-served-foreground",
+  SERVED: "bg-status-paid text-status-paid-foreground",
   PAID: "bg-status-paid text-status-paid-foreground",
   CANCEL: "bg-status-cancel text-status-cancel-foreground",
 };
@@ -78,9 +78,14 @@ export function TableDetail({
     (a, b) => +new Date(a.createdAt) - +new Date(b.createdAt),
   );
 
-  const selectedTotal = sorted
-    .filter((o) => selectedOrderIds.includes(o.id))
-    .reduce((sum, o) => sum + o.totalAmount, 0);
+  const selectedOrders = sorted.filter((o) => selectedOrderIds.includes(o.id));
+  const selectedTotal = selectedOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+
+  // Payment is only allowed once orders have been served.
+  // Whole-table checkout is blocked while any order is still not SERVED.
+  const allServed = sorted.length > 0 && sorted.every((o) => o.status === "SERVED");
+  const selectedAllServed =
+    selectedOrders.length > 0 && selectedOrders.every((o) => o.status === "SERVED");
 
   /** Open the checkout overlay, always defaulting to cash. */
   const openCheckout = (target: NonNullable<typeof checkoutTarget>) => {
@@ -247,18 +252,24 @@ export function TableDetail({
                   </table>
                 </div>
                 <div className="flex items-center justify-between border-t border-border bg-muted/20 px-3 py-1.5">
-                  <button
-                    className="inline-flex h-8 items-center justify-center rounded-md bg-zinc-900 px-2.5 text-sm font-bold text-white transition-colors hover:bg-zinc-800 cursor-pointer border-none outline-none"
-                    onClick={() =>
-                      openCheckout({
-                        type: "ORDER",
-                        orderId: o.id,
-                        total: o.totalAmount,
-                      })
-                    }
-                  >
-                    Thanh toán đơn
-                  </button>
+                  {o.status === "SERVED" ? (
+                    <button
+                      className="inline-flex h-8 items-center justify-center rounded-md bg-zinc-900 px-2.5 text-sm font-bold text-white transition-colors hover:bg-zinc-800 cursor-pointer border-none outline-none"
+                      onClick={() =>
+                        openCheckout({
+                          type: "ORDER",
+                          orderId: o.id,
+                          total: o.totalAmount,
+                        })
+                      }
+                    >
+                      Thanh toán đơn
+                    </button>
+                  ) : (
+                    <span className="text-xs italic text-muted-foreground">
+                      
+                    </span>
+                  )}
                   <span className="text-lg font-bold text-foreground">
                     {o.totalAmount.toLocaleString("vi-VN")}đ
                   </span>
@@ -283,7 +294,9 @@ export function TableDetail({
                 </span>
               </div>
               <button
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white py-2.5 text-lg font-bold text-zinc-800 transition-colors hover:bg-zinc-50 cursor-pointer outline-none"
+                disabled={!selectedAllServed}
+                title={selectedAllServed ? undefined : "Chỉ thanh toán được các đơn đã phục vụ (SERVED)"}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-zinc-300 bg-white py-2.5 text-lg font-bold text-zinc-800 transition-colors hover:bg-zinc-50 cursor-pointer outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-white"
                 onClick={() =>
                   openCheckout({
                     type: "SELECTED_ORDERS",
@@ -306,13 +319,20 @@ export function TableDetail({
                 </span>
               </div>
               <button
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 py-2.5 text-lg font-bold text-white transition-colors hover:bg-zinc-800 cursor-pointer border-none outline-none"
+                disabled={!allServed}
+                title={allServed ? undefined : "Bàn còn đơn chưa phục vụ xong — chưa thể thanh toán cả bàn"}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-zinc-900 py-2.5 text-lg font-bold text-white transition-colors hover:bg-zinc-800 cursor-pointer border-none outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-zinc-900"
                 onClick={() =>
                   openCheckout({ type: "TABLE", total: selected.total })
                 }
               >
                 Thanh toán toàn bộ bàn
               </button>
+              {!allServed && (
+                <p className="text-center text-xs text-muted-foreground">
+                  Bàn còn đơn chưa phục vụ xong
+                </p>
+              )}
             </>
           )}
         </div>

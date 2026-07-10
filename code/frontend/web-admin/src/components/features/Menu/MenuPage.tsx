@@ -32,8 +32,8 @@ export function MenuPage() {
       </div>
 
       <MenuFilters
-        search={m.search} catId={m.catId} status={m.status} price={m.price} pageSize={m.pageSize} cats={m.cats}
-        onSearch={m.onSearch} onCatChange={m.onCatChange} onPriceChange={m.onPriceChange} onStatusChange={m.onStatusChange}
+        search={m.search} catId={m.catId} status={m.status} sortBy={m.sortBy} sortOrder={m.sortOrder} pageSize={m.pageSize} cats={m.cats}
+        onSearch={m.onSearch} onCatChange={m.onCatChange} onSortChange={m.onSortChange} onStatusChange={m.onStatusChange}
         onPageSizeChange={m.onPageSizeChange}
       />
 

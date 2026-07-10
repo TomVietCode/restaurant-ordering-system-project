@@ -19,6 +19,7 @@ const ERROR_CODE_MAP: Record<string, string> = {
   PHONE_ALREADY_EXISTS: 'Số điện thoại đã được sử dụng. Vui lòng chọn số khác.',
   CANNOT_DELETE_ACTIVE_USER: 'Không thể xóa: hãy khóa tài khoản trước khi xóa.',
   CANNOT_DEACTIVATE_SELF: 'Bạn không thể tự khóa tài khoản của chính mình.',
+  CANNOT_CHANGE_OWN_ROLE: 'Bạn không thể tự thay đổi vai trò của chính mình.',
 
   // Categories
   CATEGORY_NOT_FOUND: 'Danh mục không tồn tại hoặc đã bị xóa.',

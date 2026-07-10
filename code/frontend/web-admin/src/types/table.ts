@@ -5,6 +5,7 @@ export interface Table {
   name: string;
   capacity: number;
   status: TableStatus;
+  createdAt?: string;
 }
 
 export const TABLE_STATUS_LABEL: Record<TableStatus, string> = {

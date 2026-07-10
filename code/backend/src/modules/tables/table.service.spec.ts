@@ -102,26 +102,29 @@ describe('TableService', () => {
   });
 
   describe('findAll', () => {
-    it('should return all tables', async () => {
+    it('should return all tables ordered newest first', async () => {
       // Arrange
       const expectedTables: Table[] = [
-        { id: 'uuid-1', name: 'Bàn 01', capacity: 2, status: TableStatus.AVAILABLE },
-        { id: 'uuid-2', name: 'Bàn 02', capacity: 4, status: TableStatus.AVAILABLE },
+        { id: 'uuid-1', name: 'Bàn 01', capacity: 2, status: TableStatus.AVAILABLE } as Table,
+        { id: 'uuid-2', name: 'Bàn 02', capacity: 4, status: TableStatus.AVAILABLE } as Table,
       ];
-      repositoryMock.findAll.mockResolvedValue(expectedTables);
+      repositoryMock.findWithOptions.mockResolvedValue(expectedTables);
 
       // Act
       const result = await service.findAll();
 
       // Assert
-      expect(repositoryMock.findAll).toHaveBeenCalled();
+      expect(repositoryMock.findWithOptions).toHaveBeenCalledWith({
+        where: {},
+        order: { createdAt: 'DESC' },
+      });
       expect(result).toEqual(expectedTables);
     });
 
-    it('should return tables filtered by status', async () => {
+    it('should return tables filtered by status ordered newest first', async () => {
       // Arrange
       const expectedTables: Table[] = [
-        { id: 'uuid-1', name: 'Bàn 01', capacity: 2, status: TableStatus.AVAILABLE },
+        { id: 'uuid-1', name: 'Bàn 01', capacity: 2, status: TableStatus.AVAILABLE } as Table,
       ];
       repositoryMock.findWithOptions.mockResolvedValue(expectedTables);
 
@@ -131,6 +134,7 @@ describe('TableService', () => {
       // Assert
       expect(repositoryMock.findWithOptions).toHaveBeenCalledWith({
         where: { status: TableStatus.AVAILABLE },
+        order: { createdAt: 'DESC' },
       });
       expect(result).toEqual(expectedTables);
     });

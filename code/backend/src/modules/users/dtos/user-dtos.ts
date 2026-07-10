@@ -152,7 +152,7 @@ export class UserQueryDto {
   @ApiPropertyOptional({ description: 'Sort order', enum: ['ASC', 'DESC'], default: 'DESC' })
   @IsOptional()
   @IsIn(['ASC', 'DESC'])
-  sortOrder: 'ASC' | 'DESC' = 'ASC';
+  sortOrder: 'ASC' | 'DESC' = 'DESC';
 
   @ApiPropertyOptional({ description: 'Page number', default: 1 })
   @IsOptional()
