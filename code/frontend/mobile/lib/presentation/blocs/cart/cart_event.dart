@@ -41,4 +41,17 @@ class RemoveProductFromCart extends CartEvent {
   List<Object?> get props => [productId, notes];
 }
 
+class UpdateCartProductAvailability extends CartEvent {
+  final int itemId;
+  final bool isRemain;
+
+  const UpdateCartProductAvailability({
+    required this.itemId,
+    required this.isRemain,
+  });
+
+  @override
+  List<Object?> get props => [itemId, isRemain];
+}
+
 class ClearCart extends CartEvent {}

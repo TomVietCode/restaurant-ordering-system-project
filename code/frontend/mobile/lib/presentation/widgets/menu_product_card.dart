@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_strings.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../data/models/product.dart';
 import 'food_image.dart';
@@ -7,11 +8,13 @@ import 'food_image.dart';
 class MenuProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback onTap;
+  final bool isBestseller;
 
   const MenuProductCard({
     super.key,
     required this.product,
     required this.onTap,
+    this.isBestseller = false,
   });
 
   @override
@@ -34,13 +37,8 @@ class MenuProductCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  FoodImage(
-                    imageUrl: product.imagesUrl.isNotEmpty
-                        ? product.imagesUrl.first
-                        : null,
-                    fit: BoxFit.cover,
-                  ),
-                  if (product.price >= 80000)
+                  FoodImage(imageUrls: product.imagesUrl, fit: BoxFit.cover),
+                  if (isBestseller)
                     Positioned(
                       top: 12,
                       left: 12,
@@ -54,7 +52,7 @@ class MenuProductCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: const Text(
-                          'BESTSELLER',
+                          AppStrings.bestseller,
                           style: TextStyle(
                             color: Color(0xFF9A442D),
                             fontWeight: FontWeight.bold,
@@ -68,7 +66,7 @@ class MenuProductCard extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.6),
                       alignment: Alignment.center,
                       child: const Text(
-                        'HẾT HÀNG',
+                        AppStrings.outOfStock,
                         style: TextStyle(
                           color: Colors.red,
                           fontWeight: FontWeight.bold,

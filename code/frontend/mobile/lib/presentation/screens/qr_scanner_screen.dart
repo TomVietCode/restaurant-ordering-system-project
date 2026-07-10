@@ -9,6 +9,7 @@ import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../core/constants/app_strings.dart';
 import '../../core/utils/table_mapper.dart';
 import '../blocs/session/session_cubit.dart';
 
@@ -56,9 +57,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không tìm thấy mã QR trong ảnh.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(AppStrings.noQrFound)));
     } finally {
       if (mounted) {
         setState(() => _isPickingImage = false);
@@ -178,14 +179,12 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     return showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Bàn đang đóng'),
-        content: Text(
-          '$tableName hiện đang đóng. Vui lòng chọn bàn khác hoặc liên hệ nhân viên.',
-        ),
+        title: const Text(AppStrings.closedTableTitle),
+        content: Text(AppStrings.closedTableMessage(tableName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Đã hiểu'),
+            child: const Text(AppStrings.gotIt),
           ),
         ],
       ),
@@ -196,14 +195,12 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     return showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Bàn không tồn tại'),
-        content: const Text(
-          'Không tìm thấy bàn này trong hệ thống. Vui lòng kiểm tra lại mã QR hoặc liên hệ nhân viên.',
-        ),
+        title: const Text(AppStrings.missingTableTitle),
+        content: const Text(AppStrings.missingTableMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Đã hiểu'),
+            child: const Text(AppStrings.gotIt),
           ),
         ],
       ),
@@ -220,17 +217,15 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     _lastInvalidMessageAt = now;
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Mã QR không hợp lệ. Vui lòng liên hệ nhân viên.'),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text(AppStrings.invalidQr)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Quét mã QR tại bàn')),
+      appBar: AppBar(title: const Text(AppStrings.qrScannerTitle)),
       body: MobileScanner(controller: _controller, onDetect: _onDetect),
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -244,7 +239,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.image),
-            label: Text(_isPickingImage ? 'Đang quét...' : 'Chọn ảnh QR'),
+            label: Text(
+              _isPickingImage ? AppStrings.scanning : AppStrings.chooseQrImage,
+            ),
           ),
         ],
       ),

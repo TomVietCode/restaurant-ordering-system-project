@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_strings.dart';
+
 class CancelledOrderBanner extends StatelessWidget {
   const CancelledOrderBanner({super.key});
 
@@ -23,7 +25,7 @@ class CancelledOrderBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Đơn hàng đã bị hủy',
+                  AppStrings.orderCancelled,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -32,7 +34,7 @@ class CancelledOrderBanner extends StatelessWidget {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'Vui lòng liên hệ nhân viên nếu cần hỗ trợ.',
+                  AppStrings.contactStaffForSupport,
                   style: TextStyle(fontSize: 13, color: Colors.red),
                 ),
               ],

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../constants/app_strings.dart';
 import '../network/dio_client.dart';
 
 class TableInfo {
@@ -21,7 +22,7 @@ class TableMapper {
     final table = await loadTable(uuid);
     if (table != null) return table.name;
 
-    return 'Bàn $uuid';
+    return AppStrings.fallbackTableName(uuid);
   }
 
   /// Loads and caches public table metadata for QR/customer flows.
@@ -58,7 +59,7 @@ class TableMapper {
 
   /// Returns the cached display name for use in synchronous widget builds.
   static String getTableName(String? uuid) {
-    if (uuid == null) return 'Chưa chọn bàn';
-    return _nameCache[uuid.toLowerCase()] ?? 'Đang tải...';
+    if (uuid == null) return AppStrings.noTableSelected;
+    return _nameCache[uuid.toLowerCase()] ?? AppStrings.loadingTable;
   }
 }

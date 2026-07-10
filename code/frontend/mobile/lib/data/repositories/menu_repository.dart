@@ -1,13 +1,20 @@
 import 'package:flutter/foundation.dart' show debugPrint;
 
+import '../../core/constants/app_strings.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/network/websocket_client.dart';
 import '../models/category.dart';
 import '../models/product.dart';
 
 class MenuRepository {
   final DioClient _client;
+  final WebSocketClient _wsClient;
 
-  MenuRepository({DioClient? client}) : _client = client ?? DioClient();
+  MenuRepository({DioClient? client, WebSocketClient? wsClient})
+    : _client = client ?? DioClient(),
+      _wsClient = wsClient ?? WebSocketClient();
+
+  Stream<Map<String, dynamic>> get menuUpdatesStream => _wsClient.stream;
 
   Future<List<Category>> getCategories() async {
     try {
@@ -24,7 +31,7 @@ class MenuRepository {
       throw const FormatException('Invalid categories response');
     } catch (e) {
       debugPrint('Error fetching categories: $e');
-      throw Exception('Không thể tải danh mục. Vui lòng thử lại.');
+      throw Exception(AppStrings.categoriesLoadFailed);
     }
   }
 
@@ -49,7 +56,7 @@ class MenuRepository {
       throw const FormatException('Invalid products response');
     } catch (e) {
       debugPrint('Error fetching products: $e');
-      throw Exception('Không thể tải menu. Vui lòng thử lại.');
+      throw Exception(AppStrings.menuLoadFailed);
     }
   }
 

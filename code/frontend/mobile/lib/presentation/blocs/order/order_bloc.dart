@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../core/constants/app_strings.dart';
 import '../../../data/models/cart_item.dart';
 import '../../../data/models/enums.dart' as api;
 import '../../../data/models/order_item.dart';
@@ -13,7 +14,7 @@ import 'order_state.dart';
 
 class OrderBloc extends Bloc<OrderEvent, OrderState> {
   final OrderRepository repository;
-  StreamSubscription? _socketSubscription;
+  StreamSubscription<Map<String, dynamic>>? _socketSubscription;
   Timer? _trackingTimer;
   final Set<String> _activeTrackingCodes = {};
 
@@ -61,7 +62,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       final order = await repository.placeOrder(event.tableId, event.cartItems);
       final trackingCode = order.trackingCode;
       if (trackingCode.isEmpty) {
-        throw Exception('Backend không trả về mã theo dõi đơn hàng.');
+        throw Exception(AppStrings.orderTrackingCodeMissing);
       }
       final displayCode = _displayCodeForOrder(order);
       final uiStatus = _toUiOrderStatus(order.status);
@@ -228,7 +229,7 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   }
 
   int _indexOfMatchingLine(OrderLineModel line, Set<int> usedIndexes) {
-    for (var index = 0; index < state.items.length; index++) {
+    for (int index = 0; index < state.items.length; index++) {
       if (usedIndexes.contains(index)) continue;
       if (_matchesLine(state.items[index], line)) return index;
     }

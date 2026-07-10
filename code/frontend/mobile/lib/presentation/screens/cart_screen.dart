@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../core/constants/app_strings.dart';
 import '../../../core/utils/table_mapper.dart';
 import '../../../data/models/cart_item.dart';
 import '../blocs/cart/cart_bloc.dart';
@@ -42,9 +43,7 @@ class CartScreen extends StatelessWidget {
           context.read<CartBloc>().add(ClearCart());
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                'Đặt món thành công. Mã theo dõi: ${state.trackingCode}',
-              ),
+              content: Text(AppStrings.orderSuccess(state.trackingCode)),
               backgroundColor: Colors.green,
             ),
           );
@@ -56,7 +55,7 @@ class CartScreen extends StatelessWidget {
         appBar: AppBar(
           leading: const AppLogo(),
           title: const Text(
-            'Giỏ hàng',
+            AppStrings.cartTitle,
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
@@ -70,9 +69,11 @@ class CartScreen extends StatelessWidget {
               0,
               (sum, item) => sum + item.quantity,
             );
+            final hasUnavailableItems = cartState.items.any(
+              (item) => !item.product.isRemain,
+            );
             final subtotal = cartState.totalAmount;
-            final vat = subtotal * 0.08;
-            final total = subtotal + vat;
+            final total = subtotal;
 
             return Column(
               children: [
@@ -99,7 +100,7 @@ class CartScreen extends StatelessWidget {
                             color: Color(0xFF9A442D),
                           ),
                           label: const Text(
-                            'Thêm món khác',
+                            AppStrings.addAnotherItem,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -125,8 +126,8 @@ class CartScreen extends StatelessWidget {
                   displayTable: displayTable,
                   totalItems: totalItems,
                   subtotal: subtotal,
-                  vat: vat,
                   total: total,
+                  hasUnavailableItems: hasUnavailableItems,
                 ),
               ],
             );
@@ -156,14 +157,12 @@ class CartScreen extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: item.product.imagesUrl.isNotEmpty
-                ? FoodImage(
-                    imageUrl: item.product.imagesUrl.first,
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
-                  )
-                : _imageFallback(),
+            child: FoodImage(
+              imageUrls: item.product.imagesUrl,
+              width: 80,
+              height: 80,
+              fit: BoxFit.cover,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -199,6 +198,17 @@ class CartScreen extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                if (!item.product.isRemain) ...[
+                  const SizedBox(height: 6),
+                  const Text(
+                    AppStrings.itemUnavailable,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.red,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -221,10 +231,6 @@ class CartScreen extends StatelessWidget {
       ),
     );
   }
-
-  Widget _imageFallback() {
-    return const FoodImage(imageUrl: null, width: 80, height: 80);
-  }
 }
 
 class _EmptyCart extends StatelessWidget {
@@ -241,7 +247,7 @@ class _EmptyCart extends StatelessWidget {
           Icon(Icons.shopping_cart_outlined, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 16),
           const Text(
-            'Giỏ hàng đang trống',
+            AppStrings.emptyCart,
             style: TextStyle(fontSize: 18, color: Colors.grey),
           ),
           const SizedBox(height: 24),
@@ -249,7 +255,7 @@ class _EmptyCart extends StatelessWidget {
             onPressed: onAddMore,
             icon: const Icon(Icons.add, color: Color(0xFF9A442D)),
             label: const Text(
-              'Thêm món mới',
+              AppStrings.addNewItem,
               style: TextStyle(color: Color(0xFF9A442D)),
             ),
             style: OutlinedButton.styleFrom(
@@ -305,15 +311,17 @@ class _QuantityStepper extends StatelessWidget {
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           InkWell(
-            onTap: () {
-              context.read<CartBloc>().add(
-                UpdateCartItemQuantity(
-                  product: item.product,
-                  notes: item.notes,
-                  newQuantity: item.quantity + 1,
-                ),
-              );
-            },
+            onTap: item.product.isRemain
+                ? () {
+                    context.read<CartBloc>().add(
+                      UpdateCartItemQuantity(
+                        product: item.product,
+                        notes: item.notes,
+                        newQuantity: item.quantity + 1,
+                      ),
+                    );
+                  }
+                : null,
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Text(
@@ -337,16 +345,16 @@ class _CheckoutPanel extends StatelessWidget {
   final String displayTable;
   final int totalItems;
   final double subtotal;
-  final double vat;
   final double total;
+  final bool hasUnavailableItems;
 
   const _CheckoutPanel({
     required this.tableId,
     required this.displayTable,
     required this.totalItems,
     required this.subtotal,
-    required this.vat,
     required this.total,
+    required this.hasUnavailableItems,
   });
 
   @override
@@ -369,9 +377,26 @@ class _CheckoutPanel extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _summaryRow('Tạm tính ($totalItems món)', subtotal.toVND()),
-          const SizedBox(height: 12),
-          _summaryRow('VAT (8%)', vat.toVND()),
+          if (hasUnavailableItems) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFEBEB),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                AppStrings.unavailableCartWarning,
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+          _summaryRow(AppStrings.subtotalItems(totalItems), subtotal.toVND()),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
             child: Divider(thickness: 1, color: Color(0xFFEEEEEE)),
@@ -384,12 +409,12 @@ class _CheckoutPanel extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Tổng cộng',
+                    AppStrings.total,
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Đặt cho $displayTable',
+                    AppStrings.orderForTable(displayTable),
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -439,8 +464,8 @@ class _CheckoutPanel extends StatelessWidget {
                   ],
                   Text(
                     orderState.isSubmitting
-                        ? 'Đang gửi đơn...'
-                        : 'Xác nhận đặt món',
+                        ? AppStrings.submittingOrder
+                        : AppStrings.confirmOrder,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -481,7 +506,7 @@ class _CheckoutPanel extends StatelessWidget {
     if (tableId == null || tableId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vui lòng quét mã QR bàn trước khi đặt món.'),
+          content: Text(AppStrings.scanTableBeforeOrdering),
           backgroundColor: Colors.red,
         ),
       );

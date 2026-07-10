@@ -15,11 +15,16 @@ class MenuLoading extends MenuState {}
 class MenuLoaded extends MenuState {
   final List<Category> categories;
   final List<Product> products;
+  final Set<int> bestsellerIds;
 
-  const MenuLoaded({required this.categories, required this.products});
+  const MenuLoaded({
+    required this.categories,
+    required this.products,
+    required this.bestsellerIds,
+  });
 
   @override
-  List<Object?> get props => [categories, products];
+  List<Object?> get props => [categories, products, bestsellerIds];
 }
 
 class MenuError extends MenuState {

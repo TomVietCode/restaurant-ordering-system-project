@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_strings.dart';
+
 class OrderStatusTimeline extends StatelessWidget {
   final int activeStep;
 
@@ -35,21 +37,21 @@ class OrderStatusTimeline extends StatelessWidget {
             children: [
               _TimelineStep(
                 icon: Icons.receipt_long,
-                label: 'Mới',
+                label: AppStrings.orderStepNew,
                 backgroundColor: const Color(0xFFE3EFFF),
                 iconColor: const Color(0xFF0056D2),
                 isActive: activeStep == 0,
               ),
               _TimelineStep(
                 icon: Icons.soup_kitchen,
-                label: 'Đang\nchuẩn bị',
+                label: AppStrings.orderStepPreparing,
                 backgroundColor: const Color(0xFFFFF2D1),
                 iconColor: const Color(0xFFA15C00),
                 isActive: activeStep == 1,
               ),
               _TimelineStep(
                 icon: Icons.room_service,
-                label: 'Đã phục vụ',
+                label: AppStrings.orderStepServed,
                 backgroundColor: const Color(0xFFEFE5FF),
                 iconColor: const Color(0xFF551FFF),
                 isActive: activeStep == 2,

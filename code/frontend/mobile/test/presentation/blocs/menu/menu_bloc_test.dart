@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -16,6 +18,9 @@ void main() {
 
     setUp(() {
       mockRepository = MockMenuRepository();
+      when(
+        () => mockRepository.menuUpdatesStream,
+      ).thenAnswer((_) => const Stream<Map<String, dynamic>>.empty());
     });
 
     test('initial state is MenuInitial', () {
@@ -65,6 +70,7 @@ void main() {
               isRemain: true,
             ),
           ],
+          bestsellerIds: {101},
         ),
       ],
     );

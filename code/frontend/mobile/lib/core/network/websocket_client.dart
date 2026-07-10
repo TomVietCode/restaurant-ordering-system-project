@@ -50,6 +50,9 @@ class WebSocketClient {
       ..on('order:new', (payload) {
         _addEvent('order:new', payload);
       })
+      ..on('menu:item-availability-changed', (payload) {
+        _addEvent('menu:item-availability-changed', payload);
+      })
       ..connect();
   }
 

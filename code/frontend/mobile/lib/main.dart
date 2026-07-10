@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/constants/app_strings.dart';
 import 'data/repositories/menu_repository.dart';
 import 'data/repositories/order_repository.dart';
 import 'presentation/blocs/session/session_cubit.dart';
@@ -45,7 +46,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Phenikaa F&B',
+      title: AppStrings.appTitle,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
         useMaterial3: true,

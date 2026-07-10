@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_strings.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../data/models/order_item.dart';
 import 'food_image.dart';
@@ -17,10 +18,6 @@ class OrderedItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final badgeStyle = _badgeStyleFor(item.status);
-    final imageUrl = item.product.imagesUrl.isNotEmpty
-        ? item.product.imagesUrl.first
-        : '';
-
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
@@ -41,7 +38,11 @@ class OrderedItemCard extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: FoodImage(imageUrl: imageUrl, width: 70, height: 70),
+            child: FoodImage(
+              imageUrls: item.product.imagesUrl,
+              width: 70,
+              height: 70,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -87,7 +88,7 @@ class OrderedItemCard extends StatelessWidget {
                   const SizedBox(height: 4),
                 ],
                 Text(
-                  'x${item.quantity}',
+                  AppStrings.itemQuantity(item.quantity),
                   style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 8),
@@ -108,7 +109,7 @@ class OrderedItemCard extends StatelessWidget {
                     ),
                     const Spacer(),
                     Text(
-                      'Mã đơn: #${_displayOrderCode()}',
+                      AppStrings.orderCode(_displayOrderCode()),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../core/constants/app_strings.dart';
 import '../../../core/utils/table_mapper.dart';
 import '../../../data/models/product.dart';
 import '../blocs/menu/menu_bloc.dart';
@@ -56,7 +57,7 @@ class _MenuScreenState extends State<MenuScreen> {
       appBar: AppBar(
         leading: const AppLogo(),
         title: Text(
-          tableId != null ? displayTable : 'Menu Quán',
+          tableId != null ? displayTable : AppStrings.menuTitle,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -91,7 +92,7 @@ class _MenuScreenState extends State<MenuScreen> {
           }
 
           if (state is MenuError) {
-            return Center(child: Text('Lỗi: ${state.message}'));
+            return Center(child: Text(AppStrings.errorMessage(state.message)));
           }
 
           if (state is! MenuLoaded) {
@@ -149,6 +150,7 @@ class _MenuContent extends StatelessWidget {
                   key: categoryKeys.putIfAbsent(category.id, () => GlobalKey()),
                   categoryName: category.name,
                   products: categoryProducts,
+                  bestsellerIds: state.bestsellerIds,
                 );
               }).toList(),
             ),
@@ -170,11 +172,13 @@ class _MenuContent extends StatelessWidget {
 class _MenuCategorySection extends StatelessWidget {
   final String categoryName;
   final List<Product> products;
+  final Set<int> bestsellerIds;
 
   const _MenuCategorySection({
     super.key,
     required this.categoryName,
     required this.products,
+    required this.bestsellerIds,
   });
 
   @override
@@ -193,7 +197,7 @@ class _MenuCategorySection extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              'Chưa có món ăn nào trong danh mục này.',
+              AppStrings.noItemsInCategory,
               style: TextStyle(fontStyle: FontStyle.italic),
             ),
           )
@@ -201,6 +205,7 @@ class _MenuCategorySection extends StatelessWidget {
           ...products.map(
             (product) => MenuProductCard(
               product: product,
+              isBestseller: bestsellerIds.contains(product.id),
               onTap: () => showProductDetailSheet(context, product),
             ),
           ),

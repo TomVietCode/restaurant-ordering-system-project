@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+
+import '../../core/constants/app_strings.dart';
 import '../../core/network/dio_client.dart';
 import '../models/cart_item.dart';
 
@@ -35,7 +37,7 @@ class OrderApiService {
         }
         throw Exception(message.toString());
       }
-      throw Exception(e.message ?? 'Unknown error occurred');
+      throw Exception(e.message ?? AppStrings.unknownError);
     }
   }
 

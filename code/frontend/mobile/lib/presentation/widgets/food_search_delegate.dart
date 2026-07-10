@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_strings.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../data/models/product.dart';
 import 'food_image.dart';
@@ -9,7 +10,7 @@ class FoodSearchDelegate extends SearchDelegate<Product?> {
   final List<Product> products;
 
   FoodSearchDelegate({required this.products})
-    : super(searchFieldLabel: 'Tìm món ăn...');
+    : super(searchFieldLabel: AppStrings.searchFoodHint);
 
   @override
   List<Widget>? buildActions(BuildContext context) {
@@ -48,7 +49,7 @@ class FoodSearchDelegate extends SearchDelegate<Product?> {
         .toList();
 
     if (results.isEmpty) {
-      return const Center(child: Text('Không tìm thấy món ăn nào.'));
+      return const Center(child: Text(AppStrings.noFoodFound));
     }
 
     return ListView.builder(
@@ -61,9 +62,7 @@ class FoodSearchDelegate extends SearchDelegate<Product?> {
           leading: ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: FoodImage(
-              imageUrl: product.imagesUrl.isNotEmpty
-                  ? product.imagesUrl.first
-                  : null,
+              imageUrls: product.imagesUrl,
               width: 50,
               height: 50,
             ),
@@ -87,7 +86,10 @@ class FoodSearchDelegate extends SearchDelegate<Product?> {
                   icon: const Icon(Icons.add_circle, color: Color(0xFF9A442D)),
                   onPressed: () => showProductDetailSheet(context, product),
                 )
-              : const Text('Hết hàng', style: TextStyle(color: Colors.red)),
+              : const Text(
+                  AppStrings.outOfStockShort,
+                  style: TextStyle(color: Colors.red),
+                ),
         );
       },
     );

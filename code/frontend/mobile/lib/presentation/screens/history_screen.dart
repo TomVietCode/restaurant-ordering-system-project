@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/constants/app_strings.dart';
 import '../../../core/utils/table_mapper.dart';
 import '../../../data/models/order_item.dart';
 import '../blocs/order/order_bloc.dart';
@@ -15,6 +17,7 @@ import '../widgets/history_action_button.dart';
 import '../widgets/history_checkout_summary.dart';
 import '../widgets/order_status_timeline.dart';
 import '../widgets/ordered_item_card.dart';
+import '../widgets/leave_table_action.dart';
 
 class HistoryScreen extends StatefulWidget {
   final VoidCallback onAddMore;
@@ -70,9 +73,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
       appBar: AppBar(
         leading: const AppLogo(),
         title: Text(
-          tableId != null ? displayTable : 'Lịch sử',
+          tableId != null ? displayTable : AppStrings.historyTitle,
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
+        actions: const [LeaveTableAction()],
       ),
       body: BlocConsumer<OrderBloc, OrderState>(
         listenWhen: (previous, current) => previous.items != current.items,
@@ -93,7 +97,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
             showCheckout: showCheckout,
             showCancelledBanner: showCancelledBanner,
             onAddMore: _goToMenu,
-            onCallStaff: () => _callStaff(context),
             onRequestCheckout: () => _requestCheckout(context, state.items),
             onConfirmPayment: () => _confirmPayment(context),
           );
@@ -107,21 +110,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     widget.onAddMore();
   }
 
-  void _callStaff(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã gửi yêu cầu gọi nhân viên!'),
-        backgroundColor: Colors.orange,
-      ),
-    );
-  }
-
   void _requestCheckout(BuildContext context, List<OrderItem> items) {
     final hasServed = items.any((item) => item.status == OrderStatus.served);
     if (!hasServed) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Chưa có món nào được phục vụ để thanh toán!'),
+          content: Text(AppStrings.noServedItemsForCheckout),
           backgroundColor: Colors.red,
         ),
       );
@@ -132,15 +126,93 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   void _confirmPayment(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Xác nhận thanh toán thành công!'),
-        backgroundColor: Colors.green,
-      ),
-    );
     setState(() => showCheckout = false);
     context.read<OrderBloc>().add(ClearOrder());
-    widget.onAddMore();
+    context.read<SessionCubit>().clearSession(); // Clear session
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 40.0,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFDECE6),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFFD96B46),
+                          width: 3,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFD96B46),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check,
+                        color: Colors.white,
+                        size: 30,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+                const Text(
+                  AppStrings.thanksForOrdering,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  AppStrings.seeYouAgain,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontStyle: FontStyle.italic,
+                    color: Color(0xFF5A7A8D),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    Future.delayed(const Duration(seconds: 3), () {
+      if (!context.mounted) return;
+
+      // Pop the dialog if it's still showing
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      // Go to QR scanner screen
+      context.go('/');
+    });
   }
 }
 
@@ -158,7 +230,7 @@ class _EmptyHistory extends StatelessWidget {
           Icon(Icons.history, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 16),
           const Text(
-            'Chưa có lịch sử đặt món',
+            AppStrings.emptyHistory,
             style: TextStyle(fontSize: 18, color: Colors.grey),
           ),
           const SizedBox(height: 24),
@@ -168,7 +240,7 @@ class _EmptyHistory extends StatelessWidget {
               side: const BorderSide(color: Color(0xFFD96B46)),
               foregroundColor: const Color(0xFFD96B46),
             ),
-            child: const Text('Quay lại Menu'),
+            child: const Text(AppStrings.backToMenu),
           ),
         ],
       ),
@@ -183,7 +255,6 @@ class _HistoryContent extends StatelessWidget {
   final bool showCheckout;
   final bool showCancelledBanner;
   final VoidCallback onAddMore;
-  final VoidCallback onCallStaff;
   final VoidCallback onRequestCheckout;
   final VoidCallback onConfirmPayment;
 
@@ -194,7 +265,6 @@ class _HistoryContent extends StatelessWidget {
     required this.showCheckout,
     required this.showCancelledBanner,
     required this.onAddMore,
-    required this.onCallStaff,
     required this.onRequestCheckout,
     required this.onConfirmPayment,
   });
@@ -212,7 +282,7 @@ class _HistoryContent extends StatelessWidget {
         children: [
           const SizedBox(height: 8),
           const Text(
-            'Trạng thái đơn hàng',
+            AppStrings.orderStatus,
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w900,
@@ -228,7 +298,7 @@ class _HistoryContent extends StatelessWidget {
           const Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Món đã đặt',
+              AppStrings.orderedItems,
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w900,
@@ -247,26 +317,17 @@ class _HistoryContent extends StatelessWidget {
           if (!isCancelled) ...[
             HistoryActionButton(
               icon: Icons.add_circle_outline,
-              label: 'Đặt thêm món',
+              label: AppStrings.addMoreItems,
               backgroundColor: const Color(0xFFDC7B5C),
               textColor: Colors.white,
               onPressed: onAddMore,
-            ),
-            const SizedBox(height: 12),
-            HistoryActionButton(
-              icon: Icons.notifications_active_outlined,
-              label: 'Gọi nhân viên',
-              backgroundColor: Colors.white,
-              textColor: const Color(0xFFDC7B5C),
-              borderColor: const Color(0xFFDC7B5C),
-              onPressed: onCallStaff,
             ),
             const SizedBox(height: 12),
           ],
           if (!showCheckout)
             HistoryActionButton(
               icon: null,
-              label: 'Yêu cầu thanh toán',
+              label: AppStrings.requestCheckout,
               backgroundColor: const Color(0xFF67A942),
               textColor: Colors.white,
               onPressed: onRequestCheckout,

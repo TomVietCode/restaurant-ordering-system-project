@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/app_strings.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../data/models/order_item.dart';
 
@@ -28,8 +29,7 @@ class HistoryCheckoutSummary extends StatelessWidget {
       0.0,
       (sum, item) => sum + (item.product.price * item.quantity),
     );
-    final vat = subtotal * 0.08;
-    final total = subtotal + vat;
+    final total = subtotal;
 
     return Container(
       margin: const EdgeInsets.only(top: 8),
@@ -50,11 +50,9 @@ class HistoryCheckoutSummary extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _SummaryRow(
-            label: 'Tạm tính ($totalServedItems món)',
+            label: AppStrings.subtotalItems(totalServedItems),
             value: subtotal.toVND(),
           ),
-          const SizedBox(height: 12),
-          _SummaryRow(label: 'VAT (8%)', value: vat.toVND()),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
             child: Divider(thickness: 1, color: Color(0xFFEEEEEE)),
@@ -67,12 +65,12 @@ class HistoryCheckoutSummary extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Tổng cộng',
+                    AppStrings.total,
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Đặt cho $displayTable',
+                    AppStrings.orderForTable(displayTable),
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -108,7 +106,7 @@ class HistoryCheckoutSummary extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Xác nhận thanh toán',
+                    AppStrings.confirmPayment,
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(width: 8),
