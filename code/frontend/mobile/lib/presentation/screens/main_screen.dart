@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../core/constants/app_strings.dart';
 import '../blocs/cart/cart_bloc.dart';
 import '../blocs/cart/cart_state.dart';
 import 'menu_screen.dart';
@@ -46,12 +48,13 @@ class _MainScreenState extends State<MainScreen> {
         items: [
           const BottomNavigationBarItem(
             icon: Icon(Icons.restaurant_menu),
-            label: 'Menu',
+            label: AppStrings.menuTab,
           ),
           BottomNavigationBarItem(
-            icon: BlocBuilder<CartBloc, CartState>(
-              builder: (context, state) {
-                int totalQuantity = state.items.fold(0, (sum, item) => sum + item.quantity);
+            icon: BlocSelector<CartBloc, CartState, int>(
+              selector: (state) =>
+                  state.items.fold(0, (sum, item) => sum + item.quantity),
+              builder: (context, totalQuantity) {
                 if (totalQuantity == 0) {
                   return const Icon(Icons.shopping_cart);
                 }
@@ -61,11 +64,11 @@ class _MainScreenState extends State<MainScreen> {
                 );
               },
             ),
-            label: 'Giỏ hàng',
+            label: AppStrings.cartTab,
           ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.history),
-            label: 'Lịch sử',
+            label: AppStrings.historyTab,
           ),
         ],
       ),

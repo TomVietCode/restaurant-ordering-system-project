@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import 'core/constants/app_strings.dart';
 import 'data/repositories/menu_repository.dart';
+import 'data/repositories/order_repository.dart';
 import 'presentation/blocs/session/session_cubit.dart';
 import 'presentation/blocs/cart/cart_bloc.dart';
 import 'presentation/blocs/order/order_bloc.dart';
@@ -18,7 +21,10 @@ final goRouter = GoRouter(
   ],
 );
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
+
   final menuRepository = MenuRepository();
 
   runApp(
@@ -26,7 +32,7 @@ void main() {
       providers: [
         BlocProvider(create: (_) => SessionCubit()),
         BlocProvider(create: (_) => CartBloc()),
-        BlocProvider(create: (_) => OrderBloc()),
+        BlocProvider(create: (_) => OrderBloc(repository: OrderRepository())),
         BlocProvider(create: (_) => MenuBloc(repository: menuRepository)),
       ],
       child: const MyApp(),
@@ -40,7 +46,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Phenikaa F&B',
+      debugShowCheckedModeBanner: false,
+      title: AppStrings.appTitle,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange),
         useMaterial3: true,

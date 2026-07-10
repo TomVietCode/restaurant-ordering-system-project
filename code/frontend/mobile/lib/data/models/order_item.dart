@@ -1,6 +1,6 @@
 import 'product.dart';
 
-enum OrderStatus { pending, preparing, served }
+enum OrderStatus { pending, preparing, served, cancelled }
 
 class OrderItem {
   final String id;
@@ -8,6 +8,7 @@ class OrderItem {
   final int quantity;
   final String? notes;
   final OrderStatus status;
+  final String orderCode;
 
   OrderItem({
     required this.id,
@@ -15,6 +16,7 @@ class OrderItem {
     required this.quantity,
     this.notes,
     this.status = OrderStatus.pending,
+    this.orderCode = '',
   });
 
   OrderItem copyWith({
@@ -23,6 +25,7 @@ class OrderItem {
     int? quantity,
     String? notes,
     OrderStatus? status,
+    String? orderCode,
   }) {
     return OrderItem(
       id: id ?? this.id,
@@ -30,6 +33,7 @@ class OrderItem {
       quantity: quantity ?? this.quantity,
       notes: notes ?? this.notes,
       status: status ?? this.status,
+      orderCode: orderCode ?? this.orderCode,
     );
   }
 }

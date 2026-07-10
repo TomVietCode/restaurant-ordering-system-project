@@ -7,3 +7,16 @@ abstract class MenuEvent extends Equatable {
 }
 
 class LoadMenu extends MenuEvent {}
+
+class UpdateProductAvailability extends MenuEvent {
+  final int itemId;
+  final bool isRemain;
+
+  const UpdateProductAvailability({
+    required this.itemId,
+    required this.isRemain,
+  });
+
+  @override
+  List<Object?> get props => [itemId, isRemain];
+}

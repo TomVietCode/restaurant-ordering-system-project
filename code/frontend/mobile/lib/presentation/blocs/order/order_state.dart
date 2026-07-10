@@ -4,22 +4,46 @@ import '../../../data/models/order_item.dart';
 class OrderState extends Equatable {
   final List<OrderItem> items;
   final String orderId;
+  final String orderCode;
+  final String trackingCode;
+  final bool isSubmitting;
+  final String? errorMessage;
 
   const OrderState({
     this.items = const [],
     this.orderId = '',
+    this.orderCode = '',
+    this.trackingCode = '',
+    this.isSubmitting = false,
+    this.errorMessage,
   });
 
   OrderState copyWith({
     List<OrderItem>? items,
     String? orderId,
+    String? orderCode,
+    String? trackingCode,
+    bool? isSubmitting,
+    String? errorMessage,
+    bool clearError = false,
   }) {
     return OrderState(
       items: items ?? this.items,
       orderId: orderId ?? this.orderId,
+      orderCode: orderCode ?? this.orderCode,
+      trackingCode: trackingCode ?? this.trackingCode,
+      isSubmitting: isSubmitting ?? this.isSubmitting,
+      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     );
   }
 
   @override
-  List<Object?> get props => [items, orderId];
+  List<Object?> get props => [
+    items,
+    orderId,
+    orderCode,
+    trackingCode,
+    isSubmitting,
+    errorMessage,
+  ];
 }

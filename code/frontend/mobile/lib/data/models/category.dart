@@ -11,5 +11,6 @@ abstract class Category with _$Category {
     String? description,
   }) = _Category;
 
-  factory Category.fromJson(Map<String, dynamic> json) => _$CategoryFromJson(json);
+  factory Category.fromJson(Map<String, dynamic> json) =>
+      _$CategoryFromJson(json);
 }

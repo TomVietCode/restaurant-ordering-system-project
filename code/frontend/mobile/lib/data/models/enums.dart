@@ -9,8 +9,9 @@ enum OrderStatus {
   const OrderStatus(this.value);
 
   factory OrderStatus.fromString(String val) {
+    final normalized = val.trim().toUpperCase();
     return OrderStatus.values.firstWhere(
-      (e) => e.value == val,
+      (e) => e.value == normalized,
       orElse: () => OrderStatus.newOrder,
     );
   }
