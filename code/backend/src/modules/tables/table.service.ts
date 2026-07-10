@@ -6,6 +6,7 @@ import type { IRealtimeService } from '@modules/realtime/realtime.service.interf
 import { CreateTableDto, UpdateTableDto } from './repositories/dtos';
 import { Table } from './table.entity';
 import { TableStatus } from '@common/enums.js';
+import { ErrorCode } from '@common/error-codes.js';
 
 @Injectable()
 export class TableService {
@@ -24,7 +25,10 @@ export class TableService {
     // Check for duplicate name before insert
     const existing = await this.tableRepository.findByName(dto.name);
     if (existing) {
-      throw new ConflictException('Table name already exists');
+      throw new ConflictException({
+        message: 'Table name already exists',
+        errorCode: ErrorCode.TABLE_NAME_ALREADY_EXISTS,
+      });
     }
     const table = new Table();
     table.name = dto.name;
@@ -34,16 +38,20 @@ export class TableService {
   }
 
   async findAll(status?: TableStatus): Promise<Table[]> {
-    if (status) {
-      return this.tableRepository.findWithOptions({ where: { status } });
-    }
-    return this.tableRepository.findAll();
+    // Newest tables first — this ordering is fixed and does not change.
+    return this.tableRepository.findWithOptions({
+      where: status ? { status } : {},
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findById(id: string): Promise<Table> {
     const table = await this.tableRepository.findById(id);
     if (!table) {
-      throw new NotFoundException('Table not found');
+      throw new NotFoundException({
+        message: 'Table not found',
+        errorCode: ErrorCode.TABLE_NOT_FOUND,
+      });
     }
     return table;
   }
@@ -54,7 +62,10 @@ export class TableService {
     if (dto.name !== undefined && dto.name !== table.name) {
       const conflict = await this.tableRepository.findByName(dto.name);
       if (conflict) {
-        throw new ConflictException('Table name already exists');
+        throw new ConflictException({
+          message: 'Table name already exists',
+          errorCode: ErrorCode.TABLE_NAME_ALREADY_EXISTS,
+        });
       }
       table.name = dto.name;
     }
@@ -67,7 +78,10 @@ export class TableService {
       if (dto.status !== table.status) {
         const hasActive = await this.orderCheckService.hasActiveOrders(id);
         if (hasActive) {
-          throw new BadRequestException('Cannot change table status while it has active orders');
+          throw new BadRequestException({
+            message: 'Cannot change table status while it has active orders',
+            errorCode: ErrorCode.TABLE_HAS_ACTIVE_ORDER,
+          });
         }
       }
       table.status = dto.status;
@@ -82,7 +96,10 @@ export class TableService {
     // Check if the table has active orders
     const hasActive = await this.orderCheckService.hasActiveOrders(id);
     if (hasActive) {
-      throw new BadRequestException('Cannot delete table that has active orders');
+      throw new BadRequestException({
+        message: 'Cannot delete table that has active orders',
+        errorCode: ErrorCode.TABLE_HAS_ACTIVE_ORDER,
+      });
     }
     await this.tableRepository.delete(id);
   }
@@ -91,7 +108,10 @@ export class TableService {
     const table = await this.findById(id);
 
     if (table.status === TableStatus.OCCUPIED) {
-      throw new BadRequestException('Cannot toggle status when table is occupied');
+      throw new BadRequestException({
+        message: 'Cannot toggle status when table is occupied',
+        errorCode: ErrorCode.TABLE_HAS_ACTIVE_ORDER,
+      });
     }
 
     table.status = table.status === TableStatus.AVAILABLE ? TableStatus.CLOSED : TableStatus.AVAILABLE;

@@ -33,6 +33,8 @@ interface DataTableProps<TData, TValue> {
   emptyText?: string
   /** Bật `table-fixed` để width khai trong `meta.className` được tôn trọng tuyệt đối. */
   fixedLayout?: boolean
+  /** Trả về class bổ sung cho từng dòng (vd: highlight tài khoản hiện tại). */
+  rowClassName?: (row: TData) => string | undefined
 }
 
 export function DataTable<TData, TValue>({
@@ -41,6 +43,7 @@ export function DataTable<TData, TValue>({
   loading = false,
   emptyText = "Không có dữ liệu",
   fixedLayout = false,
+  rowClassName,
 }: DataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -79,7 +82,7 @@ export function DataTable<TData, TValue>({
             </TableRow>
           ) : (
             table.getRowModel().rows.map(row => (
-              <TableRow key={row.id} className="group" data-state={row.getIsSelected() && "selected"}>
+              <TableRow key={row.id} className={cn("group", rowClassName?.(row.original))} data-state={row.getIsSelected() && "selected"}>
                 {row.getVisibleCells().map(cell => (
                   <TableCell key={cell.id} className={cn(cell.column.columnDef.meta?.className)}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

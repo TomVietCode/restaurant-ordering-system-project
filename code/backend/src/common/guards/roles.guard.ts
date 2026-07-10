@@ -7,6 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '@common/decorators/roles.decorator.js';
 import { Role } from '@common/enums.js';
+import { ErrorCode } from '@common/error-codes.js';
 
 /**
  * Global role-based access control guard.
@@ -40,13 +41,19 @@ export class RolesGuard implements CanActivate {
 
     // Defensive check: if user is not attached (shouldn't happen after JwtAuthGuard)
     if (!user) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException({
+        message: 'Access denied',
+        errorCode: ErrorCode.FORBIDDEN,
+      });
     }
 
     const hasRole = requiredRoles.includes(user.role);
 
     if (!hasRole) {
-      throw new ForbiddenException('Access denied');
+      throw new ForbiddenException({
+        message: 'Access denied',
+        errorCode: ErrorCode.FORBIDDEN,
+      });
     }
 
     return true;

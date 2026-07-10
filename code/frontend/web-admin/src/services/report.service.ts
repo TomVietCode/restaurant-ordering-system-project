@@ -45,11 +45,11 @@ export const reportService = {
   },
 
   /**
-   * GET /reports/revenue/trend/week?start=...
-   * Returns daily revenue for the week containing the given date.
+   * GET /reports/revenue/trend/week?anchor=...
+   * Returns daily revenue for the 7 days ending on the anchor date (inclusive).
    */
-  async getWeekTrend(start?: string, token?: string | null): Promise<RevenueTrendItem[]> {
-    const query = start ? `?start=${start}` : '';
+  async getDailyTrend(anchor?: string, token?: string | null): Promise<RevenueTrendItem[]> {
+    const query = anchor ? `?anchor=${anchor}` : '';
     const res = await apiWithToken(token).get<ApiRes<RevenueTrendItem[]>>(
       `/reports/revenue/trend/week${query}`,
     );
@@ -57,12 +57,13 @@ export const reportService = {
   },
 
   /**
-   * GET /reports/revenue/trend/month?year=...&month=...
-   * Returns weekly aggregates for the given month.
+   * GET /reports/revenue/trend/month?start=...&end=...
+   * Returns weekly revenue aggregates spanning the given date range
+   * (expanded to full Monday–Sunday weeks).
    */
-  async getMonthTrend(year: number, month: number, token?: string | null): Promise<MonthlyRevenueTrend[]> {
+  async getMonthTrend(start: string, end: string, token?: string | null): Promise<MonthlyRevenueTrend[]> {
     const res = await apiWithToken(token).get<ApiRes<MonthlyRevenueTrend[]>>(
-      `/reports/revenue/trend/month?year=${year}&month=${month}`,
+      `/reports/revenue/trend/month?start=${start}&end=${end}`,
     );
     return res.data;
   },

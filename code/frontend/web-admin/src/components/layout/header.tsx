@@ -147,7 +147,10 @@ export function AppHeader({
           <DropdownMenuSeparator />
           <DropdownMenuItem
             className="cursor-pointer gap-2 text-destructive focus:text-destructive"
-            onClick={() => signOut({ callbackUrl: '/login' })}
+            onClick={async () => {
+              await signOut({ redirect: false });
+              window.location.href = '/login';
+            }}
           >
             <LogOut className="size-4" />
             Đăng xuất

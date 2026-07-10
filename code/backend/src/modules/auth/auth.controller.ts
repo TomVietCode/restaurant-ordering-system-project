@@ -9,6 +9,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { UserResponseDto } from '@modules/users/dtos/user-dtos.js';
 import { Public, CurrentUser, Cookies } from '@common/decorators/index.js';
 import { ApiResponseDto } from '@common/dtos/api-response.dto.js';
+import { ErrorCode } from '@common/error-codes.js';
 import { AuthGuard } from '@nestjs/passport';
 
 const REFRESH_COOKIE_OPTIONS = {
@@ -76,7 +77,10 @@ export class AuthController {
     data: TokenResponseDto;
   }> {
     if (!refreshToken) {
-      throw new UnauthorizedException('Refresh token is missing');
+      throw new UnauthorizedException({
+        message: 'Refresh token is missing',
+        errorCode: ErrorCode.REFRESH_TOKEN_INVALID,
+      });
     }
 
     const tokens = await this.authService.refreshTokens(refreshToken);

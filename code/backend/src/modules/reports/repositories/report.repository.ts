@@ -32,13 +32,16 @@ export class ReportRepository extends BaseRepository<Order> implements IReportRe
   }
 
   async getReportBetween(start: Date, end: Date): Promise<{ totalRevenue: number; totalOrders: number }> {
-    // Single SQL aggregate — avoids loading all order rows into JS
+    // Single SQL aggregate — avoids loading all order rows into JS.
+    // Half-open interval [start, end): `end` is the exclusive upper bound, so the
+    // caller passes start-of-day-after-end to include the whole final day.
     const result = await this.orderRepo
       .createQueryBuilder('o')
       .select('COALESCE(SUM(o.totalAmount), 0)', 'totalRevenue')
       .addSelect('COUNT(o.id)', 'totalOrders')
       .where('o.status = :status', { status: OrderStatus.PAID })
-      .andWhere('o.createdAt BETWEEN :start AND :end', { start, end })
+      .andWhere('o.createdAt >= :start', { start })
+      .andWhere('o.createdAt < :end', { end })
       .getRawOne<{ totalRevenue: string; totalOrders: string }>();
 
     return {
@@ -59,7 +62,8 @@ export class ReportRepository extends BaseRepository<Order> implements IReportRe
       .where('o.status = :status', {
         status: OrderStatus.PAID,
       })
-      .andWhere('o.createdAt BETWEEN :start AND :end', { start, end })
+      .andWhere('o.createdAt >= :start', { start })
+      .andWhere('o.createdAt < :end', { end })
       .groupBy('oi.itemId')
       .addGroupBy('i.name')
       .orderBy('SUM(oi.quantity)', 'DESC')
@@ -84,9 +88,9 @@ export class ReportRepository extends BaseRepository<Order> implements IReportRe
 
   async getMonthlyWeeklyTrend(
     firstDay: Date,
-    lastDay: Date,
+    endExclusive: Date,
   ): Promise<{ weekStart: string; totalRevenue: number; totalOrders: number }[]> {
-    // Single query: aggregate revenue per ISO week within the date range.
+    // Single query: aggregate revenue per ISO week within [firstDay, endExclusive).
     // date_trunc('week', ...) returns the Monday of each week.
     return this.orderRepo
       .createQueryBuilder('o')
@@ -95,7 +99,7 @@ export class ReportRepository extends BaseRepository<Order> implements IReportRe
       .addSelect('COUNT(o.id)', 'totalOrders')
       .where('o.status = :status', { status: OrderStatus.PAID })
       .andWhere('o.created_at >= :firstDay', { firstDay })
-      .andWhere('o.created_at <= :lastDay', { lastDay })
+      .andWhere('o.created_at < :endExclusive', { endExclusive })
       .groupBy("date_trunc('week', o.created_at)")
       .orderBy("date_trunc('week', o.created_at)")
       .getRawMany();

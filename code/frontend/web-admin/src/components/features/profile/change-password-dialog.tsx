@@ -1,22 +1,26 @@
 'use client';
 
 import React, { useState } from 'react';
-import { signOut } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Key, Mail, Lock, ShieldCheck, Loader2 } from 'lucide-react';
+import { Key, Lock, ShieldCheck, Loader2 } from 'lucide-react';
 import { authService } from '@/services/auth.service';
+import { ApiError } from '@/lib/api';
+import { toViError } from '@/lib/errors';
 
 interface ChangePasswordDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   token: string;
+  /** Email của người dùng — dùng để đăng nhập lại ngầm sau khi đổi mật khẩu. */
+  email: string;
 }
 
-export function ChangePasswordDialog({ open, onOpenChange, token }: ChangePasswordDialogProps) {
+export function ChangePasswordDialog({ open, onOpenChange, token, email }: ChangePasswordDialogProps) {
   const [step, setStep] = useState<1 | 2>(1);
   const [oldPassword, setOldPassword] = useState('');
   const [otp, setOtp] = useState('');
@@ -59,12 +63,18 @@ export function ChangePasswordDialog({ open, onOpenChange, token }: ChangePasswo
       setStep(2);
     } catch (err) {
       console.error(err);
-      let errorMsg = 'Có lỗi xảy ra khi xác thực mật khẩu. Vui lòng thử lại sau.';
-      const errorStr = err instanceof Error ? err.message : String(err);
-
-      if (errorStr.includes('Old password invalid')) {
-        errorMsg = 'Mật khẩu hiện tại không chính xác';
+      // Lỗi có errorCode → hiện inline dưới ô mật khẩu, không cần toast
+      if (err instanceof ApiError && err.errorCode === 'OLD_PASSWORD_INVALID') {
+        setErrors({ oldPassword: 'Mật khẩu hiện tại không chính xác' });
+        return;
       }
+      // Fallback theo message tiếng Anh (legacy — phản hồi chưa có errorCode)
+      const errorStr = err instanceof Error ? err.message : String(err);
+      if (errorStr.includes('Old password invalid')) {
+        setErrors({ oldPassword: 'Mật khẩu hiện tại không chính xác' });
+        return;
+      }
+      const errorMsg = toViError(err, 'Có lỗi xảy ra khi xác thực mật khẩu. Vui lòng thử lại sau.');
       setErrors({ oldPassword: errorMsg });
       toast.error(errorMsg);
     } finally {
@@ -102,28 +112,40 @@ export function ChangePasswordDialog({ open, onOpenChange, token }: ChangePasswo
     setErrors({});
     try {
       await authService.verifyOtp(otp, newPassword);
-      toast.success('Đổi mật khẩu thành công. Hệ thống sẽ đăng xuất tài khoản.');
-      
-      // Auto logout and redirect to login page
-      setTimeout(() => {
-        signOut({ callbackUrl: '/login' });
-      }, 1500);
+
+      // Backend thu hồi refresh token cũ khi đổi mật khẩu. Đăng nhập lại ngầm bằng
+      // mật khẩu mới để làm mới phiên, giúp người dùng tiếp tục làm việc mà KHÔNG
+      // bị đá ra trang /login.
+      await signIn('credentials', { redirect: false, email, password: newPassword });
+
+      toast.success('Đổi mật khẩu thành công.');
+      onOpenChange(false);
     } catch (err) {
       console.error(err);
-      let errorMsg = 'Có lỗi xảy ra khi cập nhật mật khẩu. Vui lòng thử lại sau.';
+      // Lỗi có errorCode → hiện inline dưới đúng ô nhập gây lỗi
+      if (err instanceof ApiError) {
+        switch (err.errorCode) {
+          case 'OTP_INVALID':
+            setErrors({ otp: 'Mã OTP không chính xác' });
+            return;
+          case 'OTP_EXPIRED':
+            setErrors({ otp: 'Mã OTP đã hết hạn' });
+            return;
+          case 'SAME_PASSWORD':
+            setErrors({ newPassword: 'Mật khẩu mới không được trùng với mật khẩu cũ' });
+            return;
+        }
+      }
+      // Fallback theo message tiếng Anh (legacy — phản hồi chưa có errorCode)
       const errorStr = err instanceof Error ? err.message : String(err);
-
       if (errorStr.includes('OTP not correct') || errorStr.includes('OTP not corret')) {
-        errorMsg = 'Mã OTP không chính xác';
-        setErrors({ otp: errorMsg });
+        setErrors({ otp: 'Mã OTP không chính xác' });
       } else if (errorStr.includes('OTP has expired')) {
-        errorMsg = 'Mã OTP đã hết hạn';
-        setErrors({ otp: errorMsg });
+        setErrors({ otp: 'Mã OTP đã hết hạn' });
       } else if (errorStr.includes('New password and old password can not be the same')) {
-        errorMsg = 'Mật khẩu mới không được trùng với mật khẩu cũ';
-        setErrors({ newPassword: errorMsg });
+        setErrors({ newPassword: 'Mật khẩu mới không được trùng với mật khẩu cũ' });
       } else {
-        toast.error(errorMsg);
+        toast.error(toViError(err, 'Có lỗi xảy ra khi cập nhật mật khẩu. Vui lòng thử lại sau.'));
       }
     } finally {
       setLoading(false);
@@ -232,8 +254,12 @@ export function ChangePasswordDialog({ open, onOpenChange, token }: ChangePasswo
                   className="pl-9 h-11"
                 />
               </div>
-              {errors.confirmPassword && (
+              {errors.confirmPassword ? (
                 <p className="text-xs text-destructive font-medium">{errors.confirmPassword}</p>
+              ) : (
+                confirmPassword.length > 0 && newPassword !== confirmPassword && (
+                  <p className="text-xs text-destructive font-medium">Xác nhận mật khẩu mới không khớp</p>
+                )
               )}
             </div>
           </form>
@@ -270,7 +296,7 @@ export function ChangePasswordDialog({ open, onOpenChange, token }: ChangePasswo
             <Button
               type="submit"
               form="reset-pw-form"
-              disabled={loading || otp.length !== 6 || newPassword.length < 6 || !confirmPassword}
+              disabled={loading || otp.length !== 6 || newPassword.length < 6 || !confirmPassword || newPassword !== confirmPassword}
               className="cursor-pointer"
             >
               {loading ? (

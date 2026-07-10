@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { ErrorCode } from '@common/error-codes.js';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -28,6 +29,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     let message: string | string[];
     let error: string | undefined;
+    let errorCode: string | undefined;
     let stack: string | undefined;
 
     // Handle NestJS HttpExceptions (expected domain/validation/auth errors)
@@ -41,21 +43,28 @@ export class HttpExceptionFilter implements ExceptionFilter {
       ) {
         message = (exceptionResponse as any).message || exception.message;
         error = (exceptionResponse as any).error;
+        errorCode = (exceptionResponse as any).errorCode ?? undefined;
       } else {
         message = exception.message;
       }
+      // class-validator errors carry a string[] message and no explicit code
+      if (!errorCode && Array.isArray(message)) {
+        errorCode = ErrorCode.VALIDATION_ERROR;
+      }
       stack = exception.stack;
-    } 
+    }
     // Handle standard Error instances (internal errors, database failures, etc.)
     else if (exception instanceof Error) {
       // Mask internal errors in production, but expose exact message in development
       message = isDevelopment ? exception.message : 'Internal server error';
       error = exception.name;
+      errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
       stack = exception.stack;
-    } 
+    }
     // Fallback for any unknown exception types
     else {
       message = 'Internal server error';
+      errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
     }
 
     // Log the error server-side for troubleshooting
@@ -84,6 +93,11 @@ export class HttpExceptionFilter implements ExceptionFilter {
     // Add optional error field if available (e.g. "Bad Request")
     if (error) {
       errorResponse.error = error;
+    }
+
+    // Add machine-readable error code when the throw site provided one
+    if (errorCode) {
+      errorResponse.errorCode = errorCode;
     }
 
     // Expose stack trace details ONLY in development environment

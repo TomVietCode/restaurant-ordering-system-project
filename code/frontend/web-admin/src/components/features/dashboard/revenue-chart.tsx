@@ -82,33 +82,54 @@ function CustomTooltip({
 // Component
 // ──────────────────────────────────────────────────────────────
 
-type TrendMode = 'week' | 'month';
+type TrendMode = 'day' | 'month';
 
 interface RevenueChartProps {
+  /** Currently selected date-range preset (e.g. 'today', '7d', '30d', 'this-month'). */
+  preset: string;
+  /** Range start "YYYY-MM-DD" — drives the month trend span. */
   dateStart: string;
+  /** Range end "YYYY-MM-DD" — anchors the daily trend and closes the month span. */
+  dateEnd: string;
   token: string | null;
 }
 
-export function RevenueChart({ dateStart }: RevenueChartProps) {
+/**
+ * Which trend tab a preset opens on: short ranges show the daily ("Ngày") view,
+ * month-scale ranges show the weekly ("Tháng") view.
+ */
+function defaultModeForPreset(preset: string): TrendMode {
+  return preset === 'today' || preset === '7d' ? 'day' : 'month';
+}
+
+export function RevenueChart({ preset, dateStart, dateEnd }: RevenueChartProps) {
   const { data: session } = useSession();
   const token = session?.accessToken ?? null;
 
-  const [mode, setMode] = useState<TrendMode>('week');
+  const [mode, setMode] = useState<TrendMode>(() => defaultModeForPreset(preset));
   const [data, setData] = useState<ChartDatum[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Snap the tab to the preset's default whenever the preset changes, while
+  // still allowing a manual tab toggle within a given preset. (React's
+  // "adjust state during render" pattern — no effect needed.)
+  const [prevPreset, setPrevPreset] = useState(preset);
+  if (preset !== prevPreset) {
+    setPrevPreset(preset);
+    setMode(defaultModeForPreset(preset));
+  }
 
   const fetchData = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
-      if (mode === 'week') {
-        // Daily revenue for the week containing dateStart
-        const items = await reportService.getWeekTrend(dateStart, token);
+      if (mode === 'day') {
+        // Daily revenue for the 7 days ending on the range end (incl. today).
+        const items = await reportService.getDailyTrend(dateEnd, token);
         setData(items.map((i) => ({ label: shortDate(i.date), revenue: i.revenue })));
       } else {
-        // Weekly aggregates for the month containing dateStart
-        const d = new Date(dateStart);
-        const items = await reportService.getMonthTrend(d.getFullYear(), d.getMonth() + 1, token);
+        // Weekly aggregates spanning the selected range.
+        const items = await reportService.getMonthTrend(dateStart, dateEnd, token);
         setData(
           items.map((i) => ({
             label: `${shortDate(i.weekStart)} – ${shortDate(i.weekEnd)}`,
@@ -121,9 +142,9 @@ export function RevenueChart({ dateStart }: RevenueChartProps) {
     } finally {
       setLoading(false);
     }
-  }, [mode, dateStart, token]);
+  }, [mode, dateStart, dateEnd, token]);
 
-  // Re-fetch whenever mode, dateStart, or token changes
+  // Re-fetch whenever mode, date range, or token changes
   useEffect(() => {
     Promise.resolve().then(() => fetchData());
   }, [fetchData]);
@@ -133,9 +154,9 @@ export function RevenueChart({ dateStart }: RevenueChartProps) {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between gap-4">
           <CardTitle className="text-base font-semibold">Xu hướng doanh thu</CardTitle>
-          {/* Tab-style toggle for week / month */}
+          {/* Tab-style toggle for day / month */}
           <div className="flex gap-1 rounded-lg bg-muted p-0.5 shrink-0">
-            {(['week', 'month'] as const).map((m) => (
+            {(['day', 'month'] as const).map((m) => (
               <button
                 key={m}
                 id={`trend-tab-${m}`}
@@ -146,7 +167,7 @@ export function RevenueChart({ dateStart }: RevenueChartProps) {
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {m === 'week' ? 'Tuần' : 'Tháng'}
+                {m === 'day' ? 'Ngày' : 'Tháng'}
               </button>
             ))}
           </div>

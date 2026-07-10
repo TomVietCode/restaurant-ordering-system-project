@@ -28,9 +28,17 @@ type Options = Omit<RequestInit, 'body'> & {
   body?: unknown;
 };
 
-/** Lỗi API có kèm HTTP status — để chỗ gọi phân biệt 401 (hết phiên/bị khóa) với lỗi khác. */
+/**
+ * Lỗi API có kèm HTTP status — để chỗ gọi phân biệt 401 (hết phiên/bị khóa) với lỗi khác.
+ * `errorCode` là mã lỗi ổn định từ backend (ErrorCode enum) — dùng để dịch sang
+ * tiếng Việt qua ERROR_CODE_MAP trong lib/errors.ts; có thể undefined với lỗi cũ.
+ */
 export class ApiError extends Error {
-  constructor(message: string, public readonly status: number) {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly errorCode?: string,
+  ) {
     super(message);
     this.name = 'ApiError';
   }
@@ -53,10 +61,12 @@ async function request<T>(path: string, options: Options = {}): Promise<T> {
 
   if (!res.ok) {
     let message = res.statusText;
+    let errorCode: string | undefined;
     try {
-      const data = (await res.json()) as { message?: string | string[] };
+      const data = (await res.json()) as { message?: string | string[]; errorCode?: string };
       if (Array.isArray(data.message)) message = data.message.join(', ');
       else if (data.message) message = data.message;
+      errorCode = data.errorCode;
     } catch {
       // body không phải JSON hợp lệ — giữ statusText
     }
@@ -65,9 +75,11 @@ async function request<T>(path: string, options: Options = {}): Promise<T> {
     // (accessToken được auto-refresh nên 401 giữa phiên gần như chắc chắn là bị khóa/thu hồi.)
     if (res.status === 401 && typeof window !== 'undefined') {
       const { signOut } = await import('next-auth/react');
-      void signOut({ callbackUrl: '/login?error=locked' });
+      void signOut({ redirect: false }).then(() => {
+        window.location.href = '/login?error=locked';
+      });
     }
-    throw new ApiError(message, res.status);
+    throw new ApiError(message, res.status, errorCode);
   }
   // 204 No Content → không có body để parse.
   return res.status === 204 ? (undefined as T) : (res.json() as Promise<T>);

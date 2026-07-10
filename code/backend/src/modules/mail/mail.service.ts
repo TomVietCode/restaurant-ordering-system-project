@@ -8,12 +8,12 @@ export class MailService {
   async sendOtp(email: string, otp: string): Promise<void> {
     await this.mailerService.sendMail({
       to: email,
-      subject: 'Password Verification OTP',
+      subject: 'Xác thực OTP',
       html: `
-        <h2>Password Verification</h2>
-        <p>Your OTP is:</p>
+        <h2>Xác thực OTP</h2>
+        <p>Mã OTP của bạn là:</p>
         <h1>${otp}</h1>
-        <p>This code will expire in 1 minutes.</p>
+        <p>Mã OTP này sẽ hết hạn sau 1 phút.</p>
       `,
     });
     

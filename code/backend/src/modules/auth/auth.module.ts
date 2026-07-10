@@ -37,6 +37,6 @@ import { MailModule } from '@modules/mail/mail.module.js';
       useClass: ResetPasswordTokenRepository,
     },
   ],
-  exports: [AuthService],
+  exports: [AuthService, REFRESH_TOKEN_REPOSITORY_TOKEN],
 })
 export class AuthModule {}

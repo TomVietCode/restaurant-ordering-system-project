@@ -19,7 +19,7 @@ const NAV = [
     { label: 'Bảng danh mục',         href: ROUTES.list,    icon: List   },
   { label: 'Quản lý menu',      href: ROUTES.menu,      icon: UtensilsCrossed },
   { label: 'Bàn & mã QR',       href: ROUTES.tables,    icon: QrCode          },
-  { label: 'Nhân viên',         href: ROUTES.staff,     icon: Users           },
+  { label: 'Quản lý tài khoản',         href: ROUTES.staff,     icon: Users           },
 ];
 
 export function AppSidebar() {

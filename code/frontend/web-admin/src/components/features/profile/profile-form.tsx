@@ -239,7 +239,7 @@ export function ProfileForm({ initialProfile, token }: ProfileFormProps) {
         </Card>
 
       </div>
-      <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} token={token} />
+      <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} token={token} email={profile.email} />
     </div>
   );
 }

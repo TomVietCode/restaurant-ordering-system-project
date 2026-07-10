@@ -105,7 +105,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5 lg:flex-1 lg:min-h-0">
         {/* Chart takes 3/5 of the width on large screens */}
         <div className="lg:col-span-3 lg:h-full lg:flex lg:flex-col">
-          <RevenueChart dateStart={start} token={token} />
+          <RevenueChart preset={preset} dateStart={start} dateEnd={end} token={token} />
         </div>
         {/* Top sellers table takes 2/5 */}
         <div className="lg:col-span-2 lg:h-full lg:flex lg:flex-col">

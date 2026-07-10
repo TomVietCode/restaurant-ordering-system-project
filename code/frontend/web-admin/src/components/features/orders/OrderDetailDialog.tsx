@@ -3,6 +3,7 @@
 import { Clock, UtensilsCrossed, Wallet, CalendarCheck } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ORDER_STATUS_LABEL, ORDER_STATUS_CLASS, type Order } from '@/types/order';
+import { formatVnDateTime } from '@/lib/datetime';
 
 interface Props {
   order: Order | null;
@@ -12,19 +13,6 @@ interface Props {
 }
 
 const fmtMoney = (n: number) => new Intl.NumberFormat('vi-VN').format(n) + ' đ';
-
-// "HH:mm | dd/MM/yyyy" — tách giờ và ngày bằng "|" cho dễ đọc, tránh nhầm lẫn.
-const TZ = 'Asia/Ho_Chi_Minh';
-const fmtDateTime = (d: Date) =>
-  `${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: TZ })} | ${d.toLocaleDateString('vi-VN', { timeZone: TZ })}`;
-const fmtDate = (s: string) => fmtDateTime(new Date(s));
-
-// ⚠️ Backend trả `Order.createdAt` BỊ LỆCH -7h so với UTC thật (cùng lỗi timezone
-// tầng server/driver Postgres đã gặp ở `Item.createdAt`, không được phép sửa BE).
-// `paidAt` KHÔNG bị lỗi này — chỉ bù giờ cho createdAt.
-const SERVER_TZ_SHIFT_MS = 7 * 60 * 60 * 1000;
-const fmtCreatedAt = (s: string) =>
-  fmtDateTime(new Date(new Date(s).getTime() + SERVER_TZ_SHIFT_MS));
 
 const PAYMENT_METHOD_LABEL: Record<string, string> = {
   CASH: 'Tiền mặt',
@@ -64,7 +52,7 @@ export function OrderDetailDialog({ order, loading, open, onOpenChange }: Props)
                 <p className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
                   <Clock className="size-3.5" /> Thời gian đặt
                 </p>
-                <p className="text-sm font-medium text-foreground">{fmtCreatedAt(order.createdAt)}</p>
+                <p className="text-sm font-medium text-foreground">{formatVnDateTime(order.createdAt)}</p>
               </div>
             </div>
 
@@ -128,7 +116,7 @@ export function OrderDetailDialog({ order, loading, open, onOpenChange }: Props)
                     <p className="text-xs text-muted-foreground">Thời gian thanh toán</p>
                     <p className="flex items-center justify-end gap-1 text-sm font-medium text-foreground">
                       <CalendarCheck className="size-3.5" />
-                      {order.paidAt ? fmtDate(order.paidAt) : '—'}
+                      {order.paidAt ? formatVnDateTime(order.paidAt) : '—'}
                     </p>
                   </div>
                 </div>

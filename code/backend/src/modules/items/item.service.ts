@@ -7,6 +7,7 @@ import { CreateItemDto, ToggleAvailabilityDto, UpdateItemDto } from '@modules/it
 import { Item } from '@modules/items/entities/item.entity.js';
 import type { IRealtimeService } from '@modules/realtime/realtime.service.interface.js';
 import { ITEM_REPOSITORY_TOKEN, REALTIME_SERVICE_TOKEN } from '@common/constants';
+import { ErrorCode } from '@common/error-codes.js';
 
 @Injectable()
 export class ItemsService {
@@ -51,7 +52,10 @@ export class ItemsService {
   async findById(id: number): Promise<Item> {
     const item = await this.itemRepository.findById(id);
     if (!item) {
-      throw new NotFoundException('Item not found');
+      throw new NotFoundException({
+        message: 'Item not found',
+        errorCode: ErrorCode.ITEM_NOT_FOUND,
+      });
     }
     return item;
   }
